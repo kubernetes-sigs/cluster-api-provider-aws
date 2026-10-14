@@ -26,6 +26,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
@@ -36,7 +37,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/wait"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
+	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/v2/util/conditions"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
@@ -60,6 +63,12 @@ func (s *Service) reconcileNatGateways() error {
 			infrav1.NatGatewaysReconciliationFailedReason,
 			clusterv1beta1.ConditionSeverityWarning,
 			"No private subnets available, skipping NAT gateways")
+		infrautilconditions.SetV1Beta2(s.scope.InfraCluster(), metav1.Condition{
+			Type:    infrav1.AWSClusterNatGatewaysReadyV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  infrav1.AWSClusterNatGatewaysReconciliationFailedV1Beta2Reason,
+			Message: "No private subnets available, skipping NAT gateways",
+		})
 		return nil
 	} else if len(s.scope.Subnets().FilterPublic().FilterNonCni()) == 0 {
 		s.scope.Debug("No public subnets available. Cannot create NAT gateways for private subnets, this might be a configuration error.")
@@ -69,6 +78,12 @@ func (s *Service) reconcileNatGateways() error {
 			infrav1.NatGatewaysReconciliationFailedReason,
 			clusterv1beta1.ConditionSeverityWarning,
 			"No public subnets available. Cannot create NAT gateways for private subnets, this might be a configuration error.")
+		infrautilconditions.SetV1Beta2(s.scope.InfraCluster(), metav1.Condition{
+			Type:    infrav1.AWSClusterNatGatewaysReadyV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  infrav1.AWSClusterNatGatewaysReconciliationFailedV1Beta2Reason,
+			Message: "No public subnets available. Cannot create NAT gateways for private subnets, this might be a configuration error.",
+		})
 		return nil
 	}
 
@@ -82,6 +97,11 @@ func (s *Service) reconcileNatGateways() error {
 		// set NatGatewayCreationStarted if the condition has never been set before
 		if !v1beta1conditions.Has(s.scope.InfraCluster(), infrav1.NatGatewaysReadyCondition) {
 			v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.NatGatewaysReadyCondition, infrav1.NatGatewaysCreationStartedReason, clusterv1beta1.ConditionSeverityInfo, "")
+			infrautilconditions.SetV1Beta2(s.scope.InfraCluster(), metav1.Condition{
+				Type:   infrav1.AWSClusterNatGatewaysReadyV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: infrav1.AWSClusterNatGatewaysCreationStartedV1Beta2Reason,
+			})
 			if err := s.scope.PatchObject(); err != nil {
 				return errors.Wrap(err, "failed to patch conditions")
 			}
@@ -101,6 +121,11 @@ func (s *Service) reconcileNatGateways() error {
 			return err
 		}
 		v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1.NatGatewaysReadyCondition)
+		infrautilconditions.SetV1Beta2(s.scope.InfraCluster(), metav1.Condition{
+			Type:   infrav1.AWSClusterNatGatewaysReadyV1Beta2Condition,
+			Status: metav1.ConditionTrue,
+			Reason: clusterv1.ReadyReason,
+		})
 	}
 
 	return nil

@@ -17,14 +17,22 @@ limitations under the License.
 package asg
 
 import (
+	"context"
+	"errors"
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/mock_services"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/util/conditions"
+	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
 
 func TestLifecycleHookNeedsUpdate(t *testing.T) {
@@ -236,4 +244,30 @@ func TestLifecycleHookNeedsUpdate(t *testing.T) {
 			g.Expect(lifecycleHookNeedsUpdate(&existing, &expected)).To(Equal(tt.wantUpdate))
 		})
 	}
+}
+
+func TestLifecycleHookDualWrite(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.Background()
+	mockCtrl := gomock.NewController(t)
+	service := mock_services.NewMockASGInterface(mockCtrl)
+	pool := &clusterv1.MachinePool{ObjectMeta: metav1.ObjectMeta{Generation: 3}}
+	hook := &expinfrav1.AWSLifecycleHook{Name: "hook"}
+	failure := errors.New("creation failed")
+	service.EXPECT().CreateLifecycleHook(ctx, "asg", hook).Return(failure)
+	g.Expect(reconcileLifecycleHook(ctx, service, "asg", hook, nil, pool, logger.FromContext(ctx))).To(MatchError(failure))
+	legacy := deprecatedv1beta1conditions.Get(pool, clusterv1.ConditionType(expinfrav1.LifecycleHookReadyCondition))
+	g.Expect(legacy).ToNot(BeNil())
+	standard := conditions.Get(pool, expinfrav1.AWSMachinePoolLifecycleHookReadyV1Beta2Condition)
+	g.Expect(standard).ToNot(BeNil())
+	g.Expect(standard.Status).To(Equal(metav1.ConditionFalse))
+	g.Expect(standard.Reason).To(Equal(expinfrav1.AWSMachinePoolLifecycleHookCreationFailedV1Beta2Reason))
+	g.Expect(standard.Message).To(Equal(legacy.Message))
+	g.Expect(standard.ObservedGeneration).To(Equal(int64(3)))
+
+	// Observing the desired hook clears both failure conditions.
+	g.Expect(reconcileLifecycleHook(ctx, service, "asg", hook, []*expinfrav1.AWSLifecycleHook{hook}, pool, logger.FromContext(ctx))).To(Succeed())
+	g.Expect(deprecatedv1beta1conditions.IsTrue(pool, clusterv1.ConditionType(expinfrav1.LifecycleHookReadyCondition))).To(BeTrue())
+	g.Expect(conditions.IsTrue(pool, expinfrav1.AWSMachinePoolLifecycleHookReadyV1Beta2Condition)).To(BeTrue())
+	g.Expect(conditions.Get(pool, expinfrav1.AWSMachinePoolLifecycleHookReadyV1Beta2Condition).Message).To(BeEmpty())
 }

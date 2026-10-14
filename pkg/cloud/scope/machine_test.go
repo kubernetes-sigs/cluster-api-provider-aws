@@ -17,9 +17,11 @@ limitations under the License.
 package scope
 
 import (
+	"context"
 	"encoding/base64"
 	"testing"
 
+	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -28,7 +30,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
 func setupScheme() (*runtime.Scheme, error) {
@@ -339,5 +345,47 @@ func TestSetProviderID(t *testing.T) {
 	expectedProviderID = "aws:////test-id"
 	if providerID != expectedProviderID {
 		t.Fatalf("Expected providerID %s, got %s", expectedProviderID, providerID)
+	}
+}
+
+func TestMachineScopeStandardReady(t *testing.T) {
+	for _, controlPlane := range []bool{false, true} {
+		name := "worker"
+		if controlPlane {
+			name = "control plane"
+		}
+		t.Run(name, func(t *testing.T) {
+			g := NewWithT(t)
+			ctx := context.Background()
+			scheme := runtime.NewScheme()
+			g.Expect(infrav1.AddToScheme(scheme)).To(Succeed())
+			obj := &infrav1.AWSMachine{ObjectMeta: metav1.ObjectMeta{Name: "machine", Namespace: "default"}}
+			owner := &clusterv1.Machine{}
+			if controlPlane {
+				owner.Labels = map[string]string{clusterv1.MachineControlPlaneLabel: ""}
+			}
+			c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(obj).WithObjects(obj).Build()
+			ph, err := v1beta1patch.NewHelper(obj, c)
+			g.Expect(err).ToNot(HaveOccurred())
+			s := &MachineScope{AWSMachine: obj, Machine: owner, patchHelper: ph}
+			for _, typ := range []string{infrav1.AWSMachineInstanceReadyV1Beta2Condition, infrav1.AWSMachineSecurityGroupsReadyV1Beta2Condition} {
+				v1beta1conditions.MarkTrue(obj, clusterv1beta1.ConditionType(typ))
+				conditions.Set(obj, metav1.Condition{Type: typ, Status: metav1.ConditionTrue, Reason: clusterv1.ReadyReason})
+			}
+			g.Expect(s.PatchObject()).To(Succeed())
+			stored := &infrav1.AWSMachine{}
+			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(obj), stored)).To(Succeed())
+			want := metav1.ConditionTrue
+			if controlPlane {
+				want = metav1.ConditionUnknown
+			}
+			g.Expect(conditions.Get(stored, infrav1.AWSMachineReadyV1Beta2Condition).Status).To(Equal(want))
+			if controlPlane {
+				conditions.Set(obj, metav1.Condition{Type: infrav1.AWSMachineELBAttachedV1Beta2Condition, Status: metav1.ConditionTrue, Reason: clusterv1.ReadyReason})
+				v1beta1conditions.MarkTrue(obj, infrav1.ELBAttachedCondition)
+				g.Expect(s.PatchObject()).To(Succeed())
+				g.Expect(conditions.Get(obj, infrav1.AWSMachineReadyV1Beta2Condition).Status).To(Equal(metav1.ConditionTrue))
+			}
+		})
 	}
 }

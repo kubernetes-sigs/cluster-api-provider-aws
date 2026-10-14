@@ -14,9 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// This is a copy of the paused helpers from cluster-api, without the
-// v1beta2conditions requirement. Once the v1beta2conditions migration is
-// complete, we will want to use the upstream package.
+// This is a copy of the paused helpers from cluster-api which supports both
+// legacy-only resources and resources transitioning to standard conditions.
 
 // Package paused implements paused helper functions.
 package paused
@@ -27,16 +26,19 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 
+	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/v2/util/conditions"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 )
 
@@ -50,13 +52,25 @@ type ConditionSetter interface {
 func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *clusterv1.Cluster, obj ConditionSetter) (isPaused bool, conditionChanged bool, err error) {
 	oldCondition := v1beta1conditions.Get(obj, clusterv1beta1.PausedV1Beta2Condition)
 	newCondition := pausedCondition(c.Scheme(), cluster, obj, string(clusterv1beta1.PausedV1Beta2Condition))
+	standardCondition := metav1.Condition{
+		Type:    clusterv1.PausedCondition,
+		Status:  metav1.ConditionStatus(newCondition.Status),
+		Reason:  newCondition.Reason,
+		Message: newCondition.Message,
+	}
+	standardConditionUnchanged := true
+	if target, ok := obj.(conditions.Setter); ok {
+		old := conditions.Get(target, standardCondition.Type)
+		standardConditionUnchanged = old != nil && old.Status == standardCondition.Status &&
+			old.Reason == standardCondition.Reason && old.Message == standardCondition.Message
+	}
 
 	isPaused = newCondition.Status == corev1.ConditionTrue
 
 	log := ctrl.LoggerFrom(ctx)
 
 	// Return early if the paused condition did not change.
-	if oldCondition != nil && v1beta1conditions.HasSameState(oldCondition, &newCondition) {
+	if oldCondition != nil && v1beta1conditions.HasSameState(oldCondition, &newCondition) && standardConditionUnchanged {
 		if isPaused {
 			log.V(6).Info("Reconciliation is paused for this object", "reason", newCondition.Message)
 		}
@@ -75,10 +89,11 @@ func EnsurePausedCondition(ctx context.Context, c client.Client, cluster *cluste
 	}
 
 	v1beta1conditions.Set(obj, &newCondition)
+	infrautilconditions.SetV1Beta2(obj, standardCondition)
 
 	if err := patchHelper.Patch(ctx, obj, v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 		clusterv1beta1.PausedV1Beta2Condition,
-	}}); err != nil {
+	}}, v1beta1patch.WithOwnedV1Beta2Conditions{Conditions: []string{clusterv1.PausedCondition}}); err != nil {
 		return isPaused, false, err
 	}
 

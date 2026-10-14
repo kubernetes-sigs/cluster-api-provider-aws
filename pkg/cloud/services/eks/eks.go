@@ -21,6 +21,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
@@ -28,7 +29,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 )
 
 // ReconcileControlPlane reconciles a EKS control plane.
@@ -38,36 +41,91 @@ func (s *Service) ReconcileControlPlane(ctx context.Context) error {
 	// Control Plane IAM Role
 	if err := s.reconcileControlPlaneIAMRole(ctx); err != nil {
 		v1beta1conditions.MarkFalse(s.scope.ControlPlane, ekscontrolplanev1.IAMControlPlaneRolesReadyCondition, ekscontrolplanev1.IAMControlPlaneRolesReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		conditions.Set(s.scope.ControlPlane, metav1.Condition{
+			Type:    ekscontrolplanev1.AWSManagedControlPlaneIAMControlPlaneRolesReadyV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  ekscontrolplanev1.AWSManagedControlPlaneIAMControlPlaneRolesReconciliationFailedV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return err
 	}
 	v1beta1conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.IAMControlPlaneRolesReadyCondition)
+	conditions.Set(s.scope.ControlPlane, metav1.Condition{
+		Type:   ekscontrolplanev1.AWSManagedControlPlaneIAMControlPlaneRolesReadyV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 
 	// EKS Cluster
 	if err := s.reconcileCluster(ctx); err != nil {
 		v1beta1conditions.MarkFalse(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneReadyCondition, ekscontrolplanev1.EKSControlPlaneReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		conditions.Set(s.scope.ControlPlane, metav1.Condition{
+			Type:    ekscontrolplanev1.AWSManagedControlPlaneEKSControlPlaneReadyV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  ekscontrolplanev1.AWSManagedControlPlaneEKSControlPlaneReconciliationFailedV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return err
 	}
 	v1beta1conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneReadyCondition)
+	conditions.Set(s.scope.ControlPlane, metav1.Condition{
+		Type:   ekscontrolplanev1.AWSManagedControlPlaneEKSControlPlaneReadyV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 
 	// EKS Addons
 	if err := s.reconcileAddons(ctx); err != nil {
 		v1beta1conditions.MarkFalse(s.scope.ControlPlane, ekscontrolplanev1.EKSAddonsConfiguredCondition, ekscontrolplanev1.EKSAddonsConfiguredFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		conditions.Set(s.scope.ControlPlane, metav1.Condition{
+			Type:    ekscontrolplanev1.AWSManagedControlPlaneEKSAddonsConfiguredV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  ekscontrolplanev1.AWSManagedControlPlaneEKSAddonsConfiguredFailedV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return errors.Wrap(err, "failed reconciling eks addons")
 	}
 	v1beta1conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSAddonsConfiguredCondition)
+	conditions.Set(s.scope.ControlPlane, metav1.Condition{
+		Type:   ekscontrolplanev1.AWSManagedControlPlaneEKSAddonsConfiguredV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 
 	// EKS Identity Provider
 	if err := s.reconcileIdentityProvider(ctx); err != nil {
 		v1beta1conditions.MarkFalse(s.scope.ControlPlane, ekscontrolplanev1.EKSIdentityProviderConfiguredCondition, ekscontrolplanev1.EKSIdentityProviderConfiguredFailedReason, clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+		conditions.Set(s.scope.ControlPlane, metav1.Condition{
+			Type:    ekscontrolplanev1.AWSManagedControlPlaneEKSIdentityProviderConfiguredV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  ekscontrolplanev1.AWSManagedControlPlaneEKSIdentityProviderConfiguredFailedV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return errors.Wrap(err, "failed reconciling eks identity provider")
 	}
 	v1beta1conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSIdentityProviderConfiguredCondition)
+	conditions.Set(s.scope.ControlPlane, metav1.Condition{
+		Type:   ekscontrolplanev1.AWSManagedControlPlaneEKSIdentityProviderConfiguredV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 
 	if err := s.reconcilePodIdentityAssociations(ctx); err != nil {
 		v1beta1conditions.MarkFalse(s.scope.ControlPlane, ekscontrolplanev1.EKSPodIdentityAssociationConfiguredCondition, ekscontrolplanev1.EKSPodIdentityAssociationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		conditions.Set(s.scope.ControlPlane, metav1.Condition{
+			Type:    ekscontrolplanev1.AWSManagedControlPlaneEKSPodIdentityAssociationConfiguredV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  ekscontrolplanev1.AWSManagedControlPlaneEKSPodIdentityAssociationConfigurationFailedV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return errors.Wrap(err, "failed reconciling eks pod identity associations")
 	}
 	v1beta1conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSPodIdentityAssociationConfiguredCondition)
+	conditions.Set(s.scope.ControlPlane, metav1.Condition{
+		Type:   ekscontrolplanev1.AWSManagedControlPlaneEKSPodIdentityAssociationConfiguredV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 
 	s.scope.Debug("Reconcile EKS control plane completed successfully")
 	return nil
@@ -109,9 +167,20 @@ func (s *NodegroupService) ReconcilePool(ctx context.Context) error {
 			"%s",
 			err.Error(),
 		)
+		conditions.Set(s.scope.ManagedMachinePool, metav1.Condition{
+			Type:    expinfrav1.AWSManagedMachinePoolIAMNodegroupRolesReadyV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  expinfrav1.AWSManagedMachinePoolIAMNodegroupRolesReconciliationFailedV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return err
 	}
 	v1beta1conditions.MarkTrue(s.scope.ManagedMachinePool, expinfrav1.IAMNodegroupRolesReadyCondition)
+	conditions.Set(s.scope.ManagedMachinePool, metav1.Condition{
+		Type:   expinfrav1.AWSManagedMachinePoolIAMNodegroupRolesReadyV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 
 	if err := s.reconcileNodegroup(ctx); err != nil {
 		v1beta1conditions.MarkFalse(
@@ -122,9 +191,20 @@ func (s *NodegroupService) ReconcilePool(ctx context.Context) error {
 			"%s",
 			err.Error(),
 		)
+		conditions.Set(s.scope.ManagedMachinePool, metav1.Condition{
+			Type:    expinfrav1.AWSManagedMachinePoolEKSNodegroupReadyV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  expinfrav1.AWSManagedMachinePoolEKSNodegroupReconciliationFailedV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return err
 	}
 	v1beta1conditions.MarkTrue(s.scope.ManagedMachinePool, expinfrav1.EKSNodegroupReadyCondition)
+	conditions.Set(s.scope.ManagedMachinePool, metav1.Condition{
+		Type:   expinfrav1.AWSManagedMachinePoolEKSNodegroupReadyV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 
 	return nil
 }
