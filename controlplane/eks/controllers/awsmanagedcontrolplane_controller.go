@@ -19,11 +19,13 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -52,11 +54,13 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/network"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/securitygroup"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/v2/util/conditions"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
@@ -287,6 +291,16 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		}
 
 		v1beta1conditions.SetSummary(managedScope.ControlPlane, v1beta1conditions.WithConditions(applicableConditions...), v1beta1conditions.WithStepCounter())
+		// Bastion reconciliation skips creation when there are no private subnets.
+		// Keep the legacy summary unchanged, but do not require the skipped standard condition.
+		if !scope.BastionRequired(managedScope.Bastion(), managedScope.Subnets()) {
+			applicableConditions = slices.DeleteFunc(applicableConditions, func(conditionType clusterv1beta1.ConditionType) bool {
+				return conditionType == infrav1.BastionHostReadyCondition
+			})
+		}
+		if err := infrautilconditions.SetV1Beta2Summary(managedScope.ControlPlane, applicableConditions...); err != nil && reterr == nil {
+			reterr = err
+		}
 
 		patchOpts := []v1beta1patch.Option{}
 		if reterr == nil {
@@ -347,11 +361,23 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 
 	if err := sgService.ReconcileSecurityGroups(); err != nil {
 		v1beta1conditions.MarkFalse(awsManagedControlPlane, infrav1.ClusterSecurityGroupsReadyCondition, infrav1.ClusterSecurityGroupReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		conditions.Set(awsManagedControlPlane, metav1.Condition{
+			Type:    infrav1.AWSClusterSecurityGroupsReadyV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  infrav1.AWSClusterSecurityGroupReconciliationFailedV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile general security groups for AWSManagedControlPlane %s/%s", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name)
 	}
 
 	if err := ec2Service.ReconcileBastion(); err != nil {
 		v1beta1conditions.MarkFalse(awsManagedControlPlane, infrav1.BastionHostReadyCondition, infrav1.BastionHostFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		conditions.Set(awsManagedControlPlane, metav1.Condition{
+			Type:    infrav1.AWSClusterBastionHostReadyV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  infrav1.AWSClusterBastionHostFailedV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile bastion host for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
 	}
 
@@ -361,6 +387,12 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 
 	if err := awsnodeService.ReconcileCNI(ctx); err != nil {
 		v1beta1conditions.MarkFalse(managedScope.InfraCluster(), infrav1.SecondaryCidrsReadyCondition, infrav1.SecondaryCidrReconciliationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		infrautilconditions.SetV1Beta2(managedScope.InfraCluster(), metav1.Condition{
+			Type:    infrav1.AWSClusterSecondaryCidrsReadyV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  infrav1.AWSClusterSecondaryCidrReconciliationFailedV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return reconcile.Result{}, fmt.Errorf("failed to reconcile control plane for AWSManagedControlPlane %s/%s: %w", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name, err)
 	}
 
@@ -377,9 +409,20 @@ func (r *AWSManagedControlPlaneReconciler) reconcileNormal(ctx context.Context, 
 	}
 	if err := authService.ReconcileIAMAuthenticator(ctx); err != nil {
 		v1beta1conditions.MarkFalse(awsManagedControlPlane, ekscontrolplanev1.IAMAuthenticatorConfiguredCondition, ekscontrolplanev1.IAMAuthenticatorConfigurationFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		conditions.Set(awsManagedControlPlane, metav1.Condition{
+			Type:    ekscontrolplanev1.AWSManagedControlPlaneIAMAuthenticatorConfiguredV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  ekscontrolplanev1.AWSManagedControlPlaneIAMAuthenticatorConfigurationFailedV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile aws-iam-authenticator config for AWSManagedControlPlane %s/%s", awsManagedControlPlane.Namespace, awsManagedControlPlane.Name)
 	}
 	v1beta1conditions.MarkTrue(awsManagedControlPlane, ekscontrolplanev1.IAMAuthenticatorConfiguredCondition)
+	conditions.Set(awsManagedControlPlane, metav1.Condition{
+		Type:   ekscontrolplanev1.AWSManagedControlPlaneIAMAuthenticatorConfiguredV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 
 	for _, subnet := range managedScope.Subnets().FilterPrivate() {
 		managedScope.SetFailureDomain(subnet.AvailabilityZone, clusterv1.FailureDomain{

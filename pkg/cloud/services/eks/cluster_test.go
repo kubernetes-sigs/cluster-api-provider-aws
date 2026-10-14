@@ -40,6 +40,8 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks/mock_eksiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/iamauth/mock_iamauth"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 )
 
 func TestMakeEKSEncryptionConfigs(t *testing.T) {
@@ -485,6 +487,12 @@ func TestReconcileClusterVersion(t *testing.T) {
 			g.Expect(err).To(BeNil())
 
 			err = s.reconcileClusterVersion(context.TODO(), cluster)
+			if v1beta1conditions.IsTrue(scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition) {
+				standard := conditions.Get(scope.ControlPlane, ekscontrolplanev1.AWSManagedControlPlaneEKSControlPlaneUpdatingV1Beta2Condition)
+				g.Expect(standard).ToNot(BeNil())
+				g.Expect(standard.Status).To(Equal(metav1.ConditionTrue))
+				g.Expect(standard.Reason).To(Equal("Updating"))
+			}
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 				return
@@ -602,6 +610,12 @@ func TestReconcileAccessConfig(t *testing.T) {
 			g.Expect(err).To(BeNil())
 
 			err = s.reconcileAccessConfig(context.TODO(), cluster.AccessConfig)
+			if v1beta1conditions.IsTrue(scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition) {
+				standard := conditions.Get(scope.ControlPlane, ekscontrolplanev1.AWSManagedControlPlaneEKSControlPlaneUpdatingV1Beta2Condition)
+				g.Expect(standard).ToNot(BeNil())
+				g.Expect(standard.Status).To(Equal(metav1.ConditionTrue))
+				g.Expect(standard.Reason).To(Equal("Updating"))
+			}
 			if tc.expectError {
 				g.Expect(err).To(HaveOccurred())
 				return

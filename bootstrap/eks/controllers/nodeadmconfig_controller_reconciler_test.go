@@ -32,6 +32,8 @@ import (
 	eksbootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 )
 
 func TestNodeadmConfigReconciler_CreateSecret(t *testing.T) {
@@ -70,6 +72,8 @@ func TestNodeadmConfigReconciler_CreateSecret(t *testing.T) {
 
 	g.Expect(string(secret.Data["value"])).To(ContainSubstring("apiVersion: node.eks.aws/v1alpha1"))
 	g.Expect(string(secret.Data["value"])).To(ContainSubstring("apiServerEndpoint: https://9.9.9.9"))
+	g.Expect(conditions.IsTrue(cfg, eksbootstrapv1.NodeadmConfigDataSecretAvailableV1Beta2Condition)).To(BeTrue())
+	g.Expect(v1beta1conditions.IsTrue(cfg, eksbootstrapv1.DataSecretAvailableCondition)).To(BeTrue())
 }
 
 func TestNodeadmConfigReconciler_UpdateSecret_ForMachinePool(t *testing.T) {
