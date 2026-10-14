@@ -45,6 +45,8 @@ func TestValidateManagementClusterFlags(t *testing.T) {
 			teardown:  true,
 			wantErr:   true,
 		},
+		{name: "teardown self-hosted management cluster", teardown: true},
+		{name: "existing cluster and teardown", useExisting: true, teardown: true, wantErr: true},
 	}
 
 	for _, tt := range tests {
@@ -105,9 +107,10 @@ func TestPersistSelfHostedManagementClusterKubeconfig(t *testing.T) {
 
 func TestRemoveFileIfExists(t *testing.T) {
 	tests := []struct {
-		name    string
-		setup   func() string // returns file path to test
-		wantErr bool
+		name        string
+		setup       func() string // returns file path to test
+		wantErr     bool
+		wantRemoved bool
 	}{
 		{
 			name: "remove existing file",
@@ -119,7 +122,8 @@ func TestRemoveFileIfExists(t *testing.T) {
 				}
 				return filePath
 			},
-			wantErr: false,
+			wantErr:     false,
+			wantRemoved: true,
 		},
 		{
 			name: "missing path returns nil",
@@ -137,9 +141,11 @@ func TestRemoveFileIfExists(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("removeFileIfExists() error = %v, wantErr %t", err, tt.wantErr)
 			}
-			// Verify file is actually gone
-			if _, err := os.Stat(path); err == nil {
-				t.Fatalf("file still exists after removeFileIfExists()")
+			if tt.wantRemoved {
+				// Verify file is actually gone
+				if _, err := os.Stat(path); err == nil {
+					t.Fatalf("file still exists after removeFileIfExists()")
+				}
 			}
 		})
 	}

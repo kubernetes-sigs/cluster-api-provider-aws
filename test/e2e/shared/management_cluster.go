@@ -28,6 +28,9 @@ func validateManagementClusterFlags(useExistingCluster, provision, teardown bool
 	if useExistingCluster && provision {
 		return errors.New("use-existing-cluster and provision-self-hosted-management-cluster cannot be enabled together")
 	}
+	if useExistingCluster && teardown {
+		return errors.New("use-existing-cluster and teardown-self-hosted-management-cluster cannot be enabled together")
+	}
 	if provision && teardown {
 		return errors.New("provision-self-hosted-management-cluster and teardown-self-hosted-management-cluster cannot be enabled together")
 	}
