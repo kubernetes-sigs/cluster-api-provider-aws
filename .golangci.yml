@@ -58,10 +58,8 @@ linters:
               desc: ioutil is deprecated starting with Go 1.16
         api-imports:
           files:
-            - '**/api/v1beta1/*.go'
-            - '**/api/v1beta1/**/*.go'
-            - '**/api/v1beta2/*.go'
-            - '**/api/v1beta2/**/*.go'
+            - '**/api/**/*.go'
+            - '!**/cmd/clusterawsadm/api/**/*.go'
           list-mode: strict
           allow:
             - $gostd
