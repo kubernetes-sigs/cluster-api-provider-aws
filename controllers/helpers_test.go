@@ -178,7 +178,7 @@ func getAWSCluster(name, namespace string) infrav1.AWSCluster {
 }
 
 func getClusterScope(awsCluster infrav1.AWSCluster) (*scope.ClusterScope, error) {
-	return scope.NewClusterScope(
+	clusterScope, err := scope.NewClusterScope(
 		scope.ClusterScopeParams{
 			Client: testEnv.Client,
 			Cluster: &clusterv1.Cluster{
@@ -191,6 +191,10 @@ func getClusterScope(awsCluster infrav1.AWSCluster) (*scope.ClusterScope, error)
 			MaxWaitActiveUpdateDelete:    maxWaitActiveUpdateDelete,
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
+	return clusterScope, clusterScope.InitSession()
 }
 
 func mockedCreateLBCalls(t *testing.T, m *mocks.MockELBAPIMockRecorder, withHealthCheckUpdate bool) {

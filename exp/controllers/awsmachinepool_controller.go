@@ -19,6 +19,7 @@ package controllers
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
 	"time"
 
@@ -760,10 +761,12 @@ func machinePoolToInfrastructureMapFunc(gvk schema.GroupVersionKind) handler.Map
 func (r *AWSMachinePoolReconciler) reconcileLifecycleHooks(ctx context.Context, machinePoolScope *scope.MachinePoolScope, asgsvc services.ASGInterface) error {
 	asgName := machinePoolScope.Name()
 
-	return asg.ReconcileLifecycleHooks(ctx, asgsvc, asgName, machinePoolScope.GetLifecycleHooks(), map[string]bool{}, machinePoolScope.GetMachinePool(), machinePoolScope)
+	reconcileErr := asg.ReconcileLifecycleHooks(ctx, asgsvc, asgName, machinePoolScope.GetLifecycleHooks(), map[string]bool{}, machinePoolScope.GetMachinePool(), machinePoolScope)
+	patchErr := machinePoolScope.PatchCAPIMachinePoolObject(ctx)
+	return stderrors.Join(reconcileErr, patchErr)
 }
 
-func (r *AWSMachinePoolReconciler) getInfraCluster(ctx context.Context, log *logger.Logger, cluster *clusterv1.Cluster, awsMachinePool *expinfrav1.AWSMachinePool) (scope.EC2Scope, scope.S3Scope, error) {
+func (r *AWSMachinePoolReconciler) getInfraCluster(ctx context.Context, log *logger.Logger, cluster *clusterv1.Cluster, awsMachinePool *expinfrav1.AWSMachinePool) (_ scope.EC2Scope, _ scope.S3Scope, reterr error) {
 	var clusterScope *scope.ClusterScope
 	var managedControlPlaneScope *scope.ManagedControlPlaneScope
 	var err error
@@ -777,7 +780,7 @@ func (r *AWSMachinePoolReconciler) getInfraCluster(ctx context.Context, log *log
 
 		if err := r.Get(ctx, controlPlaneName, controlPlane); err != nil {
 			// AWSManagedControlPlane is not ready
-			return nil, nil, nil //nolint:nilerr
+			return nil, nil, nil
 		}
 
 		managedControlPlaneScope, err = scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
@@ -789,6 +792,13 @@ func (r *AWSMachinePoolReconciler) getInfraCluster(ctx context.Context, log *log
 			TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 		})
 		if err != nil {
+			return nil, nil, err
+		}
+
+		defer func() {
+			reterr = stderrors.Join(reterr, managedControlPlaneScope.PatchSessionConditions(ctx))
+		}()
+		if err := managedControlPlaneScope.InitSession(); err != nil {
 			return nil, nil, err
 		}
 
@@ -804,7 +814,7 @@ func (r *AWSMachinePoolReconciler) getInfraCluster(ctx context.Context, log *log
 
 	if err := r.Client.Get(ctx, infraClusterName, awsCluster); err != nil {
 		// AWSCluster is not ready
-		return nil, nil, nil //nolint:nilerr
+		return nil, nil, nil
 	}
 
 	// Create the cluster scope
@@ -817,6 +827,13 @@ func (r *AWSMachinePoolReconciler) getInfraCluster(ctx context.Context, log *log
 		TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 	})
 	if err != nil {
+		return nil, nil, err
+	}
+
+	defer func() {
+		reterr = stderrors.Join(reterr, clusterScope.PatchSessionConditions(ctx))
+	}()
+	if err := clusterScope.InitSession(); err != nil {
 		return nil, nil, err
 	}
 

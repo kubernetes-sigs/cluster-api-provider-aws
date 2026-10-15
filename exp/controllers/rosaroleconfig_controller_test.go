@@ -1045,7 +1045,7 @@ func TestROSARoleConfigReconcilerWithRoleIdentity(t *testing.T) {
 		// resolution via AWSClusterRoleIdentity failed.
 		g.Expect(errReconcile).To(HaveOccurred())
 		g.Expect(errReconcile.Error()).To(ContainSubstring("failed to set up runtime"))
-		g.Expect(errReconcile.Error()).NotTo(ContainSubstring("failed to create rosaroleconfig scope"))
+		g.Expect(errReconcile.Error()).NotTo(ContainSubstring("failed to create aws V2 session"))
 		g.Expect(runtimeCalled).To(BeTrue())
 	}).WithTimeout(30 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
 }
@@ -1152,10 +1152,16 @@ func TestROSARoleConfigReconcilerWithRoleIdentityNamespaceNotAllowed(t *testing.
 
 	_, errReconcile := reconciler.Reconcile(ctx, req)
 
-	// Scope creation must fail because the namespace is not in AllowedNamespaces.
+	// Session initialization must fail because the namespace is not in AllowedNamespaces.
 	g.Expect(errReconcile).To(HaveOccurred())
-	g.Expect(errReconcile.Error()).To(ContainSubstring("failed to create rosaroleconfig scope"))
+	g.Expect(errReconcile.Error()).To(ContainSubstring("failed to create aws V2 session"))
 	g.Expect(runtimeCalled).To(BeFalse())
+	g.Eventually(func(g Gomega) {
+		stored := &expinfrav1.ROSARoleConfig{}
+		g.Expect(testEnv.Client.Get(ctx, req.NamespacedName, stored)).To(Succeed())
+		g.Expect(v1beta1conditions.IsFalse(stored, infrav1.PrincipalCredentialRetrievedCondition)).To(BeTrue())
+		g.Expect(v1beta1conditions.IsFalse(stored, infrav1.PrincipalUsageAllowedCondition)).To(BeTrue())
+	}).Should(Succeed())
 }
 
 func TestROSARoleConfigReconcileExistWithTrustPolicyExternalID(t *testing.T) {

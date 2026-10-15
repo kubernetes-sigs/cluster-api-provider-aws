@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"time"
 
@@ -1264,7 +1265,7 @@ func (r *AWSMachineReconciler) requestsForCluster(log logger.Wrapper, namespace,
 	return result
 }
 
-func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log *logger.Logger, cluster *clusterv1.Cluster, awsMachine *infrav1.AWSMachine) (scope.EC2Scope, error) {
+func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log *logger.Logger, cluster *clusterv1.Cluster, awsMachine *infrav1.AWSMachine) (_ scope.EC2Scope, reterr error) {
 	var clusterScope *scope.ClusterScope
 	var managedControlPlaneScope *scope.ManagedControlPlaneScope
 	var err error
@@ -1278,7 +1279,7 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log *logger.
 
 		if err := r.Get(ctx, controlPlaneName, controlPlane); err != nil {
 			// AWSManagedControlPlane is not ready
-			return nil, nil //nolint:nilerr
+			return nil, nil
 		}
 
 		managedControlPlaneScope, err = scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
@@ -1290,6 +1291,13 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log *logger.
 			TagUnmanagedNetworkResources: r.TagUnmanagedNetworkResources,
 		})
 		if err != nil {
+			return nil, err
+		}
+
+		defer func() {
+			reterr = stderrors.Join(reterr, managedControlPlaneScope.PatchSessionConditions(ctx))
+		}()
+		if err := managedControlPlaneScope.InitSession(); err != nil {
 			return nil, err
 		}
 
@@ -1305,7 +1313,7 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log *logger.
 
 	if err := r.Client.Get(ctx, infraClusterName, awsCluster); err != nil {
 		// AWSCluster is not ready
-		return nil, nil //nolint:nilerr
+		return nil, nil
 	}
 
 	// Create the cluster scope
@@ -1319,6 +1327,13 @@ func (r *AWSMachineReconciler) getInfraCluster(ctx context.Context, log *logger.
 		MaxWaitActiveUpdateDelete:    r.MaxWaitActiveUpdateDelete,
 	})
 	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		reterr = stderrors.Join(reterr, clusterScope.PatchSessionConditions(ctx))
+	}()
+	if err := clusterScope.InitSession(); err != nil {
 		return nil, err
 	}
 

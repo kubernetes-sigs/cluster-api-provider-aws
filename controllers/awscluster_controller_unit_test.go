@@ -41,6 +41,7 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 func TestAWSClusterReconcilerReconcile(t *testing.T) {
@@ -620,4 +621,28 @@ func TestSecurityGroupRolesForCluster(t *testing.T) {
 			g.Expect(got).To(Equal(tt.want))
 		})
 	}
+}
+
+func TestAWSClusterSessionFailurePersistence(t *testing.T) {
+	g := NewWithT(t)
+	ctx := context.Background()
+	cluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "cluster", Namespace: "default"}}
+	infra := &infrav1.AWSCluster{
+		ObjectMeta: metav1.ObjectMeta{Name: "infra", Namespace: "default", OwnerReferences: []metav1.OwnerReference{{APIVersion: clusterv1.GroupVersion.String(), Kind: "Cluster", Name: cluster.Name}}},
+		Spec:       infrav1.AWSClusterSpec{Region: "eu-west-1", IdentityRef: &infrav1.AWSIdentityReference{Kind: infrav1.ClusterStaticIdentityKind, Name: "missing"}},
+	}
+	v1beta1conditions.MarkTrue(infra, "Unrelated")
+	c := fake.NewClientBuilder().WithScheme(testEnv.Client.Scheme()).WithObjects(cluster, infra).WithStatusSubresource(infra).Build()
+	r := &AWSClusterReconciler{Client: c}
+	req := ctrl.Request{NamespacedName: client.ObjectKeyFromObject(infra)}
+	// The first reconciliation backfills Paused before scope construction.
+	_, err := r.Reconcile(ctx, req)
+	g.Expect(err).ToNot(HaveOccurred())
+	_, err = r.Reconcile(ctx, req)
+	g.Expect(err).To(HaveOccurred())
+	g.Expect(err.Error()).To(ContainSubstring("failed to create aws V2 session"))
+	stored := &infrav1.AWSCluster{}
+	g.Expect(c.Get(ctx, req.NamespacedName, stored)).To(Succeed())
+	g.Expect(v1beta1conditions.IsFalse(stored, infrav1.PrincipalCredentialRetrievedCondition)).To(BeTrue())
+	g.Expect(v1beta1conditions.IsTrue(stored, "Unrelated")).To(BeTrue())
 }

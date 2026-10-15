@@ -187,6 +187,7 @@ func (m *MachinePoolScope) PatchCAPIMachinePoolObject(ctx context.Context) error
 	return m.capiMachinePoolPatchHelper.Patch(
 		ctx,
 		m.MachinePool,
+		patch.WithOwnedV1Beta1Conditions{Conditions: []clusterv1.ConditionType{clusterv1.ConditionType(expinfrav1.LifecycleHookReadyCondition)}},
 	)
 }
 

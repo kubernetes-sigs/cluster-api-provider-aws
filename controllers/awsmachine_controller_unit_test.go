@@ -34,6 +34,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -44,6 +45,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
@@ -56,6 +58,7 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
 const providerID = "aws:////myMachine"
@@ -3287,5 +3290,50 @@ func createObject(g *WithT, obj client.Object, namespace string) {
 func cleanupObject(g *WithT, obj client.Object) {
 	if obj.DeepCopyObject() != nil {
 		g.Expect(testEnv.Cleanup(ctx, obj)).To(Succeed())
+	}
+}
+
+func TestAWSMachineInfrastructureSessionConditions(t *testing.T) {
+	for _, managed := range []bool{false, true} {
+		for _, missingIdentity := range []bool{false, true} {
+			t.Run(fmt.Sprintf("managed=%t/missingIdentity=%t", managed, missingIdentity), func(t *testing.T) {
+				g := NewWithT(t)
+				ctx := context.Background()
+				cluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "cluster", Namespace: "default"}}
+				var ref *infrav1.AWSIdentityReference
+				if missingIdentity {
+					ref = &infrav1.AWSIdentityReference{Kind: infrav1.ClusterStaticIdentityKind, Name: "missing"}
+				}
+				var infra cloud.ClusterObject
+				if managed {
+					infra = &ekscontrolplanev1.AWSManagedControlPlane{ObjectMeta: metav1.ObjectMeta{Name: "infra", Namespace: "default"}, Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{Region: "eu-west-1", IdentityRef: ref}}
+					cluster.Spec.ControlPlaneRef = clusterv1.ContractVersionedObjectReference{Kind: "AWSManagedControlPlane", Name: "infra"}
+				} else {
+					infra = &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "infra", Namespace: "default"}, Spec: infrav1.AWSClusterSpec{Region: "eu-west-1", IdentityRef: ref}}
+					cluster.Spec.InfrastructureRef = clusterv1.ContractVersionedObjectReference{Kind: "AWSCluster", Name: "infra"}
+				}
+				v1beta1conditions.MarkTrue(infra, clusterv1beta1.ReadyCondition)
+				scheme := runtime.NewScheme()
+				g.Expect(infrav1.AddToScheme(scheme)).To(Succeed())
+				g.Expect(ekscontrolplanev1.AddToScheme(scheme)).To(Succeed())
+				c := fake.NewClientBuilder().WithScheme(scheme).WithObjects(infra).WithStatusSubresource(infra).Build()
+				r := &AWSMachineReconciler{Client: c}
+				_, err := r.getInfraCluster(ctx, logger.FromContext(ctx), cluster, &infrav1.AWSMachine{ObjectMeta: metav1.ObjectMeta{Namespace: "default"}})
+				if missingIdentity {
+					g.Expect(err).To(HaveOccurred())
+				} else {
+					g.Expect(err).ToNot(HaveOccurred())
+				}
+				stored := infra.DeepCopyObject().(cloud.ClusterObject)
+				g.Expect(c.Get(ctx, client.ObjectKeyFromObject(infra), stored)).To(Succeed())
+				if missingIdentity {
+					g.Expect(v1beta1conditions.IsFalse(stored, infrav1.PrincipalCredentialRetrievedCondition)).To(BeTrue())
+				} else {
+					g.Expect(v1beta1conditions.IsTrue(stored, infrav1.PrincipalCredentialRetrievedCondition)).To(BeTrue())
+				}
+				// A machine reconcile must not recalculate infrastructure readiness.
+				g.Expect(v1beta1conditions.IsTrue(stored, clusterv1beta1.ReadyCondition)).To(BeTrue())
+			})
+		}
 	}
 }

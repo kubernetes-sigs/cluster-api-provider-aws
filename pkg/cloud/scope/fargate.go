@@ -52,6 +52,7 @@ type FargateProfileScopeParams struct {
 
 // NewFargateProfileScope creates a new Scope from the supplied parameters.
 // This is meant to be called for each reconcile iteration.
+// Call InitSession after scheduling persistence of session conditions.
 func NewFargateProfileScope(params FargateProfileScopeParams) (*FargateProfileScope, error) {
 	if params.ControlPlane == nil {
 		return nil, errors.New("failed to generate new scope from nil AWSFargateProfile")
@@ -61,36 +62,40 @@ func NewFargateProfileScope(params FargateProfileScopeParams) (*FargateProfileSc
 		params.Logger = logger.NewLogger(log)
 	}
 
-	managedScope := &ManagedControlPlaneScope{
-		Logger:         *params.Logger,
-		Client:         params.Client,
-		Cluster:        params.Cluster,
-		ControlPlane:   params.ControlPlane,
-		controllerName: params.ControllerName,
-	}
-
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Logger)
-	if err != nil {
-		return nil, errors.Errorf("failed to create aws v2 session: %v", err)
-	}
-
 	helper, err := v1beta1patch.NewHelper(params.FargateProfile, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
 
 	return &FargateProfileScope{
-		Logger:          *params.Logger,
-		Client:          params.Client,
-		Cluster:         params.Cluster,
-		ControlPlane:    params.ControlPlane,
-		FargateProfile:  params.FargateProfile,
-		patchHelper:     helper,
-		session:         *session,
-		serviceLimiters: serviceLimiters,
-		controllerName:  params.ControllerName,
-		enableIAM:       params.EnableIAM,
+		Logger:         *params.Logger,
+		Client:         params.Client,
+		Cluster:        params.Cluster,
+		ControlPlane:   params.ControlPlane,
+		FargateProfile: params.FargateProfile,
+		patchHelper:    helper,
+		controllerName: params.ControllerName,
+		enableIAM:      params.EnableIAM,
 	}, nil
+}
+
+// InitSession initializes the AWS session after the controller has scheduled condition persistence.
+func (s *FargateProfileScope) InitSession() error {
+	managedScope := &ManagedControlPlaneScope{
+		Logger:         s.Logger,
+		Client:         s.Client,
+		Cluster:        s.Cluster,
+		ControlPlane:   s.ControlPlane,
+		controllerName: s.controllerName,
+	}
+
+	session, serviceLimiters, err := sessionForClusterWithRegion(s.Client, managedScope, s.ControlPlane.Spec.Region, &s.Logger)
+	if err != nil {
+		return errors.Errorf("failed to create aws v2 session: %v", err)
+	}
+	s.session = *session
+	s.serviceLimiters = serviceLimiters
+	return nil
 }
 
 // FargateProfileScope defines the basic context for an actuator to operate upon.

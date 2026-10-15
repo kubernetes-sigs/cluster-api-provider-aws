@@ -47,6 +47,7 @@ type ROSAControlPlaneScopeParams struct {
 }
 
 // NewROSAControlPlaneScope creates a new ROSAControlPlaneScope from the supplied parameters.
+// Call InitSession after scheduling persistence of session conditions.
 func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlPlaneScope, error) {
 	if params.Cluster == nil {
 		return nil, errors.New("failed to generate new scope from nil Cluster")
@@ -68,28 +69,39 @@ func NewROSAControlPlaneScope(params ROSAControlPlaneScopeParams) (*ROSAControlP
 		controllerName: params.ControllerName,
 	}
 
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, managedScope, params.ControlPlane.Spec.Region, params.Logger)
-	if err != nil {
-		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
-	}
-
 	helper, err := v1beta1patch.NewHelper(params.ControlPlane, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
 
+	managedScope.sessionConditionsObject = params.ControlPlane.DeepCopy()
 	managedScope.patchHelper = helper
-	managedScope.session = *session
-	managedScope.serviceLimiters = serviceLimiters
 
 	return managedScope, nil
+}
+
+// InitSession initializes the AWS session after the controller has scheduled condition persistence.
+func (s *ROSAControlPlaneScope) InitSession() error {
+	session, serviceLimiters, err := sessionForClusterWithRegion(s.Client, s, s.ControlPlane.Spec.Region, &s.Logger)
+	if err != nil {
+		return errors.Wrap(err, "failed to create aws V2 session")
+	}
+	s.session = *session
+	s.serviceLimiters = serviceLimiters
+	return nil
+}
+
+// PatchSessionConditions persists credential conditions without recomputing cluster readiness.
+func (s *ROSAControlPlaneScope) PatchSessionConditions(ctx context.Context) error {
+	return patchSessionConditions(ctx, s.Client, s.sessionConditionsObject, s.InfraCluster())
 }
 
 // ROSAControlPlaneScope defines the basic context for an actuator to operate upon.
 type ROSAControlPlaneScope struct {
 	logger.Logger
-	Client      client.Client
-	patchHelper *v1beta1patch.Helper
+	Client                  client.Client
+	patchHelper             *v1beta1patch.Helper
+	sessionConditionsObject cloud.ClusterObject
 
 	Cluster      *clusterv1.Cluster
 	ControlPlane *rosacontrolplanev1.ROSAControlPlane

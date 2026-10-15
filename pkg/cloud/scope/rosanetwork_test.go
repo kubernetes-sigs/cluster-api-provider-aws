@@ -115,12 +115,14 @@ func TestNewROSANetworkScope(t *testing.T) {
 	g.Expect(rosaNetScope.InfraClusterName()).To(Equal("test-rosa-net"))
 	g.Expect(rosaNetScope.Namespace()).To(Equal("test-namespace"))
 	g.Expect(rosaNetScope.IdentityRef()).To(Equal(rosaNetwork.Spec.IdentityRef))
-	g.Expect(rosaNetScope.Session()).ToNot(BeNil())
+	g.Expect(rosaNetScope.InitSession()).To(Succeed())
+	g.Expect(rosaNetScope.Session().Region).To(Equal(rosaNetwork.Spec.Region))
 
 	// AWSClusterStaticIdentity
 	rosaNetwork.Spec.IdentityRef.Name = "cluster-static-identity"
 	rosaNetwork.Spec.IdentityRef.Kind = "AWSClusterStaticIdentity"
 	rosaNetScope, err = NewROSANetworkScope(rosaNetScopeParams)
 	g.Expect(err).NotTo(HaveOccurred())
-	g.Expect(rosaNetScope.Session()).ToNot(BeNil())
+	g.Expect(rosaNetScope.InitSession()).To(Succeed())
+	g.Expect(rosaNetScope.Session().Region).To(Equal(rosaNetwork.Spec.Region))
 }

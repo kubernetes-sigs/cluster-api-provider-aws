@@ -1106,7 +1106,7 @@ func TestROSAControlPlaneReconcilerWithRoleIdentity(t *testing.T) {
 		_, errReconcile := reconciler.Reconcile(ctx, req)
 		g.Expect(errReconcile).To(HaveOccurred())
 		g.Expect(errReconcile.Error()).To(ContainSubstring("failed to create AWS client"))
-		g.Expect(errReconcile.Error()).NotTo(ContainSubstring("failed to create scope"))
+		g.Expect(errReconcile.Error()).NotTo(ContainSubstring("failed to create aws V2 session"))
 		g.Expect(awsClientCalled).To(BeTrue())
 	}).WithTimeout(30 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
 }
@@ -1269,13 +1269,19 @@ func TestROSAControlPlaneReconcilerWithRoleIdentityNamespaceNotAllowed(t *testin
 	}
 
 	// Retry until the informer cache has indexed the control plane and the namespace
-	// restriction is enforced, causing scope creation to fail.
+	// restriction is enforced, causing session initialization to fail.
 	g.Eventually(func(g Gomega) {
 		_, errReconcile := reconciler.Reconcile(ctx, req)
 		g.Expect(errReconcile).To(HaveOccurred())
-		g.Expect(errReconcile.Error()).To(ContainSubstring("failed to create scope"))
+		g.Expect(errReconcile.Error()).To(ContainSubstring("failed to create aws V2 session"))
 		g.Expect(awsClientCalled).To(BeFalse())
 	}).WithTimeout(30 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
+	g.Eventually(func(g Gomega) {
+		stored := &rosacontrolplanev1.ROSAControlPlane{}
+		g.Expect(testEnv.Client.Get(ctx, req.NamespacedName, stored)).To(Succeed())
+		g.Expect(v1beta1conditions.IsFalse(stored, infrav1.PrincipalCredentialRetrievedCondition)).To(BeTrue())
+		g.Expect(v1beta1conditions.IsFalse(stored, infrav1.PrincipalUsageAllowedCondition)).To(BeTrue())
+	}).Should(Succeed())
 }
 
 // fakeMultiActionStsHandler handles both AssumeRole and GetCallerIdentity STS requests.
