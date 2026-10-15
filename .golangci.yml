@@ -13,6 +13,7 @@ linters:
     - bodyclose
     - containedctx
     - copyloopvar
+    - depguard
     - dogsled
     - dupword
     - durationcheck
@@ -51,9 +52,51 @@ linters:
     depguard:
       rules:
         main:
+          list-mode: lax
           deny:
             - pkg: io/ioutil
               desc: ioutil is deprecated starting with Go 1.16
+        api-imports:
+          files:
+            - '**/api/v1beta1/*.go'
+            - '**/api/v1beta1/**/*.go'
+            - '**/api/v1beta2/*.go'
+            - '**/api/v1beta2/**/*.go'
+          list-mode: strict
+          allow:
+            - $gostd
+            - github.com/aws/aws-sdk-go-v2/aws$
+            - github.com/aws/aws-sdk-go-v2/aws/arn$
+            - github.com/aws/aws-sdk-go-v2/service/ec2/types$
+            - github.com/aws/aws-sdk-go-v2/service/eks/types$
+            - github.com/google/go-cmp/cmp$
+            - github.com/onsi/gomega$
+            - github.com/pkg/errors$
+            - k8s.io/api/core/v1$
+            - k8s.io/apimachinery/pkg/api/apitesting/fuzzer$
+            - k8s.io/apimachinery/pkg/apis/meta/v1$
+            - k8s.io/apimachinery/pkg/conversion$
+            - k8s.io/apimachinery/pkg/runtime$
+            - k8s.io/apimachinery/pkg/runtime/schema$
+            - k8s.io/apimachinery/pkg/runtime/serializer$
+            - k8s.io/apimachinery/pkg/types$
+            - k8s.io/apimachinery/pkg/util/intstr$
+            - k8s.io/apimachinery/pkg/util/sets$
+            - k8s.io/apimachinery/pkg/util/validation/field$
+            - k8s.io/utils/net$
+            - k8s.io/utils/ptr$
+            - sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2$
+            - sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/api/v1beta2$
+            - sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2$
+            - sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2$
+            - sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2$
+            - sigs.k8s.io/cluster-api-provider-aws/v2/feature$
+            - sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1$
+            - sigs.k8s.io/cluster-api/api/core/v1beta1$
+            - sigs.k8s.io/cluster-api/api/core/v1beta2$
+            - sigs.k8s.io/cluster-api/cmd/clusterctl/api/v1alpha3$
+            - sigs.k8s.io/cluster-api/util/conversion$
+            - sigs.k8s.io/randfill$
     ginkgolinter:
       suppress-len-assertion: true
       suppress-nil-assertion: false
