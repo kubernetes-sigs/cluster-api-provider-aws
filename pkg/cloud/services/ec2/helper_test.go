@@ -34,19 +34,27 @@ import (
 )
 
 func setupClusterScope(cl client.Client) (*scope.ClusterScope, error) {
-	return scope.NewClusterScope(scope.ClusterScopeParams{
+	scoper, err := scope.NewClusterScope(scope.ClusterScopeParams{
 		Client:     cl,
 		Cluster:    newCluster(),
 		AWSCluster: newAWSCluster(),
 	})
+	if err != nil {
+		return nil, err
+	}
+	return scoper, scoper.InitSession()
 }
 
 func setupNewManagedControlPlaneScope(cl client.Client) (*scope.ManagedControlPlaneScope, error) {
-	return scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+	scoper, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
 		Client:       cl,
 		Cluster:      newCluster(),
 		ControlPlane: newAWSManagedControlPlane(),
 	})
+	if err != nil {
+		return nil, err
+	}
+	return scoper, scoper.InitSession()
 }
 
 func setupMachinePoolScope(cl client.Client, ec2Scope scope.EC2Scope) (*scope.MachinePoolScope, error) {

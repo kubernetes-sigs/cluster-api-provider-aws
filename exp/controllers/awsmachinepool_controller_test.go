@@ -58,6 +58,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	"sigs.k8s.io/cluster-api/util/labels/format"
 	"sigs.k8s.io/cluster-api/util/patch"
@@ -1437,13 +1438,17 @@ func setupCluster(clusterName string) (*scope.ClusterScope, error) {
 		Spec:       infrav1.AWSClusterSpec{},
 	}
 	client := fake.NewClientBuilder().WithScheme(scheme).WithObjects(awsCluster).Build()
-	return scope.NewClusterScope(scope.ClusterScopeParams{
+	clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
 		Cluster: &clusterv1.Cluster{
 			ObjectMeta: metav1.ObjectMeta{Name: clusterName},
 		},
 		AWSCluster: awsCluster,
 		Client:     client,
 	})
+	if err != nil {
+		return nil, err
+	}
+	return clusterScope, clusterScope.InitSession()
 }
 
 func TestDiffASG(t *testing.T) {
@@ -1910,6 +1915,59 @@ func TestValidateEnclaveEdgeZones(t *testing.T) {
 			} else {
 				g.Expect(err).NotTo(HaveOccurred())
 			}
+		})
+	}
+}
+
+func TestLifecycleHookConditionPersistence(t *testing.T) {
+	for _, failure := range []bool{false, true} {
+		name := "success"
+		if failure {
+			name = "failure"
+		}
+		t.Run(name, func(t *testing.T) {
+			g := NewWithT(t)
+			ctx := context.Background()
+			scheme := runtime.NewScheme()
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(expinfrav1.AddToScheme(scheme)).To(Succeed())
+			pool := &clusterv1.MachinePool{ObjectMeta: metav1.ObjectMeta{Name: "pool", Namespace: "default"}}
+			infra := &expinfrav1.AWSMachinePool{ObjectMeta: metav1.ObjectMeta{Name: "infra", Namespace: "default"}}
+			hook := expinfrav1.AWSLifecycleHook{Name: "hook"}
+			infra.Spec.AWSLifecycleHooks = []expinfrav1.AWSLifecycleHook{hook}
+			deprecatedv1beta1conditions.MarkTrue(pool, "Unrelated")
+			if !failure {
+				deprecatedv1beta1conditions.MarkFalse(pool, clusterv1.ConditionType(expinfrav1.LifecycleHookReadyCondition), expinfrav1.LifecycleHookCreationFailedReason, clusterv1.ConditionSeverityError, "old failure")
+			}
+			c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(pool, infra).WithObjects(pool, infra).Build()
+			ms, err := scope.NewMachinePoolScope(scope.MachinePoolScopeParams{Client: c, Cluster: &clusterv1.Cluster{}, MachinePool: pool, AWSMachinePool: infra, InfraCluster: &scope.ClusterScope{AWSCluster: &infrav1.AWSCluster{}}})
+			g.Expect(err).ToNot(HaveOccurred())
+			svc := mock_services.NewMockASGInterface(gomock.NewController(t))
+			if failure {
+				svc.EXPECT().DescribeLifecycleHooks("infra").Return(nil, nil)
+				svc.EXPECT().CreateLifecycleHook(ctx, "infra", &hook).Return(errors.New("creation failed"))
+			} else {
+				svc.EXPECT().DescribeLifecycleHooks("infra").Return([]*expinfrav1.AWSLifecycleHook{&hook}, nil)
+			}
+			reconciler := &AWSMachinePoolReconciler{Client: c}
+			err = reconciler.reconcileLifecycleHooks(ctx, ms, svc)
+			if failure {
+				g.Expect(err).To(MatchError("creation failed"))
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+			}
+			stored := &clusterv1.MachinePool{}
+			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(pool), stored)).To(Succeed())
+			reported := deprecatedv1beta1conditions.Get(stored, clusterv1.ConditionType(expinfrav1.LifecycleHookReadyCondition))
+			g.Expect(reported).ToNot(BeNil())
+			if failure {
+				g.Expect(reported.Status).To(Equal(corev1.ConditionFalse))
+				g.Expect(reported.Message).To(Equal("creation failed"))
+			} else {
+				g.Expect(reported.Status).To(Equal(corev1.ConditionTrue))
+				g.Expect(reported.Message).To(BeEmpty())
+			}
+			g.Expect(deprecatedv1beta1conditions.IsTrue(stored, "Unrelated")).To(BeTrue())
 		})
 	}
 }

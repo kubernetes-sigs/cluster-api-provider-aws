@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	stderrors "errors"
 	"time"
 
 	autoscalingtypes "github.com/aws/aws-sdk-go-v2/service/autoscaling/types"
@@ -48,6 +49,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -150,10 +152,23 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, errors.New("error getting managed control plane scope")
 	}
 
+	defer func() {
+		reterr = stderrors.Join(reterr, managedControlPlaneScope.PatchSessionConditions(ctx))
+	}()
+	if err := managedControlPlaneScope.InitSession(); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	if !controlPlane.Status.Ready {
+		helper, err := v1beta1patch.NewHelper(awsPool, r.Client)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
 		log.Info("Control plane is not ready yet")
 		v1beta1conditions.MarkFalse(awsPool, expinfrav1.EKSNodegroupReadyCondition, expinfrav1.WaitingForEKSControlPlaneReason, clusterv1beta1.ConditionSeverityInfo, "")
-		return ctrl.Result{}, nil
+		return ctrl.Result{}, helper.Patch(ctx, awsPool,
+			v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{expinfrav1.EKSNodegroupReadyCondition}},
+		)
 	}
 
 	machinePoolScope, err := scope.NewManagedMachinePoolScope(scope.ManagedMachinePoolScopeParams{
@@ -186,6 +201,10 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 			reterr = err
 		}
 	}()
+
+	if err := machinePoolScope.InitSession(); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	if !awsPool.ObjectMeta.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, r.reconcileDelete(ctx, machinePoolScope, managedControlPlaneScope)

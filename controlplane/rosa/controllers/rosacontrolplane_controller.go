@@ -230,6 +230,17 @@ func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, fmt.Errorf("failed to create scope: %w", err)
 	}
 
+	// Always close the scope
+	defer func() {
+		if err := rosaScope.Close(); err != nil {
+			reterr = errors.Join(reterr, err)
+		}
+	}()
+
+	if err := rosaScope.InitSession(); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// Create a new ROSA AWS client per reconciliation from the scope's session so that the
 	// credentials always reflect the identityRef (including any cross-account role assumption).
 	awsClient, err := r.newAWSClient(rosaScope)
@@ -253,13 +264,6 @@ func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to resolve creator for target account: %w", err)
 	}
-
-	// Always close the scope
-	defer func() {
-		if err := rosaScope.Close(); err != nil {
-			reterr = errors.Join(reterr, err)
-		}
-	}()
 
 	if !rosaControlPlane.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Handle deletion reconciliation loop.

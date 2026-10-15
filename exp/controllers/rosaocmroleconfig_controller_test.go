@@ -496,6 +496,7 @@ func TestROSAOCMRoleConfigSetUpRuntimeWithExpiredAWSCredentials(t *testing.T) {
 		ControllerName:    "rosaocmroleconfig",
 	})
 	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(scope.InitSession()).To(Succeed())
 
 	ssoServer := ocmsdk.MakeTCPServer()
 	apiServer := ocmsdk.MakeTCPServer()

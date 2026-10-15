@@ -53,6 +53,7 @@ type ClusterScopeParams struct {
 
 // NewClusterScope creates a new Scope from the supplied parameters.
 // This is meant to be called for each reconcile iteration.
+// Call InitSession after scheduling persistence of session conditions.
 func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 	if params.Cluster == nil {
 		return nil, errors.New("failed to generate new scope from nil Cluster")
@@ -76,28 +77,39 @@ func NewClusterScope(params ClusterScopeParams) (*ClusterScope, error) {
 		maxWaitActiveUpdateDelete:    params.MaxWaitActiveUpdateDelete,
 	}
 
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, clusterScope, params.AWSCluster.Spec.Region, params.Logger)
-	if err != nil {
-		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
-	}
-
 	helper, err := v1beta1patch.NewHelper(params.AWSCluster, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
 
+	clusterScope.sessionConditionsObject = params.AWSCluster.DeepCopy()
 	clusterScope.patchHelper = helper
-	clusterScope.session = *session
-	clusterScope.serviceLimiters = serviceLimiters
 
 	return clusterScope, nil
+}
+
+// InitSession initializes the AWS session after the controller has scheduled condition persistence.
+func (s *ClusterScope) InitSession() error {
+	session, serviceLimiters, err := sessionForClusterWithRegion(s.client, s, s.AWSCluster.Spec.Region, &s.Logger)
+	if err != nil {
+		return errors.Wrap(err, "failed to create aws V2 session")
+	}
+	s.session = *session
+	s.serviceLimiters = serviceLimiters
+	return nil
+}
+
+// PatchSessionConditions persists credential conditions without recomputing cluster readiness.
+func (s *ClusterScope) PatchSessionConditions(ctx context.Context) error {
+	return patchSessionConditions(ctx, s.client, s.sessionConditionsObject, s.InfraCluster())
 }
 
 // ClusterScope defines the basic context for an actuator to operate upon.
 type ClusterScope struct {
 	logger.Logger
-	client      client.Client
-	patchHelper *v1beta1patch.Helper
+	client                  client.Client
+	patchHelper             *v1beta1patch.Helper
+	sessionConditionsObject cloud.ClusterObject
 
 	Cluster    *clusterv1.Cluster
 	AWSCluster *infrav1.AWSCluster

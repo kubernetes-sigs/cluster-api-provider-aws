@@ -206,6 +206,10 @@ func (r *AWSClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request) 
 		}
 	}()
 
+	if err := clusterScope.InitSession(); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// Handle deleted clusters
 	if !awsCluster.DeletionTimestamp.IsZero() {
 		return r.reconcileDelete(ctx, clusterScope)

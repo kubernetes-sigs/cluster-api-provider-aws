@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	stderrors "errors"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -99,6 +100,20 @@ func (r *AWSFargateProfileReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return reconcile.Result{}, nil
 	}
 
+	controlPlaneScope, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+		Client:         r.Client,
+		Cluster:        cluster,
+		ControlPlane:   controlPlane,
+		ControllerName: "awsfargateprofile",
+		Logger:         log,
+	})
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to create control plane scope")
+	}
+	defer func() {
+		reterr = stderrors.Join(reterr, controlPlaneScope.PatchSessionConditions(ctx))
+	}()
+
 	fargateProfileScope, err := scope.NewFargateProfileScope(scope.FargateProfileScopeParams{
 		Client:         r.Client,
 		ControllerName: "awsfargateprofile",
@@ -123,6 +138,10 @@ func (r *AWSFargateProfileReconciler) Reconcile(ctx context.Context, req ctrl.Re
 			reterr = err
 		}
 	}()
+
+	if err := fargateProfileScope.InitSession(); err != nil {
+		return ctrl.Result{}, err
+	}
 
 	if !controlPlane.Status.Ready {
 		log.Info("Control plane is not ready yet")
