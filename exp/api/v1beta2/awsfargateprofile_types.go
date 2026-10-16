@@ -182,5 +182,5 @@ type AWSFargateProfileList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&AWSFargateProfile{}, &AWSFargateProfileList{})
+	objectTypes = append(objectTypes, &AWSFargateProfile{}, &AWSFargateProfileList{})
 }
