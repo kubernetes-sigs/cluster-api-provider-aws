@@ -34,6 +34,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	kubeconfigutil "sigs.k8s.io/cluster-api/util/kubeconfig"
 )
 
@@ -74,6 +75,8 @@ func TestEKSConfigReconciler(t *testing.T) {
 		}).Should(Succeed())
 
 		g.Expect(string(secret.Data["value"])).To(Equal(string(expectedUserData)))
+		g.Expect(conditions.IsTrue(config, eksbootstrapv1.EKSConfigDataSecretAvailableV1Beta2Condition)).To(BeTrue())
+		g.Expect(v1beta1conditions.IsTrue(config, eksbootstrapv1.DataSecretAvailableCondition)).To(BeTrue())
 	})
 	t.Run("Should reconcile an EKSConfig and update data Secret", func(t *testing.T) {
 		g := NewWithT(t)

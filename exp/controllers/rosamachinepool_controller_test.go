@@ -32,6 +32,7 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -320,6 +321,12 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 				}).Times(1)
 				m.CreateNodePool(gomock.Any(), gomock.Any()).Times(0)
 			},
+			extraChecks: func(g *WithT, m *expinfrav1.ROSAMachinePool) {
+				condition := conditions.Get(m, expinfrav1.ROSAMachinePoolReadyV1Beta2Condition)
+				g.Expect(condition).ToNot(BeNil())
+				g.Expect(condition.Status).To(Equal(metav1.ConditionFalse))
+				g.Expect(condition.Reason).To(Equal(expinfrav1.ROSAMachinePoolNotReadyV1Beta2Reason))
+			},
 		},
 		{
 			name:               "Nodepool is ready",
@@ -562,6 +569,11 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 				g.Expect(cond.Status).To(Equal(corev1.ConditionFalse))
 				g.Expect(cond.Reason).To(Equal(expinfrav1.RosaMachinePoolReconciliationFailedReason))
 				g.Expect(cond.Message).To(ContainSubstring("is not supported"))
+				standard := conditions.Get(m, expinfrav1.ROSAMachinePoolUpgradingV1Beta2Condition)
+				g.Expect(standard).ToNot(BeNil())
+				g.Expect(string(standard.Status)).To(Equal(string(cond.Status)))
+				g.Expect(standard.Reason).To(Equal(expinfrav1.ROSAMachinePoolReconciliationFailedV1Beta2Reason))
+				g.Expect(standard.Message).To(Equal(cond.Message))
 			},
 		},
 	}
@@ -607,6 +619,7 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 				},
 			}
 
+			conditions.Set(test.oldROSAMachinePool, metav1.Condition{Type: clusterv1.PausedCondition, Status: metav1.ConditionFalse, Reason: clusterv1.NotPausedReason})
 			g.Expect(rmpPh.Patch(ctx, test.oldROSAMachinePool)).To(Succeed())
 			g.Expect(err).ShouldNot(HaveOccurred())
 

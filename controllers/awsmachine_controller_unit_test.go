@@ -34,6 +34,7 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
@@ -56,6 +57,8 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 )
 
 const providerID = "aws:////myMachine"
@@ -2897,6 +2900,7 @@ func TestAWSMachineReconcilerReconcileDefaultsToLoadBalancerTypeClassic(t *testi
 		},
 	}
 
+	conditions.Set(awsMachine, metav1.Condition{Type: clusterv1.PausedCondition, Status: metav1.ConditionFalse, Reason: clusterv1.NotPausedReason})
 	fakeClient := fake.NewClientBuilder().WithObjects(ownerCluster, awsCluster, ownerMachine, awsMachine, controllerIdentity, secret, cp).WithStatusSubresource(awsCluster, awsMachine).Build()
 
 	recorder := record.NewFakeRecorder(10)
@@ -3149,6 +3153,7 @@ func TestAWSMachineReconcilerReconcileDoesntAddSecurityGroupsToNonManagedNetwork
 		},
 	}
 
+	conditions.Set(awsMachine, metav1.Condition{Type: clusterv1.PausedCondition, Status: metav1.ConditionFalse, Reason: clusterv1.NotPausedReason})
 	fakeClient := fake.NewClientBuilder().WithObjects(ownerCluster, awsCluster, ownerMachine, awsMachine, controllerIdentity, secret, cp).WithStatusSubresource(awsCluster, awsMachine).Build()
 
 	recorder := record.NewFakeRecorder(10)
@@ -3287,5 +3292,81 @@ func createObject(g *WithT, obj client.Object, namespace string) {
 func cleanupObject(g *WithT, obj client.Object) {
 	if obj.DeepCopyObject() != nil {
 		g.Expect(testEnv.Cleanup(ctx, obj)).To(Succeed())
+	}
+}
+
+func TestAWSMachineRequeuesAfterPauseBackfill(t *testing.T) {
+	for _, paused := range []bool{false, true} {
+		name := "unpaused"
+		if paused {
+			name = "paused"
+		}
+		t.Run(name, func(t *testing.T) {
+			g := NewWithT(t)
+			ctx := context.Background()
+			scheme := runtime.NewScheme()
+			g.Expect(infrav1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			cluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "cluster", Namespace: "default"}, Spec: clusterv1.ClusterSpec{InfrastructureRef: clusterv1.ContractVersionedObjectReference{Kind: "AWSCluster", Name: "infra", APIGroup: infrav1.GroupVersion.Group}}}
+			infraCluster := &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "infra", Namespace: "default"}, Spec: infrav1.AWSClusterSpec{Region: "us-east-1"}}
+			owner := &clusterv1.Machine{ObjectMeta: metav1.ObjectMeta{Name: "machine", Namespace: "default", Labels: map[string]string{clusterv1.ClusterNameLabel: cluster.Name}}, Spec: clusterv1.MachineSpec{ClusterName: cluster.Name}}
+			obj := &infrav1.AWSMachine{ObjectMeta: metav1.ObjectMeta{Name: "aws-machine", Namespace: "default", Generation: 3, OwnerReferences: []metav1.OwnerReference{{APIVersion: clusterv1.GroupVersion.String(), Kind: "Machine", Name: owner.Name}}}, Spec: infrav1.AWSMachineSpec{InstanceType: "t3.medium"}}
+			v1beta1conditions.MarkFalse(obj, clusterv1beta1.PausedV1Beta2Condition, clusterv1.NotPausedReason, clusterv1beta1.ConditionSeverityInfo, "")
+			if paused {
+				obj.Annotations = map[string]string{clusterv1.PausedAnnotation: ""}
+			}
+			c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(obj).WithObjects(cluster, infraCluster, owner, obj).Build()
+			r := &AWSMachineReconciler{Client: c}
+			result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(obj)})
+			g.Expect(err).ToNot(HaveOccurred())
+			if paused {
+				g.Expect(result.RequeueAfter).To(BeZero())
+			} else {
+				g.Expect(result.RequeueAfter).To(BeNumerically(">", 0))
+			}
+			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(obj), obj)).To(Succeed())
+			condition := conditions.Get(obj, clusterv1.PausedCondition)
+			g.Expect(condition).ToNot(BeNil())
+			g.Expect(condition.ObservedGeneration).To(Equal(int64(3)))
+			g.Expect(conditions.IsTrue(obj, clusterv1.PausedCondition)).To(Equal(paused))
+		})
+	}
+}
+
+func TestAWSMachineConditionsForExistingLBRegistration(t *testing.T) {
+	for _, lbType := range []infrav1.LoadBalancerType{infrav1.LoadBalancerTypeClassic, infrav1.LoadBalancerTypeNLB} {
+		for _, stale := range []bool{false, true} {
+			name := string(lbType) + "/missing condition"
+			if stale {
+				name = string(lbType) + "/recover failed condition"
+			}
+			t.Run(name, func(t *testing.T) {
+				g := NewWithT(t)
+				ctx := context.Background()
+				obj := &infrav1.AWSMachine{ObjectMeta: metav1.ObjectMeta{Generation: 3}}
+				v1beta1conditions.MarkTrue(obj, infrav1.ELBAttachedCondition)
+				legacy := obj.Status.Conditions.DeepCopy()
+				if stale {
+					conditions.Set(obj, metav1.Condition{Type: infrav1.AWSMachineELBAttachedV1Beta2Condition, Status: metav1.ConditionFalse, Reason: infrav1.AWSMachineELBAttachFailedV1Beta2Reason})
+				}
+				s := &scope.MachineScope{AWSMachine: obj, Logger: *logger.FromContext(ctx)}
+				instance := &infrav1.Instance{ID: "i-existing"}
+				lb := &infrav1.AWSLoadBalancerSpec{LoadBalancerType: lbType}
+				service := mock_services.NewMockELBInterface(gomock.NewController(t))
+				if lbType == infrav1.LoadBalancerTypeClassic {
+					service.EXPECT().IsInstanceRegisteredWithAPIServerELB(ctx, instance).Return(true, nil)
+				} else {
+					service.EXPECT().IsInstanceRegisteredWithAPIServerLB(ctx, instance, lb).Return(nil, true, nil)
+				}
+				r := &AWSMachineReconciler{}
+				g.Expect(r.registerInstanceToLBs(ctx, s, service, instance, lb)).To(Succeed())
+				actual := conditions.Get(obj, infrav1.AWSMachineELBAttachedV1Beta2Condition)
+				g.Expect(actual).ToNot(BeNil())
+				g.Expect(actual.Status).To(Equal(metav1.ConditionTrue))
+				g.Expect(actual.Reason).To(Equal(clusterv1.ReadyReason))
+				g.Expect(actual.ObservedGeneration).To(Equal(int64(3)))
+				g.Expect(obj.Status.Conditions).To(Equal(legacy))
+			})
+		}
 	}
 }

@@ -41,8 +41,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/identity"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/v2/util/conditions"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/system"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
@@ -95,6 +97,12 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 	if err != nil {
 		// could not get providers and retrieve the credentials
 		v1beta1conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition, infrav1.PrincipalCredentialRetrievalFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		infrautilconditions.SetV1Beta2(clusterScoper.InfraCluster(), metav1.Condition{
+			Type:    infrav1.AWSClusterPrincipalCredentialRetrievedV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  infrav1.AWSClusterPrincipalCredentialRetrievalFailedV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return nil, nil, errors.Wrap(err, "Failed to get providers for cluster")
 	}
 
@@ -133,6 +141,12 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 		_, err := providers[0].Retrieve(context.Background())
 		if err != nil {
 			v1beta1conditions.MarkUnknown(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition, infrav1.CredentialProviderBuildFailedReason, "%s", err.Error())
+			infrautilconditions.SetV1Beta2(clusterScoper.InfraCluster(), metav1.Condition{
+				Type:    infrav1.AWSClusterPrincipalCredentialRetrievedV1Beta2Condition,
+				Status:  metav1.ConditionUnknown,
+				Reason:  infrav1.AWSClusterCredentialProviderBuildFailedV1Beta2Reason,
+				Message: err.Error(),
+			})
 
 			// delete the existing session from cache. Otherwise, we give back a defective session on next method invocation with same cluster scope
 			sessionCache.Delete(getSessionName(region, clusterScoper))
@@ -144,6 +158,11 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 	}
 
 	v1beta1conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition)
+	infrautilconditions.SetV1Beta2(clusterScoper.InfraCluster(), metav1.Condition{
+		Type:   infrav1.AWSClusterPrincipalCredentialRetrievedV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 
 	ns, err := config.LoadDefaultConfig(context.Background(), optFns...)
 	if err != nil {
@@ -293,11 +312,21 @@ func buildProvidersForRef(
 		return providers, errors.Errorf("No such provider known: '%s'", ref.Kind)
 	}
 	v1beta1conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1.PrincipalUsageAllowedCondition)
+	infrautilconditions.SetV1Beta2(clusterScoper.InfraCluster(), metav1.Condition{
+		Type:   infrav1.AWSClusterPrincipalUsageAllowedV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 	return providers, nil
 }
 
 func setPrincipalUsageAllowedCondition(clusterScoper cloud.SessionMetadata) {
 	v1beta1conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1.PrincipalUsageAllowedCondition)
+	infrautilconditions.SetV1Beta2(clusterScoper.InfraCluster(), metav1.Condition{
+		Type:   infrav1.AWSClusterPrincipalUsageAllowedV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 }
 
 func setPrincipalUsageNotAllowedCondition(kind infrav1.AWSIdentityKind, identityObjectKey client.ObjectKey, clusterScoper cloud.SessionMetadata) {
@@ -305,8 +334,20 @@ func setPrincipalUsageNotAllowedCondition(kind infrav1.AWSIdentityKind, identity
 
 	if clusterScoper.IdentityRef().Name == identityObjectKey.Name {
 		v1beta1conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1.PrincipalUsageAllowedCondition, infrav1.PrincipalUsageUnauthorizedReason, clusterv1beta1.ConditionSeverityError, "%s", errMsg)
+		infrautilconditions.SetV1Beta2(clusterScoper.InfraCluster(), metav1.Condition{
+			Type:    infrav1.AWSClusterPrincipalUsageAllowedV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  infrav1.AWSClusterPrincipalUsageUnauthorizedV1Beta2Reason,
+			Message: errMsg,
+		})
 	} else {
 		v1beta1conditions.MarkFalse(clusterScoper.InfraCluster(), infrav1.PrincipalUsageAllowedCondition, infrav1.SourcePrincipalUsageUnauthorizedReason, clusterv1beta1.ConditionSeverityError, "%s", errMsg)
+		infrautilconditions.SetV1Beta2(clusterScoper.InfraCluster(), metav1.Condition{
+			Type:    infrav1.AWSClusterPrincipalUsageAllowedV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  infrav1.AWSClusterSourcePrincipalUsageUnauthorizedV1Beta2Reason,
+			Message: errMsg,
+		})
 	}
 }
 
