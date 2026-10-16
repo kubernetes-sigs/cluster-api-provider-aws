@@ -258,5 +258,5 @@ func (s SharedVPCConfig) IsSharedVPC() bool {
 }
 
 func init() {
-	SchemeBuilder.Register(&ROSARoleConfig{}, &ROSARoleConfigList{})
+	objectTypes = append(objectTypes, &ROSARoleConfig{}, &ROSARoleConfigList{})
 }
