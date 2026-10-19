@@ -336,6 +336,19 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 		}
 	}
 
+	// Apply the source/destination check setting to the instance's network interfaces
+	// when it is explicitly configured. When unset, the AWS default (source/destination
+	// checking enabled) is preserved and no modification is performed.
+	if sourceDestCheck := scope.AWSMachine.Spec.SourceDestCheck; sourceDestCheck != "" {
+		enabled := sourceDestCheck == infrav1.SourceDestCheckEnabled
+		s.scope.Debug("Setting source/destination check on network interfaces", "resource-id", out.ID, "enabled", enabled)
+		for _, networkInterface := range networkInterfaces {
+			if err := s.modifySourceDestCheck(ctx, aws.ToString(networkInterface.NetworkInterfaceId), enabled); err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	record.Eventf(scope.AWSMachine, "SuccessfulCreate", "Created new %s instance with id %q", scope.Role(), out.ID)
 	return out, nil
 }
@@ -1160,6 +1173,21 @@ func (s *Service) DetachSecurityGroupsFromNetworkInterface(groups []string, inte
 
 	if _, err := s.EC2Client.ModifyNetworkInterfaceAttribute(context.TODO(), input); err != nil {
 		return errors.Wrapf(err, "failed to modify interface %q", interfaceID)
+	}
+	return nil
+}
+
+// modifySourceDestCheck enables or disables the source/destination check on the
+// given network interface. Disabling it allows the instance to forward traffic
+// for which it is not the source or destination.
+func (s *Service) modifySourceDestCheck(ctx context.Context, interfaceID string, enabled bool) error {
+	input := &ec2.ModifyNetworkInterfaceAttributeInput{
+		NetworkInterfaceId: aws.String(interfaceID),
+		SourceDestCheck:    &types.AttributeBooleanValue{Value: aws.Bool(enabled)},
+	}
+
+	if _, err := s.EC2Client.ModifyNetworkInterfaceAttribute(ctx, input); err != nil {
+		return errors.Wrapf(err, "failed to modify source/destination check on interface %q", interfaceID)
 	}
 	return nil
 }

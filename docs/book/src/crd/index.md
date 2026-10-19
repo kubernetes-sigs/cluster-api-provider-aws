@@ -23161,6 +23161,24 @@ CapacityReservationPreference
 &ldquo;CapacityReservationsOnly&rdquo;: The instance will only run if matched or targeted to a Capacity Reservation. Note that this is incompatible with a MarketType of <code>Spot</code></p>
 </td>
 </tr>
+<tr>
+<td>
+<code>sourceDestCheck</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.SourceDestCheck">
+SourceDestCheck
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SourceDestCheck controls the source/destination check on the instance&rsquo;s network interfaces.
+When set to &ldquo;Disabled&rdquo;, the instance can forward traffic for which it is not the source or
+destination, which is required to use an AWS VPC Route Server with user-defined networking (UDN)
+and BGP. When unset or set to &ldquo;Enabled&rdquo;, the AWS default (source/destination checking enabled)
+applies.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -23717,6 +23735,24 @@ CapacityReservationPreference
 &ldquo;Open&rdquo;: The instance may make use of open Capacity Reservations that match its AZ and InstanceType
 &ldquo;None&rdquo;: The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
 &ldquo;CapacityReservationsOnly&rdquo;: The instance will only run if matched or targeted to a Capacity Reservation. Note that this is incompatible with a MarketType of <code>Spot</code></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sourceDestCheck</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.SourceDestCheck">
+SourceDestCheck
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SourceDestCheck controls the source/destination check on the instance&rsquo;s network interfaces.
+When set to &ldquo;Disabled&rdquo;, the instance can forward traffic for which it is not the source or
+destination, which is required to use an AWS VPC Route Server with user-defined networking (UDN)
+and BGP. When unset or set to &ldquo;Enabled&rdquo;, the AWS default (source/destination checking enabled)
+applies.</p>
 </td>
 </tr>
 </tbody>
@@ -24512,6 +24548,24 @@ CapacityReservationPreference
 &ldquo;Open&rdquo;: The instance may make use of open Capacity Reservations that match its AZ and InstanceType
 &ldquo;None&rdquo;: The instance may not make use of any Capacity Reservations. This is to conserve open reservations for desired workloads
 &ldquo;CapacityReservationsOnly&rdquo;: The instance will only run if matched or targeted to a Capacity Reservation. Note that this is incompatible with a MarketType of <code>Spot</code></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sourceDestCheck</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.SourceDestCheck">
+SourceDestCheck
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SourceDestCheck controls the source/destination check on the instance&rsquo;s network interfaces.
+When set to &ldquo;Disabled&rdquo;, the instance can forward traffic for which it is not the source or
+destination, which is required to use an AWS VPC Route Server with user-defined networking (UDN)
+and BGP. When unset or set to &ldquo;Enabled&rdquo;, the AWS default (source/destination checking enabled)
+applies.</p>
 </td>
 </tr>
 </table>
@@ -28167,6 +28221,15 @@ Tags
 </p>
 <p>
 <p>SecurityGroupRole defines the unique role of a security group.</p>
+</p>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.SourceDestCheck">SourceDestCheck
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachineSpec">AWSMachineSpec</a>)
+</p>
+<p>
+<p>SourceDestCheck describes whether the source/destination check is enabled on
+an instance&rsquo;s network interfaces.</p>
 </p>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.SpotMarketOptions">SpotMarketOptions
 </h3>

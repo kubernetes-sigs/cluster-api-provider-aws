@@ -1167,6 +1167,17 @@ spec:
                   SecurityGroupOverrides is an optional set of security groups to use for the node.
                   This is optional - if not provided security groups from the cluster will be used.
                 type: object
+              sourceDestCheck:
+                description: |-
+                  SourceDestCheck controls the source/destination check on the instance's network interfaces.
+                  When set to "Disabled", the instance can forward traffic for which it is not the source or
+                  destination, which is required to use an AWS VPC Route Server with user-defined networking (UDN)
+                  and BGP. When unset or set to "Enabled", the AWS default (source/destination checking enabled)
+                  applies.
+                enum:
+                - Enabled
+                - Disabled
+                type: string
               spotMarketOptions:
                 description: SpotMarketOptions allows users to configure instances
                   to be run using AWS Spot instances.
