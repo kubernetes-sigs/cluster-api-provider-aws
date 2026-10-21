@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -562,6 +563,50 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 				g.Expect(cond.Status).To(Equal(corev1.ConditionFalse))
 				g.Expect(cond.Reason).To(Equal(expinfrav1.RosaMachinePoolReconciliationFailedReason))
 				g.Expect(cond.Message).To(ContainSubstring("is not supported"))
+			},
+		},
+		{
+			name:               "Non-ready nodepool sets short reason constant and verbose message in condition",
+			machinePool:        ownerMachinePool(6),
+			oldROSAMachinePool: rosaMachinePool(6),
+			newROSAMachinePool: &expinfrav1.ROSAMachinePool{
+				Status: expinfrav1.RosaMachinePoolStatus{
+					Ready:    false,
+					Replicas: 0,
+				},
+			},
+			result: ctrl.Result{RequeueAfter: defaultRequeueInterval},
+			expect: func(m *mocks.MockOCMClientMockRecorder) {
+				longMessage := fmt.Sprintf("CreateInProgress: %s", strings.Repeat("VPC creation details...", 50))
+				g.Expect(len(longMessage)).To(BeNumerically(">", 256), "precondition: longMessage must exceed 256 bytes")
+				m.GetNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (*cmv1.NodePool, bool, error) {
+					statusBuilder := (&cmv1.NodePoolStatusBuilder{}).Message(longMessage)
+					nodePool, err := nodePoolBuilder(rosaMachinePool(6).Spec, ownerMachinePool(6).Spec, rosacontrolplanev1.Stable, "").
+						ID("node-pool-6").
+						Status(statusBuilder).
+						Build()
+					g.Expect(err).NotTo(HaveOccurred())
+					return nodePool, true, nil
+				}).Times(1)
+				m.UpdateNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterID string, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
+					statusBuilder := (&cmv1.NodePoolStatusBuilder{}).Message(longMessage)
+					updated, err := cmv1.NewNodePool().Copy(nodePool).Status(statusBuilder).Build()
+					g.Expect(err).NotTo(HaveOccurred())
+					return updated, nil
+				}).Times(1)
+				m.CreateNodePool(gomock.Any(), gomock.Any()).Times(0)
+			},
+			extraChecks: func(g *WithT, m *expinfrav1.ROSAMachinePool) {
+				cond := v1beta1conditions.Get(m, expinfrav1.RosaMachinePoolReadyCondition)
+				g.Expect(cond).NotTo(BeNil(), "RosaMachinePoolReadyCondition should be set")
+				g.Expect(cond.Status).To(Equal(corev1.ConditionFalse))
+				g.Expect(cond.Severity).To(Equal(clusterv1beta1.ConditionSeverityInfo))
+				g.Expect(cond.Reason).To(Equal(expinfrav1.WaitingForNodePoolReason),
+					"reason must use the short constant, not the verbose nodepool message")
+				g.Expect(len(cond.Reason)).To(BeNumerically("<", 256),
+					"reason must stay within Kubernetes 256-byte limit")
+				g.Expect(cond.Message).To(ContainSubstring("CreateInProgress"),
+					"verbose details must appear in message, not reason")
 			},
 		},
 	}
