@@ -103,6 +103,7 @@ type EC2Interface interface {
 	UpdateInstanceSecurityGroups(id string, securityGroups []string) error
 	UpdateResourceTags(resourceID *string, create, remove map[string]string) error
 	ModifyInstanceMetadataOptions(instanceID string, options *infrav1.InstanceMetadataOptions) error
+	ReconcileSourceDestCheck(ctx context.Context, instanceID string, setting infrav1.SourceDestCheck) error
 
 	TerminateInstanceAndWait(instanceID string) error
 	DetachSecurityGroupsFromNetworkInterface(groups []string, interfaceID string) error

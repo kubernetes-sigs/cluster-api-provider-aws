@@ -336,17 +336,14 @@ func (s *Service) CreateInstance(ctx context.Context, scope *scope.MachineScope,
 		}
 	}
 
-	// Apply the source/destination check setting to the instance's network interfaces
-	// when it is explicitly configured. When unset, the AWS default (source/destination
-	// checking enabled) is preserved and no modification is performed.
-	if sourceDestCheck := scope.AWSMachine.Spec.SourceDestCheck; sourceDestCheck != "" {
-		enabled := sourceDestCheck == infrav1.SourceDestCheckEnabled
-		s.scope.Debug("Setting source/destination check on network interfaces", "resource-id", out.ID, "enabled", enabled)
-		for _, networkInterface := range networkInterfaces {
-			if err := s.modifySourceDestCheck(ctx, aws.ToString(networkInterface.NetworkInterfaceId), enabled); err != nil {
-				return nil, err
-			}
-		}
+	// Apply the source/destination check setting to the instance's network interfaces,
+	// reusing the ENIs already discovered above. When unset, the AWS default
+	// (source/destination checking enabled) is preserved and no modification is performed.
+	// If the setting is requested but applying it fails (or no ENIs were discovered yet),
+	// this returns an error; the reconciler retries it against the existing instance via
+	// ReconcileSourceDestCheck, so a partial failure here does not leave it unapplied.
+	if err := s.reconcileSourceDestCheck(ctx, networkInterfaces, scope.AWSMachine.Spec.SourceDestCheck); err != nil {
+		return nil, err
 	}
 
 	record.Eventf(scope.AWSMachine, "SuccessfulCreate", "Created new %s instance with id %q", scope.Role(), out.ID)
@@ -1173,6 +1170,50 @@ func (s *Service) DetachSecurityGroupsFromNetworkInterface(groups []string, inte
 
 	if _, err := s.EC2Client.ModifyNetworkInterfaceAttribute(context.TODO(), input); err != nil {
 		return errors.Wrapf(err, "failed to modify interface %q", interfaceID)
+	}
+	return nil
+}
+
+// ReconcileSourceDestCheck ensures the source/destination check on all of the
+// instance's network interfaces matches the desired setting. It is safe to call on
+// every reconcile: interfaces already at the desired value are skipped, so a
+// steady-state reconcile performs no AWS calls. An empty setting is a no-op, leaving
+// the AWS default (source/destination checking enabled) in place.
+func (s *Service) ReconcileSourceDestCheck(ctx context.Context, instanceID string, setting infrav1.SourceDestCheck) error {
+	if setting == "" {
+		return nil
+	}
+
+	interfaces, err := s.getInstanceENIs(instanceID)
+	if err != nil {
+		return err
+	}
+
+	return s.reconcileSourceDestCheck(ctx, interfaces, setting)
+}
+
+// reconcileSourceDestCheck applies the desired source/destination check setting to the
+// given network interfaces, skipping any that already match. An empty setting is a
+// no-op. It errors when the setting is requested but no interfaces were found, which
+// also guards against an eventually-consistent DescribeNetworkInterfaces returning
+// nothing right after instance creation.
+func (s *Service) reconcileSourceDestCheck(ctx context.Context, interfaces []types.NetworkInterface, setting infrav1.SourceDestCheck) error {
+	if setting == "" {
+		return nil
+	}
+
+	if len(interfaces) == 0 {
+		return errors.New("no network interfaces found to reconcile source/destination check")
+	}
+
+	enabled := setting == infrav1.SourceDestCheckEnabled
+	for _, eni := range interfaces {
+		if eni.SourceDestCheck != nil && aws.ToBool(eni.SourceDestCheck) == enabled {
+			continue
+		}
+		if err := s.modifySourceDestCheck(ctx, aws.ToString(eni.NetworkInterfaceId), enabled); err != nil {
+			return err
+		}
 	}
 	return nil
 }

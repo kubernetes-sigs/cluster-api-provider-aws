@@ -384,6 +384,20 @@ func (mr *MockEC2InterfaceMockRecorder) ReconcileElasticIPFromPublicPool(arg0, a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileElasticIPFromPublicPool", reflect.TypeOf((*MockEC2Interface)(nil).ReconcileElasticIPFromPublicPool), arg0, arg1)
 }
 
+// ReconcileSourceDestCheck mocks base method.
+func (m *MockEC2Interface) ReconcileSourceDestCheck(arg0 context.Context, arg1 string, arg2 v1beta2.SourceDestCheck) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReconcileSourceDestCheck", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ReconcileSourceDestCheck indicates an expected call of ReconcileSourceDestCheck.
+func (mr *MockEC2InterfaceMockRecorder) ReconcileSourceDestCheck(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileSourceDestCheck", reflect.TypeOf((*MockEC2Interface)(nil).ReconcileSourceDestCheck), arg0, arg1, arg2)
+}
+
 // ReleaseDedicatedHost mocks base method.
 func (m *MockEC2Interface) ReleaseDedicatedHost(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()

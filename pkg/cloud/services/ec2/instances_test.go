@@ -208,6 +208,128 @@ func TestInstanceIfExists(t *testing.T) {
 	}
 }
 
+func TestReconcileSourceDestCheck(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	describeENIs := func(m *mocks.MockEC2APIMockRecorder, enis ...types.NetworkInterface) {
+		m.DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
+			Return(&ec2.DescribeNetworkInterfacesOutput{NetworkInterfaces: enis}, nil)
+	}
+	expectModify := func(m *mocks.MockEC2APIMockRecorder, id string, enabled bool) {
+		m.ModifyNetworkInterfaceAttribute(context.TODO(), gomock.Eq(&ec2.ModifyNetworkInterfaceAttributeInput{
+			NetworkInterfaceId: aws.String(id),
+			SourceDestCheck:    &types.AttributeBooleanValue{Value: aws.Bool(enabled)},
+		})).Return(&ec2.ModifyNetworkInterfaceAttributeOutput{}, nil)
+	}
+
+	testCases := []struct {
+		name       string
+		instanceID string
+		setting    infrav1.SourceDestCheck
+		expect     func(m *mocks.MockEC2APIMockRecorder)
+		wantErr    bool
+	}{
+		{
+			name:       "unset setting is a no-op and does not query AWS",
+			instanceID: "i-123",
+			setting:    "",
+			expect:     func(m *mocks.MockEC2APIMockRecorder) {},
+		},
+		{
+			name:       "disables the check on interfaces that are not yet configured",
+			instanceID: "i-123",
+			setting:    infrav1.SourceDestCheckDisabled,
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				describeENIs(m,
+					types.NetworkInterface{NetworkInterfaceId: aws.String("eni-1")},
+					types.NetworkInterface{NetworkInterfaceId: aws.String("eni-2")},
+				)
+				expectModify(m, "eni-1", false)
+				expectModify(m, "eni-2", false)
+			},
+		},
+		{
+			name:       "enables the check on interfaces that currently have it disabled",
+			instanceID: "i-123",
+			setting:    infrav1.SourceDestCheckEnabled,
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				describeENIs(m,
+					types.NetworkInterface{NetworkInterfaceId: aws.String("eni-1"), SourceDestCheck: aws.Bool(false)},
+				)
+				expectModify(m, "eni-1", true)
+			},
+		},
+		{
+			name:       "skips interfaces already at the desired value",
+			instanceID: "i-123",
+			setting:    infrav1.SourceDestCheckDisabled,
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				describeENIs(m,
+					types.NetworkInterface{NetworkInterfaceId: aws.String("eni-1"), SourceDestCheck: aws.Bool(false)},
+					types.NetworkInterface{NetworkInterfaceId: aws.String("eni-2"), SourceDestCheck: aws.Bool(false)},
+				)
+				// No ModifyNetworkInterfaceAttribute calls expected.
+			},
+		},
+		{
+			name:       "only updates interfaces that differ from the desired value",
+			instanceID: "i-123",
+			setting:    infrav1.SourceDestCheckDisabled,
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				describeENIs(m,
+					types.NetworkInterface{NetworkInterfaceId: aws.String("eni-1"), SourceDestCheck: aws.Bool(false)},
+					types.NetworkInterface{NetworkInterfaceId: aws.String("eni-2"), SourceDestCheck: aws.Bool(true)},
+				)
+				expectModify(m, "eni-2", false)
+			},
+		},
+		{
+			name:       "errors when the setting is requested but no interfaces are found",
+			instanceID: "i-123",
+			setting:    infrav1.SourceDestCheckDisabled,
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				describeENIs(m)
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
+
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client:  client,
+				Cluster: &clusterv1.Cluster{},
+				AWSCluster: &infrav1.AWSCluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test"},
+					Spec: infrav1.AWSClusterSpec{
+						NetworkSpec: infrav1.NetworkSpec{VPC: infrav1.VPCSpec{ID: "test-vpc"}},
+					},
+				},
+			})
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			tc.expect(ec2Mock.EXPECT())
+
+			s := NewService(clusterScope)
+			s.EC2Client = ec2Mock
+
+			err = s.ReconcileSourceDestCheck(context.TODO(), tc.instanceID, tc.setting)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("ReconcileSourceDestCheck() error = %v, wantErr %v", err, tc.wantErr)
+			}
+		})
+	}
+}
+
 func TestTerminateInstance(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
