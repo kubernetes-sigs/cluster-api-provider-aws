@@ -297,6 +297,10 @@ func (r *AWSManagedControlPlaneReconciler) Reconcile(ctx context.Context, req ct
 		}
 	}()
 
+	if err := managedScope.InitSession(); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	if !awsManagedControlPlane.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Handle deletion reconciliation loop.
 		return r.reconcileDelete(ctx, managedScope)

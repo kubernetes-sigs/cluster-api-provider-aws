@@ -839,7 +839,7 @@ func TestROSANetworkReconcilerWithRoleIdentity(t *testing.T) {
 		// A "failed to create rosanetwork scope" error would mean credential resolution failed.
 		g.Expect(errReconcile).To(HaveOccurred())
 		g.Expect(errReconcile.Error()).To(ContainSubstring("failed to create AWS Client"))
-		g.Expect(errReconcile.Error()).NotTo(ContainSubstring("failed to create rosanetwork scope"))
+		g.Expect(errReconcile.Error()).NotTo(ContainSubstring("failed to create aws V2 session"))
 		g.Expect(awsClientCalled).To(BeTrue())
 	}).WithTimeout(30 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
 }
@@ -936,14 +936,20 @@ func TestROSANetworkReconcilerWithRoleIdentityNamespaceNotAllowed(t *testing.T) 
 	}
 
 	// Use Eventually so the reconcile is retried until the informer cache has indexed
-	// the newly created ROSANetwork. Once it is found, scope creation must fail because
+	// the newly created ROSANetwork. Once it is found, session initialization must fail because
 	// the namespace is not in AllowedNamespaces.
 	g.Eventually(func(g Gomega) {
 		_, errReconcile := reconciler.Reconcile(ctx, req)
 		g.Expect(errReconcile).To(HaveOccurred())
-		g.Expect(errReconcile.Error()).To(ContainSubstring("failed to create rosanetwork scope"))
+		g.Expect(errReconcile.Error()).To(ContainSubstring("failed to create aws V2 session"))
 		g.Expect(awsClientCalled).To(BeFalse())
 	}).WithTimeout(30 * time.Second).WithPolling(500 * time.Millisecond).Should(Succeed())
+	g.Eventually(func(g Gomega) {
+		stored := &expinfrav1.ROSANetwork{}
+		g.Expect(testEnv.Client.Get(ctx, req.NamespacedName, stored)).To(Succeed())
+		g.Expect(v1beta1conditions.IsFalse(stored, infrav1.PrincipalCredentialRetrievedCondition)).To(BeTrue())
+		g.Expect(v1beta1conditions.IsFalse(stored, infrav1.PrincipalUsageAllowedCondition)).To(BeTrue())
+	}).Should(Succeed())
 }
 
 // TestROSANetworkUpdatePredicate verifies that the WithEventFilter predicate in

@@ -53,6 +53,7 @@ type ROSANetworkScope struct {
 }
 
 // NewROSANetworkScope creates a new NewROSANetworkScope from the supplied parameters.
+// Call InitSession after scheduling persistence of session conditions.
 func NewROSANetworkScope(params ROSANetworkScopeParams) (*ROSANetworkScope, error) {
 	if params.Logger == nil {
 		log := klog.Background()
@@ -67,21 +68,25 @@ func NewROSANetworkScope(params ROSANetworkScopeParams) (*ROSANetworkScope, erro
 		ROSANetwork:    params.ROSANetwork,
 	}
 
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, rosaNetworkScope, params.ROSANetwork.Spec.Region, params.Logger)
-	if err != nil {
-		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
-	}
-
 	patchHelper, err := v1beta1patch.NewHelper(params.ROSANetwork, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
 
 	rosaNetworkScope.patchHelper = patchHelper
-	rosaNetworkScope.session = *session
-	rosaNetworkScope.serviceLimiters = serviceLimiters
 
 	return rosaNetworkScope, nil
+}
+
+// InitSession initializes the AWS session after the controller has scheduled condition persistence.
+func (s *ROSANetworkScope) InitSession() error {
+	session, serviceLimiters, err := sessionForClusterWithRegion(s.Client, s, s.ROSANetwork.Spec.Region, &s.Logger)
+	if err != nil {
+		return errors.Wrap(err, "failed to create aws V2 session")
+	}
+	s.session = *session
+	s.serviceLimiters = serviceLimiters
+	return nil
 }
 
 // Session returns the AWS SDK V2 Config. Used for creating clients.

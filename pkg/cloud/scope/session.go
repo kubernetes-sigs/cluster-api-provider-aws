@@ -87,6 +87,24 @@ func sessionForRegion(region string) (*aws.Config, throttle.ServiceLimiters, err
 	return &ns, sl, nil
 }
 
+func patchSessionConditions(ctx context.Context, c client.Client, before, after cloud.ClusterObject) error {
+	helper, err := v1beta1patch.NewHelper(before, c)
+	if err != nil {
+		return err
+	}
+	owned := []clusterv1beta1.ConditionType{
+		infrav1.PrincipalCredentialRetrievedCondition,
+		infrav1.PrincipalUsageAllowedCondition,
+	}
+	// Borrowing controllers must not persist other changes to the infrastructure object.
+	for _, conditionType := range owned {
+		if condition := v1beta1conditions.Get(after, conditionType); condition != nil {
+			v1beta1conditions.Set(before, condition.DeepCopy())
+		}
+	}
+	return helper.Patch(ctx, before, v1beta1patch.WithOwnedConditions{Conditions: owned})
+}
+
 func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.SessionMetadata, region string, log logger.Wrapper) (*aws.Config, throttle.ServiceLimiters, error) {
 	log = log.WithName("identity")
 	log.Trace("Creating an AWS Session")
@@ -120,6 +138,7 @@ func sessionForClusterWithRegion(k8sClient client.Client, clusterScoper cloud.Se
 	if !isChanged {
 		if s, ok := sessionCache.Load(getSessionName(region, clusterScoper)); ok {
 			entry := s.(*sessionCacheEntry)
+			v1beta1conditions.MarkTrue(clusterScoper.InfraCluster(), infrav1.PrincipalCredentialRetrievedCondition)
 			return entry.session, entry.serviceLimiters, nil
 		}
 	}

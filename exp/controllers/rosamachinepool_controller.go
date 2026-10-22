@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
 	"time"
 
@@ -182,6 +183,22 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, err
 	}
 
+	rosaControlPlaneScope, err := scope.NewROSAControlPlaneScope(scope.ROSAControlPlaneScopeParams{
+		Client:         r.Client,
+		Cluster:        cluster,
+		ControlPlane:   controlPlane,
+		ControllerName: "rosaControlPlane",
+	})
+	if err != nil {
+		return ctrl.Result{}, errors.Wrap(err, "failed to create rosaControlPlane scope")
+	}
+	defer func() {
+		reterr = stderrors.Join(reterr, rosaControlPlaneScope.PatchSessionConditions(ctx))
+	}()
+	if err := rosaControlPlaneScope.InitSession(); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	machinePoolScope, err := scope.NewRosaMachinePoolScope(scope.RosaMachinePoolScopeParams{
 		Client:          r.Client,
 		ControllerName:  "rosamachinepool",
@@ -195,22 +212,6 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 		return ctrl.Result{}, errors.Wrap(err, "failed to create rosaMachinePool scope")
 	}
 
-	rosaControlPlaneScope, err := scope.NewROSAControlPlaneScope(scope.ROSAControlPlaneScopeParams{
-		Client:         r.Client,
-		Cluster:        cluster,
-		ControlPlane:   controlPlane,
-		ControllerName: "rosaControlPlane",
-	})
-	if err != nil {
-		return ctrl.Result{}, errors.Wrap(err, "failed to create rosaControlPlane scope")
-	}
-
-	if !controlPlane.Status.Ready && controlPlane.ObjectMeta.DeletionTimestamp.IsZero() {
-		log.Info("Control plane is not ready yet")
-		err := machinePoolScope.RosaMachinePoolReadyFalse(expinfrav1.WaitingForRosaControlPlaneReason, "")
-		return ctrl.Result{}, err
-	}
-
 	defer func() {
 		v1beta1conditions.SetSummary(machinePoolScope.RosaMachinePool, v1beta1conditions.WithConditions(expinfrav1.RosaMachinePoolReadyCondition), v1beta1conditions.WithStepCounter())
 
@@ -218,6 +219,16 @@ func (r *ROSAMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Requ
 			reterr = err
 		}
 	}()
+
+	if err := machinePoolScope.InitSession(); err != nil {
+		return ctrl.Result{}, err
+	}
+
+	if !controlPlane.Status.Ready && controlPlane.ObjectMeta.DeletionTimestamp.IsZero() {
+		log.Info("Control plane is not ready yet")
+		err := machinePoolScope.RosaMachinePoolReadyFalse(expinfrav1.WaitingForRosaControlPlaneReason, "")
+		return ctrl.Result{}, err
+	}
 
 	if !rosaMachinePool.ObjectMeta.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, r.reconcileDelete(ctx, machinePoolScope, rosaControlPlaneScope)

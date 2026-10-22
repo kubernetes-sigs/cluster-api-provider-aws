@@ -38,6 +38,7 @@ func getAWSManagedControlPlaneScope(cluster *clusterv1.Cluster, awsManagedContro
 		},
 	)
 	utilruntime.Must(err)
+	utilruntime.Must(scope.InitSession())
 	return scope
 }
 

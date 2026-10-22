@@ -151,6 +151,10 @@ func (r *ROSARoleConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		}
 	}()
 
+	if err := scope.InitSession(); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	rt, err := r.setUpRuntime(ctx, scope)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to set up runtime: %w", err)

@@ -50,6 +50,7 @@ type RosaMachinePoolScopeParams struct {
 
 // NewRosaMachinePoolScope creates a new Scope from the supplied parameters.
 // This is meant to be called for each reconcile iteration.
+// Call InitSession after scheduling persistence of session conditions.
 func NewRosaMachinePoolScope(params RosaMachinePoolScopeParams) (*RosaMachinePoolScope, error) {
 	if params.ControlPlane == nil {
 		return nil, errors.New("failed to generate new scope from nil RosaControlPlane")
@@ -87,15 +88,19 @@ func NewRosaMachinePoolScope(params RosaMachinePoolScopeParams) (*RosaMachinePoo
 		controllerName:  params.ControllerName,
 	}
 
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, scope, params.ControlPlane.Spec.Region, params.Logger)
+	return scope, nil
+}
+
+// InitSession initializes the AWS session after the controller has scheduled condition persistence.
+func (s *RosaMachinePoolScope) InitSession() error {
+	session, serviceLimiters, err := sessionForClusterWithRegion(s.Client, s, s.ControlPlane.Spec.Region, &s.Logger)
 	if err != nil {
-		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
+		return errors.Errorf("failed to create aws V2 session: %v", err)
 	}
 
-	scope.session = *session
-	scope.serviceLimiters = serviceLimiters
-
-	return scope, nil
+	s.session = *session
+	s.serviceLimiters = serviceLimiters
+	return nil
 }
 
 var _ cloud.SessionMetadata = &RosaMachinePoolScope{}

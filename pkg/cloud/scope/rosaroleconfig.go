@@ -56,6 +56,7 @@ type RosaRoleConfigScope struct {
 }
 
 // NewRosaRoleConfigScope creates a new RosaRoleConfigScope from the supplied parameters.
+// Call InitSession after scheduling persistence of session conditions.
 func NewRosaRoleConfigScope(params RosaRoleConfigScopeParams) (*RosaRoleConfigScope, error) {
 	if params.Logger == nil {
 		log := klog.Background()
@@ -70,24 +71,26 @@ func NewRosaRoleConfigScope(params RosaRoleConfigScopeParams) (*RosaRoleConfigSc
 		RosaRoleConfig: params.RosaRoleConfig,
 	}
 
-	session, serviceLimiters, err := sessionForClusterWithRegion(params.Client, RosaRoleConfigScope, "", params.Logger)
-	if err != nil {
-		return nil, errors.Errorf("failed to create aws V2 session: %v", err)
-	}
-
-	iamClient := iam.NewFromConfig(*session)
-
 	patchHelper, err := v1beta1patch.NewHelper(params.RosaRoleConfig, params.Client)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to init patch helper")
 	}
 
 	RosaRoleConfigScope.patchHelper = patchHelper
-	RosaRoleConfigScope.session = *session
-	RosaRoleConfigScope.serviceLimiters = serviceLimiters
-	RosaRoleConfigScope.iamClient = iamClient
 
 	return RosaRoleConfigScope, nil
+}
+
+// InitSession initializes the AWS session after the controller has scheduled condition persistence.
+func (s *RosaRoleConfigScope) InitSession() error {
+	session, serviceLimiters, err := sessionForClusterWithRegion(s.Client, s, "", &s.Logger)
+	if err != nil {
+		return errors.Wrap(err, "failed to create aws V2 session")
+	}
+	s.session = *session
+	s.serviceLimiters = serviceLimiters
+	s.iamClient = iam.NewFromConfig(*session)
+	return nil
 }
 
 // IdentityRef returns the AWSIdentityReference object.

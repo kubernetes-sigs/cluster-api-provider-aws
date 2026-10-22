@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	stderrors "errors"
 	"fmt"
 
 	cmv1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
@@ -138,6 +139,13 @@ func (r *ROSAClusterReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 	})
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to create rosa controlplane scope: %w", err)
+	}
+
+	defer func() {
+		reterr = stderrors.Join(reterr, rosaScope.PatchSessionConditions(ctx))
+	}()
+	if err := rosaScope.InitSession(); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	err = r.syncROSAClusterNodePools(ctx, controlPlane, rosaScope)

@@ -93,6 +93,17 @@ func (r *ROSANetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 		return ctrl.Result{}, fmt.Errorf("failed to create rosanetwork scope: %w", err)
 	}
 
+	// Always close the scope
+	defer func() {
+		if err := rosaNetworkScope.PatchObject(); err != nil {
+			reterr = errors.Join(reterr, err)
+		}
+	}()
+
+	if err := rosaNetworkScope.InitSession(); err != nil {
+		return ctrl.Result{}, err
+	}
+
 	// Create a new AWS/CloudFormation Client per reconciliation so the correct identity is always used.
 	awsClient, err := r.newAWSClient(rosaNetworkScope)
 	if err != nil {
@@ -109,13 +120,6 @@ func (r *ROSANetworkReconciler) Reconcile(ctx context.Context, req ctrl.Request)
 			return ctrl.Result{}, fmt.Errorf("error fetching CF stack details: %w", err)
 		}
 	}
-
-	// Always close the scope
-	defer func() {
-		if err := rosaNetworkScope.PatchObject(); err != nil {
-			reterr = errors.Join(reterr, err)
-		}
-	}()
 
 	if !rosaNetwork.ObjectMeta.DeletionTimestamp.IsZero() {
 		// Handle deletion reconciliation loop.
