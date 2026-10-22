@@ -152,10 +152,14 @@ func (p *AWSRolePrincipalTypeProvider) Hash() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// gob only encodes exported fields, so the source provider holding the
-	// credentials used to assume this role is not covered by the encoding above.
-	// Without mixing it in, rotating those credentials leaves the hash unchanged
-	// and a cached provider built from the previous credentials is reused.
+	// gob only encodes exported fields, so neither the region nor the source provider
+	// holding the credentials used to assume this role is covered by the encoding above.
+	// Without the region, two clusters in different regions sharing one
+	// AWSClusterRoleIdentity collide on a single cached provider and the second one
+	// assumes the role against the first one's regional STS endpoint. Without the source
+	// provider, rotating those credentials leaves the hash unchanged and a cached
+	// provider built from the previous credentials is reused.
+	roleIdentityValue.WriteString(p.region)
 	if p.sourceProvider != nil {
 		sourceHash, err := p.sourceProvider.Hash()
 		if err != nil {
