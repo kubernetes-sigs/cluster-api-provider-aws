@@ -1371,7 +1371,17 @@ func (r *AWSMachineReconciler) ensureStorageTags(ec2svc services.EC2Interface, i
 }
 
 func (r *AWSMachineReconciler) ensureInstanceMetadataOptions(ec2svc services.EC2Interface, instance *infrav1.Instance, machine *infrav1.AWSMachine) error {
-	if cmp.Equal(machine.Spec.InstanceMetadataOptions, instance.InstanceMetadataOptions) {
+	desired := machine.Spec.InstanceMetadataOptions
+	current := instance.InstanceMetadataOptions
+
+	// An unset HTTPProtocolIPv6 means "leave it alone".
+	if desired != nil && desired.HTTPProtocolIPv6 == "" && current != nil {
+		copied := *desired
+		copied.HTTPProtocolIPv6 = current.HTTPProtocolIPv6
+		desired = &copied
+	}
+
+	if cmp.Equal(desired, current) {
 		return nil
 	}
 

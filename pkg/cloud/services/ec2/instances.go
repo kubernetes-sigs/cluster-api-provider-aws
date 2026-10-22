@@ -1191,8 +1191,10 @@ func (s *Service) ModifyInstanceMetadataOptions(instanceID string, options *infr
 		HttpPutResponseHopLimit: utils.ToInt32Pointer(&options.HTTPPutResponseHopLimit),
 		HttpTokens:              types.HttpTokensState(string(options.HTTPTokens)),
 		InstanceMetadataTags:    types.InstanceMetadataTagsState(string(options.InstanceMetadataTags)),
-		HttpProtocolIpv6:        types.InstanceMetadataProtocolState(string(options.HTTPProtocolIPv6)),
 		InstanceId:              aws.String(instanceID),
+	}
+	if options.HTTPProtocolIPv6 != "" {
+		input.HttpProtocolIpv6 = types.InstanceMetadataProtocolState(string(options.HTTPProtocolIPv6))
 	}
 
 	s.scope.Info("Updating instance metadata options", "instance id", instanceID, "options", input)

@@ -862,12 +862,11 @@ spec:
                             - disabled
                             type: string
                           httpProtocolIpv6:
-                            default: disabled
                             description: |-
                               Enables or disables the IPv6 endpoint for the instance metadata service.
                               This applies only if you enabled the HTTP metadata endpoint.
 
-                              Default: disabled
+                              If unset, the partition default is used.
                             enum:
                             - enabled
                             - disabled
