@@ -28,6 +28,53 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 )
 
+const (
+	originalAccessKeyID = "AKIAIOSFODNN7EXAMPLE" //nolint:gosec // G101: test fixture, not real credentials
+	rotatedAccessKeyID  = "AKIAI44QH8DHBEXAMPLE" //nolint:gosec // G101: test fixture, not real credentials
+	testRegion          = "us-west-2"
+)
+
+func staticProviderFor(accessKeyID string) *AWSStaticPrincipalTypeProvider {
+	return NewAWSStaticPrincipalTypeProvider(
+		&infrav1.AWSClusterStaticIdentity{
+			ObjectMeta: metav1.ObjectMeta{Name: "source-identity"},
+			Spec:       infrav1.AWSClusterStaticIdentitySpec{SecretRef: "source-secret-ref"},
+		},
+		&corev1.Secret{
+			Data: map[string][]byte{
+				"AccessKeyID":     []byte(accessKeyID),
+				"SecretAccessKey": []byte(secretAccessKeyFor(accessKeyID)),
+			},
+		},
+	)
+}
+
+func secretAccessKeyFor(accessKeyID string) string {
+	return "secret-access-key-for-" + accessKeyID
+}
+
+func roleProviderFor(accessKeyID, region string) *AWSRolePrincipalTypeProvider {
+	return NewAWSRolePrincipalTypeProvider(
+		&infrav1.AWSClusterRoleIdentity{
+			ObjectMeta: metav1.ObjectMeta{Name: "role-identity"},
+			Spec: infrav1.AWSClusterRoleIdentitySpec{
+				AWSRoleSpec: infrav1.AWSRoleSpec{
+					RoleArn: "arn:aws:iam::123456789012:role/bootstrapper",
+				},
+				ExternalID: "external-id",
+			},
+		},
+		staticProviderFor(accessKeyID), region, logger.NewLogger(klog.Background()),
+	)
+}
+
+func hashOf(t *testing.T, p AWSPrincipalTypeProvider) string {
+	t.Helper()
+	h, err := p.Hash()
+	NewWithT(t).Expect(err).NotTo(HaveOccurred())
+	return h
+}
+
 // TestRolePrincipalHashCoversSourceCredentials verifies that a role provider's hash
 // changes when the credentials it uses to assume the role change.
 //
@@ -38,50 +85,31 @@ import (
 // the provider built from the previous credentials, and every caller kept using them.
 func TestRolePrincipalHashCoversSourceCredentials(t *testing.T) {
 	g := NewWithT(t)
-	log := logger.NewLogger(klog.Background())
 
-	roleProviderFor := func(accessKeyID string) *AWSRolePrincipalTypeProvider {
-		sourceProvider := NewAWSStaticPrincipalTypeProvider(
-			&infrav1.AWSClusterStaticIdentity{
-				ObjectMeta: metav1.ObjectMeta{Name: "source-identity"},
-				Spec:       infrav1.AWSClusterStaticIdentitySpec{SecretRef: "source-secret-ref"},
-			},
-			&corev1.Secret{
-				Data: map[string][]byte{
-					"AccessKeyID":     []byte(accessKeyID),
-					"SecretAccessKey": []byte("secret-access-key-for-" + accessKeyID),
-				},
-			},
-		)
-
-		return NewAWSRolePrincipalTypeProvider(
-			&infrav1.AWSClusterRoleIdentity{
-				ObjectMeta: metav1.ObjectMeta{Name: "role-identity"},
-				Spec: infrav1.AWSClusterRoleIdentitySpec{
-					AWSRoleSpec: infrav1.AWSRoleSpec{
-						RoleArn: "arn:aws:iam::123456789012:role/bootstrapper",
-					},
-					ExternalID: "external-id",
-				},
-			},
-			sourceProvider, "us-west-2", log,
-		)
-	}
-
-	hashOf := func(p *AWSRolePrincipalTypeProvider) string {
-		t.Helper()
-		h, err := p.Hash()
-		g.Expect(err).NotTo(HaveOccurred())
-		return h
-	}
-
-	original := hashOf(roleProviderFor("AKIAIOSFODNN7EXAMPLE"))
-	rotated := hashOf(roleProviderFor("AKIAI44QH8DHBEXAMPLE"))
-	unchanged := hashOf(roleProviderFor("AKIAIOSFODNN7EXAMPLE"))
+	original := hashOf(t, roleProviderFor(originalAccessKeyID, testRegion))
+	rotated := hashOf(t, roleProviderFor(rotatedAccessKeyID, testRegion))
+	unchanged := hashOf(t, roleProviderFor(originalAccessKeyID, testRegion))
 
 	// Rotating the source credentials must invalidate the cached provider.
 	g.Expect(rotated).NotTo(Equal(original))
 
 	// Identical input must still hash identically, otherwise the cache never hits.
 	g.Expect(unchanged).To(Equal(original))
+}
+
+// TestRolePrincipalHashCoversRegion verifies that two role providers built from the same
+// AWSClusterRoleIdentity but for different regions do not collide in providerCache.
+//
+// region is unexported and therefore not gob-encoded. Two clusters in different regions
+// sharing one AWSClusterRoleIdentity hashed identically, so the second cluster reused the
+// cached provider of the first and assumed the role against the first cluster's regional
+// STS endpoint. That breaks VPC STS endpoints and aws:RequestedRegion policy conditions,
+// and misreports the calling region in CloudTrail.
+func TestRolePrincipalHashCoversRegion(t *testing.T) {
+	g := NewWithT(t)
+
+	usEast := hashOf(t, roleProviderFor(originalAccessKeyID, "us-east-1"))
+	euWest := hashOf(t, roleProviderFor(originalAccessKeyID, "eu-west-1"))
+
+	g.Expect(euWest).NotTo(Equal(usEast))
 }
