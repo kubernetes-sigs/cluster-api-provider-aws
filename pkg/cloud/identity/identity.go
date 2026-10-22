@@ -22,6 +22,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/gob"
+	"encoding/hex"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -114,15 +115,15 @@ type AWSStaticPrincipalTypeProvider struct {
 	SessionToken    string
 }
 
-// Hash returns the byte encoded AWSStaticPrincipalTypeProvider.
+// Hash returns a SHA-256 digest of the AWSStaticPrincipalTypeProvider.
 func (p *AWSStaticPrincipalTypeProvider) Hash() (string, error) {
 	var roleIdentityValue bytes.Buffer
 	err := gob.NewEncoder(&roleIdentityValue).Encode(p)
 	if err != nil {
 		return "", err
 	}
-	hash := sha256.New()
-	return string(hash.Sum(roleIdentityValue.Bytes())), nil
+	sum := sha256.Sum256(roleIdentityValue.Bytes())
+	return hex.EncodeToString(sum[:]), nil
 }
 
 // Retrieve returns the credential values for the AWSStaticPrincipalTypeProvider.
@@ -145,7 +146,7 @@ type AWSRolePrincipalTypeProvider struct {
 	stsClient      stsservice.STSClient
 }
 
-// Hash returns the byte encoded AWSRolePrincipalTypeProvider.
+// Hash returns a SHA-256 digest of the AWSRolePrincipalTypeProvider.
 func (p *AWSRolePrincipalTypeProvider) Hash() (string, error) {
 	var roleIdentityValue bytes.Buffer
 	err := gob.NewEncoder(&roleIdentityValue).Encode(p)
@@ -167,8 +168,8 @@ func (p *AWSRolePrincipalTypeProvider) Hash() (string, error) {
 		}
 		roleIdentityValue.WriteString(sourceHash)
 	}
-	hash := sha256.New()
-	return string(hash.Sum(roleIdentityValue.Bytes())), nil
+	sum := sha256.Sum256(roleIdentityValue.Bytes())
+	return hex.EncodeToString(sum[:]), nil
 }
 
 // Name returns the name of the AWSRolePrincipalTypeProvider.

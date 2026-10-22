@@ -17,6 +17,8 @@ limitations under the License.
 package identity
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -112,4 +114,35 @@ func TestRolePrincipalHashCoversRegion(t *testing.T) {
 	euWest := hashOf(t, roleProviderFor(originalAccessKeyID, "eu-west-1"))
 
 	g.Expect(euWest).NotTo(Equal(usEast))
+}
+
+// TestHashIsDigestOfProvider verifies that Hash returns a hex-encoded SHA-256 digest.
+//
+// It previously returned sha256.New().Sum(gobBytes), which appends the digest of the
+// empty string to its argument instead of hashing it. The result was the full gob payload
+// with 32 constant bytes attached, so the plaintext SecretAccessKey of a static identity
+// ended up in every providerCache key and, once sessions record the hashes they were built
+// from, in every session cache entry as well.
+func TestHashIsDigestOfProvider(t *testing.T) {
+	tests := []struct {
+		name     string
+		provider AWSPrincipalTypeProvider
+	}{
+		{name: "static", provider: staticProviderFor(originalAccessKeyID)},
+		{name: "role", provider: roleProviderFor(originalAccessKeyID, testRegion)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			hash := hashOf(t, tt.provider)
+
+			decoded, err := hex.DecodeString(hash)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(decoded).To(HaveLen(sha256.Size))
+
+			g.Expect(hash).NotTo(ContainSubstring(secretAccessKeyFor(originalAccessKeyID)),
+				"hash must not carry the plaintext secret access key")
+		})
+	}
 }
