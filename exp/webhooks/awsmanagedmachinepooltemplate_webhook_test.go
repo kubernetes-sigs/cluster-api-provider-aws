@@ -299,7 +299,7 @@ func TestAWSManagedMachinePoolTemplateValidateUpdate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "mutable field - instanceType changes are allowed",
+			name: "immutable field - instanceType change is rejected",
 			old: &expinfrav1.AWSManagedMachinePoolTemplate{
 				Spec: expinfrav1.AWSManagedMachinePoolTemplateSpec{
 					Template: expinfrav1.AWSManagedMachinePoolTemplateResource{
@@ -318,7 +318,7 @@ func TestAWSManagedMachinePoolTemplateValidateUpdate(t *testing.T) {
 					},
 				},
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 		{
 			name: "mutable field - lifecycleHooks changes are allowed",

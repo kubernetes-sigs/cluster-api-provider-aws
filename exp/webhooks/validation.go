@@ -163,6 +163,7 @@ func validateManagedMachinePoolSpecImmutable(oldSpec, newSpec *expinfrav1.AWSMan
 	appendErrorIfMutated(oldSpec.SubnetIDs, newSpec.SubnetIDs, "subnetIDs")
 	appendErrorIfSetAndMutated(oldSpec.RoleName, newSpec.RoleName, "roleName")
 	appendErrorIfMutated(oldSpec.DiskSize, newSpec.DiskSize, "diskSize")
+	appendErrorIfMutated(oldSpec.InstanceType, newSpec.InstanceType, "instanceType")
 	appendErrorIfMutated(oldSpec.AMIType, newSpec.AMIType, "amiType")
 	appendErrorIfMutated(oldSpec.RemoteAccess, newSpec.RemoteAccess, "remoteAccess")
 	appendErrorIfSetAndMutated(oldSpec.CapacityType, newSpec.CapacityType, "capacityType")

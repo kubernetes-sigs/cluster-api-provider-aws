@@ -143,7 +143,7 @@ These flavors create the ClusterClass and its templates. They do not create a `C
 
 - `spec.template.spec.providerIDList` cannot be set in either template. `spec.template.spec.providerID` cannot be set in an `AWSMachinePoolTemplate`.
 - `AWSManagedMachinePoolTemplate` does not set a default `eksNodegroupName`. Each `AWSManagedMachinePool` created from the template gets its own generated node group name.
-- An `AWSManagedMachinePoolTemplate` has the same immutable fields as an `AWSManagedMachinePool`: `eksNodegroupName` (once set), `subnetIDs`, `roleName` (once set), `diskSize`, `amiType`, `remoteAccess`, `capacityType` (once set), `availabilityZones`, `availabilityZoneSubnetType`, and whether `awsLaunchTemplate` is set together with its `name`.
+- An `AWSManagedMachinePoolTemplate` has the same immutable fields as an `AWSManagedMachinePool`: `eksNodegroupName` (once set), `subnetIDs`, `roleName` (once set), `diskSize`, `instanceType`, `amiType`, `remoteAccess`, `capacityType` (once set), `availabilityZones`, `availabilityZoneSubnetType`, and whether `awsLaunchTemplate` is set together with its `name`.
 - All fields of an `AWSMachinePoolTemplate` can be changed, as with an `AWSMachinePool`.
 
 ### Changing a machine pool class
