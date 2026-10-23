@@ -195,6 +195,53 @@ func TestAWSManagedMachinePoolValidateUpdate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "changing instanceType is rejected",
+			old: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					InstanceType:     ptr.To[string]("t3.medium"),
+				},
+			},
+			new: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					InstanceType:     ptr.To[string]("t3.large"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "setting instanceType when previously unset is rejected",
+			old: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+				},
+			},
+			new: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					InstanceType:     ptr.To[string]("t3.large"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "unchanged instanceType is accepted",
+			old: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					InstanceType:     ptr.To[string]("t3.medium"),
+				},
+			},
+			new: &expinfrav1.AWSManagedMachinePool{
+				Spec: expinfrav1.AWSManagedMachinePoolSpec{
+					EKSNodegroupName: "eks-node-group-1",
+					InstanceType:     ptr.To[string]("t3.medium"),
+				},
+			},
+			wantErr: false,
+		},
+		{
 			name: "adding tags is accepted",
 			old: &expinfrav1.AWSManagedMachinePool{
 				Spec: expinfrav1.AWSManagedMachinePoolSpec{
