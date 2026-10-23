@@ -44,19 +44,16 @@ func TestMachinePoolVersionRangeMembership(t *testing.T) {
 		t.Run(tc.controlPlaneVersion+"/"+tc.machinePoolVersion, func(t *testing.T) {
 			g := NewWithT(t)
 
-			minVersion, maxVersion, err := MachinePoolSupportedVersionsRange(tc.controlPlaneVersion)
-			g.Expect(err).ToNot(HaveOccurred())
-
 			parsed, err := semver.Parse(tc.machinePoolVersion)
 			g.Expect(err).ToNot(HaveOccurred())
 
-			core := CoreVersion(parsed)
-			// Upper bound preserves prerelease; compare the raw pool version.
-			// Lower bound is core; compare the core pool version.
-			inRange := !parsed.GT(*maxVersion) && !core.LT(*minVersion)
-			g.Expect(inRange).To(Equal(tc.supported),
-				"machine pool %s against control plane %s (range >= %s, <= %s)",
-				tc.machinePoolVersion, tc.controlPlaneVersion, minVersion, maxVersion)
+			err = ValidateMachinePoolVersion(tc.controlPlaneVersion, parsed)
+			if tc.supported {
+				g.Expect(err).To(BeNil(), "expected version %s to be supported for control plane %s", tc.machinePoolVersion, tc.controlPlaneVersion)
+			} else {
+				g.Expect(err).To(HaveOccurred(), "expected version %s to be rejected for control plane %s", tc.machinePoolVersion, tc.controlPlaneVersion)
+				g.Expect(err.Error()).To(ContainSubstring("is not supported"))
+			}
 		})
 	}
 }
@@ -129,14 +126,10 @@ func TestMachinePoolSupportedVersionsRange(t *testing.T) {
 			// A pool at the same version as the control plane must always be
 			// accepted. This is the invariant that broke on 5.x: the underflowed
 			// minimum put every same-version pool out of range.
-			// Mirror the controller's comparison: raw pool version for the upper
-			// bound, core pool version for the lower bound.
 			cpVersion, parseErr := semver.Parse(tc.controlPlaneVersion)
 			g.Expect(parseErr).ToNot(HaveOccurred())
-			cpCore := CoreVersion(cpVersion)
-			inRange := !cpVersion.GT(*maxVersion) && !cpCore.LT(*minVersion)
-			g.Expect(inRange).To(BeTrue(),
-				"a pool at control plane version %s must be accepted by its own range [%s, %s]", cpVersion, minVersion, maxVersion)
+			g.Expect(ValidateMachinePoolVersion(tc.controlPlaneVersion, cpVersion)).To(Succeed(),
+				"a pool at control plane version %s must be accepted by its own range [%s, %s]", tc.controlPlaneVersion, minVersion, maxVersion)
 		})
 	}
 }
