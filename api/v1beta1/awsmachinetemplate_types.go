@@ -72,5 +72,5 @@ type AWSMachineTemplateResource struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&AWSMachineTemplate{}, &AWSMachineTemplateList{})
+	objectTypes = append(objectTypes, &AWSMachineTemplate{}, &AWSMachineTemplateList{})
 }

@@ -300,5 +300,5 @@ func (r *ROSAMachinePool) SetV1Beta2Conditions(conditions []metav1.Condition) {
 }
 
 func init() {
-	SchemeBuilder.Register(&ROSAMachinePool{}, &ROSAMachinePoolList{})
+	objectTypes = append(objectTypes, &ROSAMachinePool{}, &ROSAMachinePoolList{})
 }

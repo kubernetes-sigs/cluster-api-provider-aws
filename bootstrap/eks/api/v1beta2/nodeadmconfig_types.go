@@ -205,5 +205,5 @@ func (r *NodeadmConfig) SetV1Beta2Conditions(conditions []metav1.Condition) {
 }
 
 func init() {
-	SchemeBuilder.Register(&NodeadmConfig{}, &NodeadmConfigList{})
+	objectTypes = append(objectTypes, &NodeadmConfig{}, &NodeadmConfigList{})
 }
