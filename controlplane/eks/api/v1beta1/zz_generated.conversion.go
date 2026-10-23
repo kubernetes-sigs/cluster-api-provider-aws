@@ -384,6 +384,9 @@ func autoConvert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControl
 	}
 	// WARNING: in.UpgradePolicy requires manual conversion: does not exist in peer-type
 	// WARNING: in.ControlPlaneScalingConfig requires manual conversion: does not exist in peer-type
+	// WARNING: in.KubeSchedulerConfig requires manual conversion: does not exist in peer-type
+	// WARNING: in.KubeAPIServerConfig requires manual conversion: does not exist in peer-type
+	// WARNING: in.KubeControllerManagerConfig requires manual conversion: does not exist in peer-type
 	return nil
 }
 
