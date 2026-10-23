@@ -561,9 +561,10 @@ var (
 // Machines to run on Spot instances.
 // Most users should provide an empty struct.
 type SpotMarketOptions struct {
-	// MaxPrice defines the maximum price the user is willing to pay for Spot VM instances
+	// MaxPrice defines the maximum price the user is willing to pay for Spot VM instances,
+	// as an hourly rate. When omitted, Spot instances are requested with no maximum price.
 	// +optional
-	// +kubebuilder:validation:pattern="^[0-9]+(\.[0-9]+)?$"
+	// +kubebuilder:validation:Pattern=`^(0*[1-9][0-9]*(\.[0-9]+)?|0+\.[0-9]*[1-9][0-9]*)$`
 	MaxPrice *string `json:"maxPrice,omitempty"`
 }
 
