@@ -21,6 +21,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"k8s.io/klog/v2"
+
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 )
 
 func TestParseFlags(t *testing.T) {
@@ -106,7 +109,7 @@ func TestParseFlags(t *testing.T) {
 				serviceEndpointsMap = make(map[string]serviceEndpoint)
 			})
 
-			err := ParseFlag(tc.flagToParse)
+			err := ParseFlag(tc.flagToParse, logger.NewLogger(klog.Background()))
 
 			if !errors.Is(err, tc.expectedError) {
 				t.Fatalf("did not expect correct error: got %v, expected %v", err, tc.expectedError)
