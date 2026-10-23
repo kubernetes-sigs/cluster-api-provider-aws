@@ -22,6 +22,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/gob"
+	"encoding/hex"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -114,15 +115,15 @@ type AWSStaticPrincipalTypeProvider struct {
 	SessionToken    string
 }
 
-// Hash returns the byte encoded AWSStaticPrincipalTypeProvider.
+// Hash returns a SHA-256 digest of the AWSStaticPrincipalTypeProvider.
 func (p *AWSStaticPrincipalTypeProvider) Hash() (string, error) {
 	var roleIdentityValue bytes.Buffer
 	err := gob.NewEncoder(&roleIdentityValue).Encode(p)
 	if err != nil {
 		return "", err
 	}
-	hash := sha256.New()
-	return string(hash.Sum(roleIdentityValue.Bytes())), nil
+	sum := sha256.Sum256(roleIdentityValue.Bytes())
+	return hex.EncodeToString(sum[:]), nil
 }
 
 // Retrieve returns the credential values for the AWSStaticPrincipalTypeProvider.
@@ -145,15 +146,30 @@ type AWSRolePrincipalTypeProvider struct {
 	stsClient      stsservice.STSClient
 }
 
-// Hash returns the byte encoded AWSRolePrincipalTypeProvider.
+// Hash returns a SHA-256 digest of the AWSRolePrincipalTypeProvider.
 func (p *AWSRolePrincipalTypeProvider) Hash() (string, error) {
 	var roleIdentityValue bytes.Buffer
 	err := gob.NewEncoder(&roleIdentityValue).Encode(p)
 	if err != nil {
 		return "", err
 	}
-	hash := sha256.New()
-	return string(hash.Sum(roleIdentityValue.Bytes())), nil
+	// gob only encodes exported fields, so neither the region nor the source provider
+	// holding the credentials used to assume this role is covered by the encoding above.
+	// Without the region, two clusters in different regions sharing one
+	// AWSClusterRoleIdentity collide on a single cached provider and the second one
+	// assumes the role against the first one's regional STS endpoint. Without the source
+	// provider, rotating those credentials leaves the hash unchanged and a cached
+	// provider built from the previous credentials is reused.
+	roleIdentityValue.WriteString(p.region)
+	if p.sourceProvider != nil {
+		sourceHash, err := p.sourceProvider.Hash()
+		if err != nil {
+			return "", err
+		}
+		roleIdentityValue.WriteString(sourceHash)
+	}
+	sum := sha256.Sum256(roleIdentityValue.Bytes())
+	return hex.EncodeToString(sum[:]), nil
 }
 
 // Name returns the name of the AWSRolePrincipalTypeProvider.
