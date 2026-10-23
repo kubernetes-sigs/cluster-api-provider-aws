@@ -49,6 +49,7 @@ require (
 	github.com/spf13/cobra v1.10.2
 	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.12.1
+	github.com/vincent-petithory/dataurl v1.0.0
 	github.com/zgalor/weberr v0.9.0
 	go.uber.org/mock v0.6.0
 	golang.org/x/crypto v0.57.0
@@ -116,7 +117,6 @@ require (
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/valyala/fastjson v1.6.10 // indirect
-	github.com/vincent-petithory/dataurl v1.0.0 // indirect
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/net v0.58.0 // indirect
 	k8s.io/streaming v0.36.5 // indirect
