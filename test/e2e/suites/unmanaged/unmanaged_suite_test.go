@@ -38,6 +38,7 @@ var (
 func init() {
 	e2eCtx = shared.NewE2EContext()
 	shared.CreateDefaultFlags(e2eCtx)
+	shared.RegisterManagementClusterLifecycleSkip(e2eCtx)
 	SetDefaultEventuallyTimeout(20 * time.Minute)
 	SetDefaultEventuallyPollingInterval(10 * time.Second)
 }
@@ -49,16 +50,16 @@ func TestE2E(t *testing.T) {
 }
 
 var _ = ginkgo.SynchronizedBeforeSuite(func() []byte {
-	return shared.Node1BeforeSuite(e2eCtx)
+	return shared.ProvisionTestEnvironment(e2eCtx)
 }, func(data []byte) {
-	shared.AllNodesBeforeSuite(e2eCtx, data)
+	shared.PrepareTestExecution(e2eCtx, data)
 })
 
 var _ = ginkgo.SynchronizedAfterSuite(
 	func() {
-		shared.AllNodesAfterSuite(e2eCtx)
+		shared.FinishTestExecution(e2eCtx)
 	},
 	func() {
-		shared.Node1AfterSuite(e2eCtx)
+		shared.TeardownTestEnvironment(e2eCtx)
 	},
 )

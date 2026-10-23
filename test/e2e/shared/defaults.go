@@ -249,6 +249,8 @@ func CreateDefaultFlags(ctx *E2EContext) {
 	flag.IntVar(&ctx.Settings.GinkgoNodes, "kubetest.ginkgo-nodes", 1, "number of ginkgo nodes to use")
 	flag.IntVar(&ctx.Settings.GinkgoSlowSpecThreshold, "kubetest.ginkgo-slowSpecThreshold", 120, "time in s before spec is marked as slow")
 	flag.BoolVar(&ctx.Settings.UseExistingCluster, "use-existing-cluster", false, "if true, the test uses the current cluster instead of creating a new one (default discovery rules apply)")
+	flag.BoolVar(&ctx.Settings.ProvisionSelfHostedManagementCluster, "provision-self-hosted-management-cluster", false, "if true, provision a self-hosted AWS management cluster without running tests or cleanup")
+	flag.BoolVar(&ctx.Settings.TeardownSelfHostedManagementCluster, "teardown-self-hosted-management-cluster", false, "if true, tear down a previously provisioned self-hosted AWS management cluster")
 	flag.BoolVar(&ctx.Settings.SkipCleanup, "skip-cleanup", false, "if true, the resource cleanup after tests will be skipped")
 	flag.BoolVar(&ctx.Settings.SkipCloudFormationDeletion, "skip-cloudformation-deletion", false, "if true, an AWS CloudFormation stack will not be deleted")
 	flag.BoolVar(&ctx.Settings.SkipCloudFormationCreation, "skip-cloudformation-creation", false, "if true, an AWS CloudFormation stack will not be created")
