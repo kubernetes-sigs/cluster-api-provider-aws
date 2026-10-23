@@ -698,6 +698,171 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 	}
 }
 
+func TestRosaControlPlaneReconcileRequeuesOnPausedConditionChange(t *testing.T) {
+	g := NewWithT(t)
+	ns, err := testEnv.CreateNamespace(ctx, "test-namespace-paused")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	// Create a secret and identity that are required by webhook validation
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rosa-secret",
+			Namespace: ns.Name,
+		},
+		Data: map[string][]byte{
+			"ocmToken": []byte("secret-ocm-token-string"),
+		},
+	}
+	identity := &infrav1.AWSClusterControllerIdentity{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default",
+		},
+		Spec: infrav1.AWSClusterControllerIdentitySpec{
+			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+				AllowedNamespaces: &infrav1.AllowedNamespaces{},
+			},
+		},
+	}
+	identity.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterControllerIdentity"))
+
+	rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "rosa-control-plane-paused-test",
+			Namespace: ns.Name,
+			UID:       types.UID("rosa-control-plane-paused-test"),
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ROSAControlPlane",
+			APIVersion: rosacontrolplanev1.GroupVersion.String(),
+		},
+		Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+			RosaClusterName:   "rosa-control-plane-paused-test",
+			Subnets:           []string{"subnet-0ac99a6230b408813", "subnet-1ac99a6230b408811"},
+			AvailabilityZones: []string{"az-1", "az-2"},
+			Network: &rosacontrolplanev1.NetworkSpec{
+				MachineCIDR: "10.0.0.0/16",
+				PodCIDR:     "10.128.0.0/14",
+				ServiceCIDR: "172.30.0.0/16",
+			},
+			Region:       "us-east-1",
+			Version:      "4.15.20",
+			ChannelGroup: "stable",
+			RolesRef: rosacontrolplanev1.AWSRolesRef{
+				IngressARN:              "op-arn1",
+				ImageRegistryARN:        "op-arn2",
+				StorageARN:              "op-arn3",
+				NetworkARN:              "op-arn4",
+				KubeCloudControllerARN:  "op-arn5",
+				NodePoolManagementARN:   "op-arn6",
+				ControlPlaneOperatorARN: "op-arn7",
+				KMSProviderARN:          "op-arn8",
+			},
+			OIDCID:           "iodcid1",
+			InstallerRoleARN: "arn:aws:iam::123456789012:role/installer",
+			WorkerRoleARN:    "arn:aws:iam::123456789012:role/worker",
+			SupportRoleARN:   "arn:aws:iam::123456789012:role/support",
+			CredentialsSecretRef: &corev1.LocalObjectReference{
+				Name: secret.Name,
+			},
+			VersionGate: "Acknowledge",
+			IdentityRef: &infrav1.AWSIdentityReference{
+				Name: identity.Name,
+				Kind: infrav1.ControllerIdentityKind,
+			},
+		},
+	}
+
+	ownerCluster := &clusterv1.Cluster{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "owner-cluster-paused-test",
+			Namespace: ns.Name,
+			UID:       types.UID("owner-cluster-paused-test"),
+		},
+		Spec: clusterv1.ClusterSpec{
+			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+				Name:     rosaControlPlane.Name,
+				Kind:     "ROSAControlPlane",
+				APIGroup: rosacontrolplanev1.GroupVersion.Group,
+			},
+		},
+	}
+
+	rosaControlPlane.OwnerReferences = []metav1.OwnerReference{
+		{
+			Name:       ownerCluster.Name,
+			UID:        ownerCluster.UID,
+			Kind:       "Cluster",
+			APIVersion: clusterv1.GroupVersion.String(),
+		},
+	}
+
+	createObject(g, secret, ns.Name)
+	createObject(g, identity, ns.Name)
+	createObject(g, ownerCluster, ns.Name)
+	createObject(g, rosaControlPlane, ns.Name)
+	defer cleanupObject(g, secret)
+	defer cleanupObject(g, identity)
+	defer cleanupObject(g, ownerCluster)
+	defer cleanupObject(g, rosaControlPlane)
+
+	// Wait until both objects are visible in testEnv cache
+	g.Eventually(func() error {
+		return testEnv.Get(ctx, client.ObjectKey{Name: rosaControlPlane.Name, Namespace: ns.Name}, rosaControlPlane)
+	}, time.Second*5).Should(Succeed())
+
+	g.Eventually(func() error {
+		return testEnv.Get(ctx, client.ObjectKey{Name: ownerCluster.Name, Namespace: ns.Name}, ownerCluster)
+	}, time.Second*5).Should(Succeed())
+
+	// Create sentinels to track if the factories are called
+	awsClientFactoryCalled := false
+	ocmClientFactoryCalled := false
+
+	r := ROSAControlPlaneReconciler{
+		WatchFilterValue: "",
+		Client:           testEnv,
+		awsClientFactory: func(scope *scope.ROSAControlPlaneScope) (rosaaws.Client, error) {
+			awsClientFactoryCalled = true
+			return nil, fmt.Errorf("sentinel error - should not be called during paused gate")
+		},
+		NewOCMClient: func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error) {
+			ocmClientFactoryCalled = true
+			return nil, fmt.Errorf("sentinel error - should not be called during paused gate")
+		},
+	}
+
+	// Call Reconcile once
+	result, errReconcile := r.Reconcile(ctx, ctrl.Request{NamespacedName: types.NamespacedName{
+		Name:      rosaControlPlane.Name,
+		Namespace: ns.Name,
+	}})
+
+	// Assert: err == nil, result == ctrl.Result{RequeueAfter: conditionRequeueInterval}, both sentinel flags are false
+	g.Expect(errReconcile).To(BeNil())
+	g.Expect(result).To(Equal(ctrl.Result{RequeueAfter: conditionRequeueInterval}))
+	g.Expect(awsClientFactoryCalled).To(BeFalse())
+	g.Expect(ocmClientFactoryCalled).To(BeFalse())
+
+	// Assert (via Eventually): ROSAControlPlane has Paused condition set to False/NotPaused
+	g.Eventually(func() error {
+		updatedRCP := &rosacontrolplanev1.ROSAControlPlane{}
+		if err := testEnv.Get(ctx, client.ObjectKey{Name: rosaControlPlane.Name, Namespace: ns.Name}, updatedRCP); err != nil {
+			return err
+		}
+		pausedCond := v1beta1conditions.Get(updatedRCP, clusterv1beta1.PausedV1Beta2Condition)
+		if pausedCond == nil {
+			return fmt.Errorf("Paused condition not found")
+		}
+		if pausedCond.Status != corev1.ConditionFalse {
+			return fmt.Errorf("expected Paused condition status False, got %s", pausedCond.Status)
+		}
+		if pausedCond.Reason != "NotPaused" {
+			return fmt.Errorf("expected Paused condition reason NotPaused, got %s", pausedCond.Reason)
+		}
+		return nil
+	}, time.Second*5).Should(Succeed())
+}
+
 func TestBuildLogForwarders(t *testing.T) {
 	tests := []struct {
 		name                string
