@@ -477,6 +477,11 @@ func computeSpecDiff(desiredSpec expinfrav1.RosaMachinePoolSpec, nodePool *cmv1.
 		"VolumeSize",               // VolumeSize is immutable after creation.
 	}
 
+	// Ignore Subnet field when user didn't specify it (prevents phantom diffs).
+	if desiredSpec.Subnet == "" {
+		ignoredFields = append(ignoredFields, "Subnet")
+	}
+
 	return cmp.Diff(desiredSpec, currentSpec,
 		cmpopts.EquateEmpty(), // ensures empty non-nil slices and nil slices are considered equal.
 		cmpopts.IgnoreFields(currentSpec, ignoredFields...))
