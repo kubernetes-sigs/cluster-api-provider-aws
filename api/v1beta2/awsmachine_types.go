@@ -289,6 +289,15 @@ type AWSMachineSpec struct {
 	// +kubebuilder:validation:Enum="";None;CapacityReservationsOnly;Open
 	// +optional
 	CapacityReservationPreference CapacityReservationPreference `json:"capacityReservationPreference,omitempty"`
+
+	// SourceDestCheck controls the source/destination check on the instance's network interfaces.
+	// When set to "Disabled", the instance can forward traffic for which it is not the source or
+	// destination, which is required to use an AWS VPC Route Server with user-defined networking (UDN)
+	// and BGP. When unset or set to "Enabled", the AWS default (source/destination checking enabled)
+	// applies.
+	// +kubebuilder:validation:Enum=Enabled;Disabled
+	// +optional
+	SourceDestCheck SourceDestCheck `json:"sourceDestCheck,omitempty"`
 }
 
 // DynamicHostAllocationSpec defines the configuration for dynamic dedicated host allocation.

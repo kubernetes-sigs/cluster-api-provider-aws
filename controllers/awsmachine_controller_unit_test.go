@@ -216,6 +216,53 @@ func TestAWSMachineReconciler(t *testing.T) {
 	}
 
 	t.Run("Reconciling an AWSMachine", func(t *testing.T) {
+		t.Run("source/destination check on an existing instance", func(t *testing.T) {
+			// Regression test for a partial instance-creation failure: if applying the
+			// source/destination check fails after the instance was created, a later
+			// reconcile must retry it against the existing instance (via
+			// reconcileOperationalState) rather than recreating the instance. CreateInstance
+			// is intentionally never expected here, so the mock controller would fail the
+			// test if the instance were recreated.
+			reconcileOperational := func(t *testing.T) error {
+				t.Helper()
+				ms.AWSMachine.Spec.ProviderID = ptr.To[string](providerID)
+				ms.AWSMachine.Spec.SourceDestCheck = infrav1.SourceDestCheckDisabled
+				instance := &infrav1.Instance{ID: "myMachine", State: infrav1.InstanceStateRunning}
+
+				ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil)
+				ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil)
+				ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
+				ec2Svc.EXPECT().UpdateInstanceSecurityGroups(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+				return reconciler.reconcileOperationalState(context.Background(), ec2Svc, ms, instance)
+			}
+
+			t.Run("surfaces an error so the reconcile is requeued when the ENI update fails", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+
+				ec2Svc.EXPECT().ReconcileSourceDestCheck(gomock.Any(), "myMachine", infrav1.SourceDestCheckDisabled).
+					Return(errors.New("failed to modify ENI"))
+
+				err := reconcileOperational(t)
+				g.Expect(err).ToNot(BeNil())
+			})
+
+			t.Run("applies the check against the existing instance on a later reconcile", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+
+				ec2Svc.EXPECT().ReconcileSourceDestCheck(gomock.Any(), "myMachine", infrav1.SourceDestCheckDisabled).
+					Return(nil)
+
+				err := reconcileOperational(t)
+				g.Expect(err).To(BeNil())
+			})
+		})
 		t.Run("when can't reach amazon", func(t *testing.T) {
 			expectedErr := errors.New("no connection available ")
 			runningInstance := func(t *testing.T, g *WithT) {
