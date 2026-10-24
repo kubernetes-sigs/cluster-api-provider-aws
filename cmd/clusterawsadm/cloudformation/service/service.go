@@ -22,6 +22,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"text/tabwriter"
 	"time"
 
@@ -96,9 +97,10 @@ func (s *Service) ReconcileBootstrapStack(ctx context.Context, stackName string,
 			if updateErr != nil {
 				code, ok := awserrors.Code(errors.Cause(updateErr))
 				message := awserrors.Message(errors.Cause(updateErr))
-				if !ok || code != "ValidationError" || message != "No updates are to be performed." {
+				if !ok || code != "ValidationError" || strings.Contains(message, "No updates are to be performed.") == false {
 					return updateErr
 				}
+				klog.Infof("no updates to be performed for stack %q", klog.KRef("", stackName))
 			}
 			return nil
 		}
