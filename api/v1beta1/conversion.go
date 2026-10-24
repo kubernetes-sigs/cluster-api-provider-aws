@@ -104,6 +104,10 @@ func Convert_v1beta2_Ignition_To_v1beta1_Ignition(in *v1beta2.Ignition, out *Ign
 	return autoConvert_v1beta2_Ignition_To_v1beta1_Ignition(in, out, s)
 }
 
+func Convert_v1beta2_AMIReference_To_v1beta1_AMIReference(in *v1beta2.AMIReference, out *AMIReference, s conversion.Scope) error {
+	return autoConvert_v1beta2_AMIReference_To_v1beta1_AMIReference(in, out, s)
+}
+
 func Convert_v1beta2_AWSMachineStatus_To_v1beta1_AWSMachineStatus(in *v1beta2.AWSMachineStatus, out *AWSMachineStatus, s conversion.Scope) error {
 	// DedicatedHost and V1Beta2 are omitted here because they do not exist in v1beta1.
 	// AWSMachine.ConvertTo restores them from preserved conversion data.
