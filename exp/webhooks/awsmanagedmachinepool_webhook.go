@@ -144,6 +144,14 @@ func (w *AWSManagedMachinePool) validateLaunchTemplate(r *expinfrav1.AWSManagedM
 	return allErrs
 }
 
+// launchTemplateAMITypeWarnings warns that amiType is ignored for launch template pools.
+func launchTemplateAMITypeWarnings(r *expinfrav1.AWSManagedMachinePool) admission.Warnings {
+	if r.Spec.AWSLaunchTemplate == nil || r.Spec.AMIType == nil || *r.Spec.AMIType == expinfrav1.Custom {
+		return nil
+	}
+	return admission.Warnings{fmt.Sprintf("spec.amiType %q is ignored when spec.awsLaunchTemplate is set; the node group is created with AMI type CUSTOM", *r.Spec.AMIType)}
+}
+
 func (w *AWSManagedMachinePool) validateLifecycleHooks(r *expinfrav1.AWSManagedMachinePool) field.ErrorList {
 	return validateLifecycleHooks(r.Spec.AWSLifecycleHooks)
 }
@@ -180,11 +188,13 @@ func (w *AWSManagedMachinePool) ValidateCreate(_ context.Context, obj runtime.Ob
 
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
+	warnings := launchTemplateAMITypeWarnings(r)
+
 	if len(allErrs) == 0 {
-		return nil, nil
+		return warnings, nil
 	}
 
-	return nil, apierrors.NewInvalid(
+	return warnings, apierrors.NewInvalid(
 		r.GroupVersionKind().GroupKind(),
 		r.Name,
 		allErrs,
