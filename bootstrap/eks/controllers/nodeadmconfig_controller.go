@@ -214,10 +214,7 @@ func (r *NodeadmConfigReconciler) joinWorker(ctx context.Context, cluster *clust
 		return ctrl.Result{}, err
 	}
 
-	serviceCIDR := ""
-	if len(cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
-		serviceCIDR = cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0]
-	}
+	serviceCIDR := nodeadmServiceCIDR(cluster, controlPlane)
 	nodeInput := &userdata.NodeadmInput{
 		// AWSManagedControlPlane webhooks default and validate EKSClusterName
 		ClusterName:        controlPlane.Spec.EKSClusterName,
@@ -485,4 +482,15 @@ func extractCAFromSecret(ctx context.Context, c client.Client, obj client.Object
 	}
 
 	return "", fmt.Errorf("no cluster with CA data found in kubeconfig")
+}
+
+// nodeadmServiceCIDR prefers the EKS-reported service CIDR, then the Cluster's services CIDR.
+func nodeadmServiceCIDR(cluster *clusterv1.Cluster, controlPlane *ekscontrolplanev1.AWSManagedControlPlane) string {
+	if cidr := ptr.Deref(controlPlane.Status.ServiceCIDR, ""); cidr != "" {
+		return cidr
+	}
+	if len(cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {
+		return cluster.Spec.ClusterNetwork.Services.CIDRBlocks[0]
+	}
+	return ""
 }

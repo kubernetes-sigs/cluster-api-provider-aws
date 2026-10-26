@@ -254,6 +254,11 @@ func (in *AWSManagedControlPlaneStatus) DeepCopyInto(out *AWSManagedControlPlane
 		*out = new(string)
 		**out = **in
 	}
+	if in.ServiceCIDR != nil {
+		in, out := &in.ServiceCIDR, &out.ServiceCIDR
+		*out = new(string)
+		**out = **in
+	}
 	if in.V1Beta2 != nil {
 		in, out := &in.V1Beta2, &out.V1Beta2
 		*out = new(AWSManagedControlPlaneV1Beta2Status)
