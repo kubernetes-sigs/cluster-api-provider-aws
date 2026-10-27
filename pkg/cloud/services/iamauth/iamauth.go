@@ -38,10 +38,23 @@ var (
 
 // AuthenticatorBackend is the interface that represents an aws-iam-authenticator backend.
 type AuthenticatorBackend interface {
-	// MapRole is used to map a role ARN to a user and set of groups
+	// MapRole is used to map a role ARN to a user and set of groups.
+	//
+	// Deprecated: prefer ReconcileMappings, which replaces the full desired set.
+	// Retained for API back-compat; internal reconciler no longer calls it.
 	MapRole(mapping ekscontrolplanev1.RoleMapping) error
-	// MapUser is used to map a user ARN to a user and set of groups
+
+	// MapUser is used to map a user ARN to a user and set of groups.
+	//
+	// Deprecated: prefer ReconcileMappings, which replaces the full desired set.
+	// Retained for API back-compat; internal reconciler no longer calls it.
 	MapUser(mapping ekscontrolplanev1.UserMapping) error
+
+	// ReconcileMappings applies the given role and user mappings as the desired
+	// state, deleting any CAPA-managed entries not in the input. Callers MUST
+	// pass the union of discovered node role mappings AND user-configured
+	// mappings — the backend does not discover node roles.
+	ReconcileMappings(roles []ekscontrolplanev1.RoleMapping, users []ekscontrolplanev1.UserMapping) error
 }
 
 // BackendType is a type that represents the different aws-iam-authenticator backends.
