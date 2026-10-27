@@ -86,6 +86,62 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 	g.Expect(computeSpecDiff(rosaMachinePoolSpec, nodePoolSpec)).To(BeEmpty())
 }
 
+func TestNodePoolBuilderSpotMarketOptions(t *testing.T) {
+	machinePoolSpec := clusterv1.MachinePoolSpec{
+		Replicas: ptr.To[int32](1),
+	}
+
+	baseSpec := func() expinfrav1.RosaMachinePoolSpec {
+		return expinfrav1.RosaMachinePoolSpec{
+			NodePoolName: "test-nodepool",
+			Subnet:       "subnet-id",
+			AutoRepair:   true,
+			InstanceType: "m5.large",
+		}
+	}
+
+	t.Run("empty spotMarketOptions requests Spot with no max price", func(t *testing.T) {
+		g := NewWithT(t)
+
+		rosaMachinePoolSpec := baseSpec()
+		rosaMachinePoolSpec.SpotMarketOptions = &infrav1.SpotMarketOptions{}
+
+		nodePool, err := nodePoolBuilder(rosaMachinePoolSpec, machinePoolSpec, rosacontrolplanev1.Stable, "").Build()
+		g.Expect(err).ToNot(HaveOccurred())
+
+		spotOpts := nodePool.AWSNodePool().SpotMarketOptions()
+		g.Expect(spotOpts).ToNot(BeNil())
+		_, ok := spotOpts.GetMaxPrice()
+		g.Expect(ok).To(BeFalse())
+
+		// SpotMarketOptions changes are now supported, so diffs should be propagated.
+		diff := computeSpecDiff(rosaMachinePoolSpec, nodePool)
+		g.Expect(diff).ToNot(BeEmpty())
+		g.Expect(diff).To(ContainSubstring("SpotMarketOptions"))
+	})
+
+	t.Run("spotMarketOptions with maxPrice sets the bid", func(t *testing.T) {
+		g := NewWithT(t)
+
+		rosaMachinePoolSpec := baseSpec()
+		rosaMachinePoolSpec.SpotMarketOptions = &infrav1.SpotMarketOptions{MaxPrice: ptr.To("0.05")}
+
+		nodePool, err := nodePoolBuilder(rosaMachinePoolSpec, machinePoolSpec, rosacontrolplanev1.Stable, "").Build()
+		g.Expect(err).ToNot(HaveOccurred())
+
+		spotOpts := nodePool.AWSNodePool().SpotMarketOptions()
+		g.Expect(spotOpts).ToNot(BeNil())
+		maxPrice, ok := spotOpts.GetMaxPrice()
+		g.Expect(ok).To(BeTrue())
+		g.Expect(maxPrice).To(Equal("0.05"))
+
+		// SpotMarketOptions changes are now supported, so diffs should be propagated.
+		diff := computeSpecDiff(rosaMachinePoolSpec, nodePool)
+		g.Expect(diff).ToNot(BeEmpty())
+		g.Expect(diff).To(ContainSubstring("SpotMarketOptions"))
+	})
+}
+
 func TestRosaMachinePoolReconcile(t *testing.T) {
 	g := NewWithT(t)
 	ns, err := testEnv.CreateNamespace(ctx, "test-namespace")
