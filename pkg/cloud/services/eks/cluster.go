@@ -28,6 +28,7 @@ import (
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	"github.com/blang/semver"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/klog/v2"
@@ -44,6 +45,7 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 )
 
 func (s *Service) reconcileCluster(ctx context.Context) error {
@@ -214,9 +216,19 @@ func (s *Service) setStatus(cluster *ekstypes.Cluster) error {
 		if v1beta1conditions.IsTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneCreatingCondition) {
 			record.Eventf(s.scope.ControlPlane, "SuccessfulCreateEKSControlPlane", "Created new EKS control plane %s", s.scope.KubernetesClusterName())
 			v1beta1conditions.MarkFalse(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneCreatingCondition, "created", clusterv1beta1.ConditionSeverityInfo, "")
+			conditions.Set(s.scope.ControlPlane, metav1.Condition{
+				Type:   ekscontrolplanev1.AWSManagedControlPlaneEKSControlPlaneCreatingV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: "created",
+			})
 		}
 		if v1beta1conditions.IsTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition) {
 			v1beta1conditions.MarkFalse(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition, "updated", clusterv1beta1.ConditionSeverityInfo, "")
+			conditions.Set(s.scope.ControlPlane, metav1.Condition{
+				Type:   ekscontrolplanev1.AWSManagedControlPlaneEKSControlPlaneUpdatingV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: "updated",
+			})
 			record.Eventf(s.scope.ControlPlane, "SuccessfulUpdateEKSControlPlane", "Updated EKS control plane %s", s.scope.KubernetesClusterName())
 		}
 		if s.scope.ControlPlane.Spec.UpgradePolicy == ekscontrolplanev1.UpgradePolicyStandard &&
@@ -532,6 +544,11 @@ func (s *Service) createCluster(ctx context.Context, eksClusterName string) (*ek
 			return false, err
 		}
 		v1beta1conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneCreatingCondition)
+		conditions.Set(s.scope.ControlPlane, metav1.Condition{
+			Type:   ekscontrolplanev1.AWSManagedControlPlaneEKSControlPlaneCreatingV1Beta2Condition,
+			Status: metav1.ConditionTrue,
+			Reason: "Creating",
+		})
 		record.Eventf(s.scope.ControlPlane, "InitiatedCreateEKSControlPlane", "Initiated creation of a new EKS control plane %s", s.scope.KubernetesClusterName())
 		return true, nil
 	}, awserrors.ResourceNotFound); err != nil { // TODO: change the error that can be retried
@@ -595,6 +612,11 @@ func (s *Service) reconcileClusterConfig(ctx context.Context, cluster *ekstypes.
 				return false, err
 			}
 			v1beta1conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition)
+			conditions.Set(s.scope.ControlPlane, metav1.Condition{
+				Type:   ekscontrolplanev1.AWSManagedControlPlaneEKSControlPlaneUpdatingV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: controlPlaneUpdatingReason,
+			})
 			record.Eventf(s.scope.ControlPlane, "InitiatedUpdateEKSControlPlane", "Initiated update of a new EKS control plane %s", s.scope.KubernetesClusterName())
 			return true, nil
 		}); err != nil {
@@ -638,6 +660,11 @@ func (s *Service) reconcileAccessConfig(ctx context.Context, accessConfig *eksty
 			}
 
 			v1beta1conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition)
+			conditions.Set(s.scope.ControlPlane, metav1.Condition{
+				Type:   ekscontrolplanev1.AWSManagedControlPlaneEKSControlPlaneUpdatingV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: controlPlaneUpdatingReason,
+			})
 			record.Eventf(s.scope.ControlPlane, "InitiatedUpdateEKSControlPlane", "Initiated auth config update for EKS control plane %s", s.scope.KubernetesClusterName())
 			return true, nil
 		}); err != nil {
@@ -667,6 +694,11 @@ func (s *Service) reconcileLogging(ctx context.Context, logging *ekstypes.Loggin
 				return false, err
 			}
 			v1beta1conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition)
+			conditions.Set(s.scope.ControlPlane, metav1.Condition{
+				Type:   ekscontrolplanev1.AWSManagedControlPlaneEKSControlPlaneUpdatingV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: controlPlaneUpdatingReason,
+			})
 			record.Eventf(s.scope.ControlPlane, "InitiatedUpdateEKSControlPlane", "Initiated logging update for EKS control plane %s", s.scope.KubernetesClusterName())
 			return true, nil
 		}); err != nil {
@@ -679,8 +711,9 @@ func (s *Service) reconcileLogging(ctx context.Context, logging *ekstypes.Loggin
 }
 
 const (
-	defaultIPv4ZeroCIDR = "0.0.0.0/0"
-	defaultIPv6ZeroCIDR = "::/0"
+	controlPlaneUpdatingReason = "Updating"
+	defaultIPv4ZeroCIDR        = "0.0.0.0/0"
+	defaultIPv6ZeroCIDR        = "::/0"
 )
 
 func publicAccessCIDRsEqual(as []string, bs []string) bool {
@@ -824,6 +857,11 @@ func (s *Service) reconcileClusterVersion(ctx context.Context, cluster *ekstypes
 			}
 
 			v1beta1conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition)
+			conditions.Set(s.scope.ControlPlane, metav1.Condition{
+				Type:   ekscontrolplanev1.AWSManagedControlPlaneEKSControlPlaneUpdatingV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: controlPlaneUpdatingReason,
+			})
 			record.Eventf(s.scope.ControlPlane, "InitiatedUpdateEKSControlPlane", "Initiated update of EKS control plane %s to version %s", s.scope.KubernetesClusterName(), nextVersionString)
 
 			return true, nil
@@ -913,6 +951,11 @@ func (s *Service) updateEncryptionConfig(ctx context.Context, updatedEncryptionC
 		}
 
 		v1beta1conditions.MarkTrue(s.scope.ControlPlane, ekscontrolplanev1.EKSControlPlaneUpdatingCondition)
+		conditions.Set(s.scope.ControlPlane, metav1.Condition{
+			Type:   ekscontrolplanev1.AWSManagedControlPlaneEKSControlPlaneUpdatingV1Beta2Condition,
+			Status: metav1.ConditionTrue,
+			Reason: controlPlaneUpdatingReason,
+		})
 		record.Eventf(s.scope.ControlPlane, "InitiatedUpdateEncryptionConfig", "Initiated update of encryption config in EKS control plane %s", s.scope.KubernetesClusterName())
 
 		return true, nil
