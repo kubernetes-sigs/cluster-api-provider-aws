@@ -208,6 +208,128 @@ func TestInstanceIfExists(t *testing.T) {
 	}
 }
 
+func TestReconcileSourceDestCheck(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+
+	describeENIs := func(m *mocks.MockEC2APIMockRecorder, enis ...types.NetworkInterface) {
+		m.DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
+			Return(&ec2.DescribeNetworkInterfacesOutput{NetworkInterfaces: enis}, nil)
+	}
+	expectModify := func(m *mocks.MockEC2APIMockRecorder, id string, enabled bool) {
+		m.ModifyNetworkInterfaceAttribute(context.TODO(), gomock.Eq(&ec2.ModifyNetworkInterfaceAttributeInput{
+			NetworkInterfaceId: aws.String(id),
+			SourceDestCheck:    &types.AttributeBooleanValue{Value: aws.Bool(enabled)},
+		})).Return(&ec2.ModifyNetworkInterfaceAttributeOutput{}, nil)
+	}
+
+	testCases := []struct {
+		name       string
+		instanceID string
+		setting    infrav1.SourceDestCheck
+		expect     func(m *mocks.MockEC2APIMockRecorder)
+		wantErr    bool
+	}{
+		{
+			name:       "unset setting is a no-op and does not query AWS",
+			instanceID: "i-123",
+			setting:    "",
+			expect:     func(m *mocks.MockEC2APIMockRecorder) {},
+		},
+		{
+			name:       "disables the check on interfaces that are not yet configured",
+			instanceID: "i-123",
+			setting:    infrav1.SourceDestCheckDisabled,
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				describeENIs(m,
+					types.NetworkInterface{NetworkInterfaceId: aws.String("eni-1")},
+					types.NetworkInterface{NetworkInterfaceId: aws.String("eni-2")},
+				)
+				expectModify(m, "eni-1", false)
+				expectModify(m, "eni-2", false)
+			},
+		},
+		{
+			name:       "enables the check on interfaces that currently have it disabled",
+			instanceID: "i-123",
+			setting:    infrav1.SourceDestCheckEnabled,
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				describeENIs(m,
+					types.NetworkInterface{NetworkInterfaceId: aws.String("eni-1"), SourceDestCheck: aws.Bool(false)},
+				)
+				expectModify(m, "eni-1", true)
+			},
+		},
+		{
+			name:       "skips interfaces already at the desired value",
+			instanceID: "i-123",
+			setting:    infrav1.SourceDestCheckDisabled,
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				describeENIs(m,
+					types.NetworkInterface{NetworkInterfaceId: aws.String("eni-1"), SourceDestCheck: aws.Bool(false)},
+					types.NetworkInterface{NetworkInterfaceId: aws.String("eni-2"), SourceDestCheck: aws.Bool(false)},
+				)
+				// No ModifyNetworkInterfaceAttribute calls expected.
+			},
+		},
+		{
+			name:       "only updates interfaces that differ from the desired value",
+			instanceID: "i-123",
+			setting:    infrav1.SourceDestCheckDisabled,
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				describeENIs(m,
+					types.NetworkInterface{NetworkInterfaceId: aws.String("eni-1"), SourceDestCheck: aws.Bool(false)},
+					types.NetworkInterface{NetworkInterfaceId: aws.String("eni-2"), SourceDestCheck: aws.Bool(true)},
+				)
+				expectModify(m, "eni-2", false)
+			},
+		},
+		{
+			name:       "errors when the setting is requested but no interfaces are found",
+			instanceID: "i-123",
+			setting:    infrav1.SourceDestCheckDisabled,
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				describeENIs(m)
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
+
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+
+			clusterScope, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client:  client,
+				Cluster: &clusterv1.Cluster{},
+				AWSCluster: &infrav1.AWSCluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test"},
+					Spec: infrav1.AWSClusterSpec{
+						NetworkSpec: infrav1.NetworkSpec{VPC: infrav1.VPCSpec{ID: "test-vpc"}},
+					},
+				},
+			})
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			tc.expect(ec2Mock.EXPECT())
+
+			s := NewService(clusterScope)
+			s.EC2Client = ec2Mock
+
+			err = s.ReconcileSourceDestCheck(context.TODO(), tc.instanceID, tc.setting)
+			if (err != nil) != tc.wantErr {
+				t.Fatalf("ReconcileSourceDestCheck() error = %v, wantErr %v", err, tc.wantErr)
+			}
+		})
+	}
+}
+
 func TestTerminateInstance(t *testing.T) {
 	mockCtrl := gomock.NewController(t)
 	defer mockCtrl.Finish()
@@ -419,6 +541,293 @@ func TestCreateInstance(t *testing.T) {
 						NetworkInterfaces: []types.NetworkInterface{},
 						NextToken:         nil,
 					}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "with source/dest check disabled",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To[string]("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType:    "m5.large",
+				SourceDestCheck: infrav1.SourceDestCheckDisabled,
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {ID: "1"},
+							infrav1.SecurityGroupNode:         {ID: "2"},
+							infrav1.SecurityGroupLB:           {ID: "3"},
+						},
+						APIServerELB: infrav1.LoadBalancer{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstanceTypes(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []types.InstanceTypeInfo{
+							{
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
+									},
+								},
+							},
+						},
+					}, nil)
+				m.
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
+							{
+								State:        &types.InstanceState{Name: types.InstanceStateNamePending},
+								InstanceId:   aws.String("two"),
+								InstanceType: types.InstanceTypeM5Large,
+								SubnetId:     aws.String("subnet-1"),
+								ImageId:      aws.String("ami-1"),
+								Placement:    &types.Placement{AvailabilityZone: &az},
+							},
+						},
+					}, nil)
+				m.
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []types.NetworkInterface{
+							{NetworkInterfaceId: aws.String("eni-1")},
+							{NetworkInterfaceId: aws.String("eni-2")},
+						},
+					}, nil)
+				m.
+					ModifyNetworkInterfaceAttribute(context.TODO(), gomock.Eq(&ec2.ModifyNetworkInterfaceAttributeInput{
+						NetworkInterfaceId: aws.String("eni-1"),
+						SourceDestCheck:    &types.AttributeBooleanValue{Value: aws.Bool(false)},
+					})).
+					Return(&ec2.ModifyNetworkInterfaceAttributeOutput{}, nil)
+				m.
+					ModifyNetworkInterfaceAttribute(context.TODO(), gomock.Eq(&ec2.ModifyNetworkInterfaceAttributeInput{
+						NetworkInterfaceId: aws.String("eni-2"),
+						SourceDestCheck:    &types.AttributeBooleanValue{Value: aws.Bool(false)},
+					})).
+					Return(&ec2.ModifyNetworkInterfaceAttributeOutput{}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "with source/dest check enabled",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To[string]("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType:    "m5.large",
+				SourceDestCheck: infrav1.SourceDestCheckEnabled,
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {ID: "1"},
+							infrav1.SecurityGroupNode:         {ID: "2"},
+							infrav1.SecurityGroupLB:           {ID: "3"},
+						},
+						APIServerELB: infrav1.LoadBalancer{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstanceTypes(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []types.InstanceTypeInfo{
+							{
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
+									},
+								},
+							},
+						},
+					}, nil)
+				m.
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
+							{
+								State:        &types.InstanceState{Name: types.InstanceStateNamePending},
+								InstanceId:   aws.String("two"),
+								InstanceType: types.InstanceTypeM5Large,
+								SubnetId:     aws.String("subnet-1"),
+								ImageId:      aws.String("ami-1"),
+								Placement:    &types.Placement{AvailabilityZone: &az},
+							},
+						},
+					}, nil)
+				m.
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []types.NetworkInterface{
+							{NetworkInterfaceId: aws.String("eni-1")},
+						},
+					}, nil)
+				m.
+					ModifyNetworkInterfaceAttribute(context.TODO(), gomock.Eq(&ec2.ModifyNetworkInterfaceAttributeInput{
+						NetworkInterfaceId: aws.String("eni-1"),
+						SourceDestCheck:    &types.AttributeBooleanValue{Value: aws.Bool(true)},
+					})).
+					Return(&ec2.ModifyNetworkInterfaceAttributeOutput{}, nil)
+			},
+			check: func(instance *infrav1.Instance, err error) {
+				if err != nil {
+					t.Fatalf("did not expect error: %v", err)
+				}
+			},
+		},
+		{
+			name: "with source/dest check unset leaves interfaces untouched",
+			machine: &clusterv1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"set": "node"},
+				},
+				Spec: clusterv1.MachineSpec{
+					Bootstrap: clusterv1.Bootstrap{
+						DataSecretName: ptr.To[string]("bootstrap-data"),
+					},
+				},
+			},
+			machineConfig: &infrav1.AWSMachineSpec{
+				AMI: infrav1.AMIReference{
+					ID: aws.String("abc"),
+				},
+				InstanceType: "m5.large",
+			},
+			awsCluster: &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{
+						Subnets: infrav1.Subnets{
+							infrav1.SubnetSpec{
+								ID:       "subnet-1",
+								IsPublic: false,
+							},
+						},
+						VPC: infrav1.VPCSpec{
+							ID: "vpc-test",
+						},
+					},
+				},
+				Status: infrav1.AWSClusterStatus{
+					Network: infrav1.NetworkStatus{
+						SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+							infrav1.SecurityGroupControlPlane: {ID: "1"},
+							infrav1.SecurityGroupNode:         {ID: "2"},
+							infrav1.SecurityGroupLB:           {ID: "3"},
+						},
+						APIServerELB: infrav1.LoadBalancer{
+							DNSName: "test-apiserver.us-east-1.aws",
+						},
+					},
+				},
+			},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.
+					DescribeInstanceTypes(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeInstanceTypesOutput{
+						InstanceTypes: []types.InstanceTypeInfo{
+							{
+								ProcessorInfo: &types.ProcessorInfo{
+									SupportedArchitectures: []types.ArchitectureType{
+										types.ArchitectureTypeX8664,
+									},
+								},
+							},
+						},
+					}, nil)
+				m.
+					RunInstances(context.TODO(), gomock.Any()).
+					Return(&ec2.RunInstancesOutput{
+						Instances: []types.Instance{
+							{
+								State:        &types.InstanceState{Name: types.InstanceStateNamePending},
+								InstanceId:   aws.String("two"),
+								InstanceType: types.InstanceTypeM5Large,
+								SubnetId:     aws.String("subnet-1"),
+								ImageId:      aws.String("ami-1"),
+								Placement:    &types.Placement{AvailabilityZone: &az},
+							},
+						},
+					}, nil)
+				m.
+					DescribeNetworkInterfaces(context.TODO(), gomock.Any()).
+					Return(&ec2.DescribeNetworkInterfacesOutput{
+						NetworkInterfaces: []types.NetworkInterface{
+							{NetworkInterfaceId: aws.String("eni-1")},
+						},
+					}, nil)
+				// No ModifyNetworkInterfaceAttribute call is expected: an unset
+				// SourceDestCheck must leave the AWS default untouched.
 			},
 			check: func(instance *infrav1.Instance, err error) {
 				if err != nil {
