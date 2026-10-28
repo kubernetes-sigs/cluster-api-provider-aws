@@ -31,6 +31,9 @@ const (
 	// ExternalAuthConfiguredCondition condition reports whether external auth has beed correctly configured.
 	ExternalAuthConfiguredCondition clusterv1beta1.ConditionType = "ExternalAuthConfigured"
 
+	// ROSANotificationContactsReadyCondition condition reports whether notification contacts have been reconciled.
+	ROSANotificationContactsReadyCondition clusterv1beta1.ConditionType = "ROSANotificationContactsReady"
+
 	// ROSARoleConfigReadyCondition condition reports whether the referenced RosaRoleConfig is ready.
 	ROSARoleConfigReadyCondition clusterv1beta1.ConditionType = "ROSARoleConfigReady"
 
