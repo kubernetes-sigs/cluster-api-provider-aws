@@ -470,6 +470,7 @@ func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaM
 func computeSpecDiff(desiredSpec expinfrav1.RosaMachinePoolSpec, nodePool *cmv1.NodePool) string {
 	currentSpec := utils.NodePoolToRosaMachinePoolSpec(nodePool)
 
+	// Fields that should never trigger a diff.
 	ignoredFields := []string{
 		"ProviderIDList",           // providerIDList is set by the controller.
 		"Version",                  // Version changes are reconciled separately.
@@ -477,6 +478,10 @@ func computeSpecDiff(desiredSpec expinfrav1.RosaMachinePoolSpec, nodePool *cmv1.
 		"AdditionalSecurityGroups", // AdditionalSecurityGroups day2 changes not supported.
 		"VolumeSize",               // VolumeSize is immutable after creation.
 		"Ec2MetadataHTTPTokens",    // Ec2MetadataHTTPTokens is immutable after creation.
+	}
+	// If Subnet is not set in the spec, OCM may fill it automatically. Ignore it.
+	if desiredSpec.Subnet == "" {
+		ignoredFields = append(ignoredFields, "Subnet")
 	}
 
 	return cmp.Diff(desiredSpec, currentSpec,
