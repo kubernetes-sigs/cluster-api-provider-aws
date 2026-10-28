@@ -317,7 +317,7 @@ type AWSMachinePoolList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&AWSMachinePool{}, &AWSMachinePoolList{})
+	objectTypes = append(objectTypes, &AWSMachinePool{}, &AWSMachinePoolList{})
 }
 
 // GetConditions returns the observations of the operational state of the AWSMachinePool resource.

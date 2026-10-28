@@ -86,7 +86,7 @@ type AWSManagedClusterList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&AWSManagedCluster{}, &AWSManagedClusterList{})
+	objectTypes = append(objectTypes, &AWSManagedCluster{}, &AWSManagedClusterList{})
 }
 
 // GetConditions returns the observations of the operational state of the

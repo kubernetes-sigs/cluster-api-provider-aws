@@ -1074,5 +1074,5 @@ func (r *ROSAControlPlane) SetV1Beta2Conditions(conditions []metav1.Condition) {
 }
 
 func init() {
-	SchemeBuilder.Register(&ROSAControlPlane{}, &ROSAControlPlaneList{})
+	objectTypes = append(objectTypes, &ROSAControlPlane{}, &ROSAControlPlaneList{})
 }

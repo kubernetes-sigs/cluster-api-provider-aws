@@ -50,7 +50,7 @@ type AWSClusterTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&AWSClusterTemplate{}, &AWSClusterTemplateList{})
+	objectTypes = append(objectTypes, &AWSClusterTemplate{}, &AWSClusterTemplateList{})
 }
 
 // AWSClusterTemplateResource defines the desired state of AWSClusterTemplate.
