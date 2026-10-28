@@ -415,6 +415,10 @@ type AWSManagedControlPlaneStatus struct {
 	// in the cluster.
 	// +optional
 	Version *string `json:"version,omitempty"`
+	// ServiceCIDR is the service CIDR EKS assigned to the cluster (serviceIpv6Cidr for IPv6
+	// clusters, serviceIpv4Cidr otherwise).
+	// +optional
+	ServiceCIDR *string `json:"serviceCIDR,omitempty"`
 	// ObservedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
