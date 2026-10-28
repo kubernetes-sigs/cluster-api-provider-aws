@@ -75,6 +75,7 @@ func (w *AWSManagedControlPlaneTemplate) ValidateCreate(_ context.Context, obj r
 	allErrs = append(allErrs, r.Spec.Template.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, w.validateNetwork(r)...)
 	allErrs = append(allErrs, w.validatePrivateDNSHostnameTypeOnLaunch(r)...)
+	allErrs = append(allErrs, w.validateKubeAPIServerConfig(r)...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -116,6 +117,7 @@ func (w *AWSManagedControlPlaneTemplate) ValidateUpdate(ctx context.Context, old
 	allErrs = append(allErrs, w.validateKubeProxy(r)...)
 	allErrs = append(allErrs, r.Spec.Template.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, w.validatePrivateDNSHostnameTypeOnLaunch(r)...)
+	allErrs = append(allErrs, w.validateKubeAPIServerConfig(r)...)
 
 	if r.Spec.Template.Spec.Region != oldAWSManagedControlplaneTemplate.Spec.Template.Spec.Region {
 		allErrs = append(allErrs,
@@ -226,6 +228,10 @@ func (w *AWSManagedControlPlaneTemplate) validateDisableVPCCNI(r *ekscontrolplan
 
 func (w *AWSManagedControlPlaneTemplate) validateRestrictPrivateSubnets(r *ekscontrolplanev1.AWSManagedControlPlaneTemplate) field.ErrorList {
 	return validateRestrictPrivateSubnets(r.Spec.Template.Spec.RestrictPrivateSubnets, r.Spec.Template.Spec.NetworkSpec, "", field.NewPath("spec.template.spec"))
+}
+
+func (w *AWSManagedControlPlaneTemplate) validateKubeAPIServerConfig(r *ekscontrolplanev1.AWSManagedControlPlaneTemplate) field.ErrorList {
+	return validateKubeAPIServerConfig(r.Spec.Template.Spec.KubeAPIServerConfig, field.NewPath("spec", "template", "spec", "kubeAPIServerConfig"))
 }
 
 func (w *AWSManagedControlPlaneTemplate) validateKubeProxy(r *ekscontrolplanev1.AWSManagedControlPlaneTemplate) field.ErrorList {
