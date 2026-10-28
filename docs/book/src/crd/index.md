@@ -30057,7 +30057,7 @@ string
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolSpec">AWSMachinePoolSpec
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePool">AWSMachinePool</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePool">AWSMachinePool</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolTemplateResource">AWSMachinePoolTemplateResource</a>)
 </p>
 <p>
 <p>AWSMachinePoolSpec defines the desired state of AWSMachinePool.</p>
@@ -30474,6 +30474,369 @@ AWSMachinePoolV1Beta2Status
 <td>
 <em>(Optional)</em>
 <p>v1beta2 groups all the fields that will be added or modified in AWSMachinePool&rsquo;s status with the V1Beta2 version.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolTemplate">AWSMachinePoolTemplate
+</h3>
+<p>
+<p>AWSMachinePoolTemplate is the schema for the Amazon EC2 Machine Pool Templates API.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolTemplateSpec">
+AWSMachinePoolTemplateSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>template</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolTemplateResource">
+AWSMachinePoolTemplateResource
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolTemplateResource">AWSMachinePoolTemplateResource
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolTemplateSpec">AWSMachinePoolTemplateSpec</a>)
+</p>
+<p>
+<p>AWSMachinePoolTemplateResource describes the data needed to create an AWSMachinePool from a template.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br/>
+<em>
+Cluster API api/core/v1beta1.ObjectMeta
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Standard object&rsquo;s metadata.
+More info: <a href="https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata">https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata</a></p>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolSpec">
+AWSMachinePoolSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>providerID</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProviderID is the ARN of the associated ASG</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>minSize</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>MinSize defines the minimum size of the group.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>maxSize</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<p>MaxSize defines the maximum size of the group.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availabilityZones</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>AvailabilityZones is an array of availability zones instances can run in</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availabilityZoneSubnetType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AZSubnetType">
+AZSubnetType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AvailabilityZoneSubnetType specifies which type of subnets to use when an availability zone is specified.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>subnets</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSResourceReference">
+[]AWSResourceReference
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Subnets is an array of subnet configurations</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>additionalTags</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
+Tags
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalTags is an optional set of tags to add to an instance, in addition to the ones added by default by the
+AWS provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>awsLaunchTemplate</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLaunchTemplate">
+AWSLaunchTemplate
+</a>
+</em>
+</td>
+<td>
+<p>AWSLaunchTemplate specifies the launch template and version to use when an instance is launched.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>mixedInstancesPolicy</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.MixedInstancesPolicy">
+MixedInstancesPolicy
+</a>
+</em>
+</td>
+<td>
+<p>MixedInstancesPolicy describes how multiple instance types will be used by the ASG.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>providerIDList</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProviderIDList are the identification IDs of machine instances provided by the provider.
+This field must match the provider IDs as seen on the node objects corresponding to a machine pool&rsquo;s machine instances.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>defaultCoolDown</code><br/>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The amount of time, in seconds, after a scaling activity completes before another scaling activity can start.
+If no value is supplied by user a default value of 300 seconds is set</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>defaultInstanceWarmup</code><br/>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The amount of time, in seconds, until a new instance is considered to
+have finished initializing and resource consumption to become stable
+after it enters the InService state.
+If no value is supplied by user a default value of 300 seconds is set</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>refreshPreferences</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RefreshPreferences">
+RefreshPreferences
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RefreshPreferences describes set of preferences associated with the instance refresh request.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>capacityRebalance</code><br/>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Enable or disable the capacity rebalance autoscaling group feature</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>suspendProcesses</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.SuspendProcessesTypes">
+SuspendProcessesTypes
+</a>
+</em>
+</td>
+<td>
+<p>SuspendProcesses defines a list of processes to suspend for the given ASG. This is constantly reconciled.
+If a process is removed from this list it will automatically be resumed.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ignition</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Ignition">
+Ignition
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Ignition defined options related to the bootstrapping systems where Ignition is used.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>lifecycleHooks</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLifecycleHook">
+[]AWSLifecycleHook
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWSLifecycleHooks specifies lifecycle hooks for the autoscaling group.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolTemplateSpec">AWSMachinePoolTemplateSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolTemplate">AWSMachinePoolTemplate</a>)
+</p>
+<p>
+<p>AWSMachinePoolTemplateSpec defines the desired state of AWSMachinePoolTemplate.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>template</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSMachinePoolTemplateResource">
+AWSMachinePoolTemplateResource
+</a>
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
@@ -30896,7 +31259,7 @@ AWSManagedMachinePoolStatus
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolSpec">AWSManagedMachinePoolSpec
 </h3>
 <p>
-(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePool">AWSManagedMachinePool</a>)
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePool">AWSManagedMachinePool</a>, <a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolTemplateResource">AWSManagedMachinePoolTemplateResource</a>)
 </p>
 <p>
 <p>AWSManagedMachinePoolSpec defines the desired state of AWSManagedMachinePool.</p>
@@ -31374,6 +31737,467 @@ AWSManagedMachinePoolV1Beta2Status
 <td>
 <em>(Optional)</em>
 <p>v1beta2 groups all the fields that will be added or modified in AWSManagedMachinePool&rsquo;s status with the V1Beta2 version.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolTemplate">AWSManagedMachinePoolTemplate
+</h3>
+<p>
+<p>AWSManagedMachinePoolTemplate is the schema for the Amazon EKS Managed Machine Pool Templates API.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br/>
+<em>
+<a href="https://v1-18.docs.kubernetes.io/docs/reference/generated/kubernetes-api/v1.18/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolTemplateSpec">
+AWSManagedMachinePoolTemplateSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>template</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolTemplateResource">
+AWSManagedMachinePoolTemplateResource
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolTemplateResource">AWSManagedMachinePoolTemplateResource
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolTemplateSpec">AWSManagedMachinePoolTemplateSpec</a>)
+</p>
+<p>
+<p>AWSManagedMachinePoolTemplateResource describes the data needed to create an AWSManagedMachinePool from a template.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code><br/>
+<em>
+Cluster API api/core/v1beta1.ObjectMeta
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Standard object&rsquo;s metadata.
+More info: <a href="https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata">https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata</a></p>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolSpec">
+AWSManagedMachinePoolSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>eksNodegroupName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EKSNodegroupName specifies the name of the nodegroup in AWS
+corresponding to this MachinePool. If you don&rsquo;t specify a name
+then a default name will be created based on the namespace and
+name of the managed machine pool.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availabilityZones</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<p>AvailabilityZones is an array of availability zones instances can run in</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>availabilityZoneSubnetType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AZSubnetType">
+AZSubnetType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AvailabilityZoneSubnetType specifies which type of subnets to use when an availability zone is specified.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>subnetIDs</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SubnetIDs specifies which subnets are used for the
+auto scaling group of this nodegroup</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>additionalTags</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Tags">
+Tags
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AdditionalTags is an optional set of tags to add to AWS resources managed by the AWS provider, in addition to the
+ones added by default.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleAdditionalPolicies</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RoleAdditionalPolicies allows you to attach additional polices to
+the node group role. You must enable the EKSAllowAddRoles
+feature flag to incorporate these into the created role.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RoleName specifies the name of IAM role for the node group.
+If the role is pre-existing we will treat it as unmanaged
+and not delete it on deletion. If the EKSEnableIAM feature
+flag is true and no name is supplied then a role is created.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rolePath</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>RolePath sets the path to the role. For more information about paths, see IAM Identifiers
+(<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/Using_Identifiers.html</a>)
+in the IAM User Guide.</p>
+<p>This parameter is optional. If it is not included, it defaults to a slash
+(/).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>rolePermissionsBoundary</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<p>RolePermissionsBoundary sets the ARN of the managed policy that is used
+to set the permissions boundary for the role.</p>
+<p>A permissions boundary policy defines the maximum permissions that identity-based
+policies can grant to an entity, but does not grant permissions. Permissions
+boundaries do not define the maximum permissions that a resource-based policy
+can grant to an entity. To learn more, see Permissions boundaries for IAM
+entities (<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html">https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_boundaries.html</a>)
+in the IAM User Guide.</p>
+<p>For more information about policy types, see Policy types (<a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types">https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies.html#access_policy-types</a>)
+in the IAM User Guide.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>amiVersion</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AMIVersion defines the desired AMI release version. If no version number
+is supplied then the latest version for the Kubernetes version
+will be used</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>amiType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ManagedMachineAMIType">
+ManagedMachineAMIType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AMIType defines the AMI type</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>labels</code><br/>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Labels specifies labels for the Kubernetes node objects</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>taints</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.Taints">
+Taints
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Taints specifies the taints to apply to the nodes of the machine pool</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>diskSize</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DiskSize specifies the root disk size</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>instanceType</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>InstanceType specifies the AWS instance type</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>scaling</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ManagedMachinePoolScaling">
+ManagedMachinePoolScaling
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Scaling specifies scaling for the ASG behind this pool</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>remoteAccess</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ManagedRemoteAccess">
+ManagedRemoteAccess
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RemoteAccess specifies how machines can be accessed remotely</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>providerIDList</code><br/>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProviderIDList are the provider IDs of instances in the
+autoscaling group corresponding to the nodegroup represented by this
+machine pool</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>capacityType</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.ManagedMachinePoolCapacityType">
+ManagedMachinePoolCapacityType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CapacityType specifies the capacity type for the ASG behind this pool</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>updateConfig</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.UpdateConfig">
+UpdateConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UpdateConfig holds the optional config to control the behaviour of the update
+to the nodegroup.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>awsLaunchTemplate</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLaunchTemplate">
+AWSLaunchTemplate
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWSLaunchTemplate specifies the launch template to use to create the managed node group.
+If AWSLaunchTemplate is specified, certain node group configuraions outside of launch template
+are prohibited (<a href="https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html">https://docs.aws.amazon.com/eks/latest/userguide/launch-templates.html</a>).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>lifecycleHooks</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSLifecycleHook">
+[]AWSLifecycleHook
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AWSLifecycleHooks specifies lifecycle hooks for the managed node group.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>nodeRepairConfig</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.NodeRepairConfig">
+NodeRepairConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>NodeRepairConfig specifies the node auto repair configuration for the managed node group.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolTemplateSpec">AWSManagedMachinePoolTemplateSpec
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolTemplate">AWSManagedMachinePoolTemplate</a>)
+</p>
+<p>
+<p>AWSManagedMachinePoolTemplateSpec defines the desired state of AWSManagedMachinePoolTemplate.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>template</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.AWSManagedMachinePoolTemplateResource">
+AWSManagedMachinePoolTemplateResource
+</a>
+</em>
+</td>
+<td>
 </td>
 </tr>
 </tbody>
