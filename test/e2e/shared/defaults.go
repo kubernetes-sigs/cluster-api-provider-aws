@@ -76,6 +76,8 @@ const (
 	EksUpgradeToVersion                  = "UPGRADE_TO_VERSION"
 	UpgradePolicy                        = "UPGRADE_POLICY"
 	ScalingTier                          = "SCALING_TIER"
+	BYOLaunchTemplateID                  = "BYO_LAUNCH_TEMPLATE_ID"
+	BYOLaunchTemplateVersion             = "BYO_LAUNCH_TEMPLATE_VERSION"
 )
 
 // ResourceQuotaFilePath is the path to the file that contains the resource usage.
