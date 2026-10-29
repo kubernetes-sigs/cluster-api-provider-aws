@@ -554,6 +554,223 @@ func TestPrincipalParsing(t *testing.T) {
 				}
 			},
 		},
+		{
+			name: "A role identity referencing itself as its own source is rejected, not recursed into forever",
+			awsCluster: infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cluster4",
+					Namespace: "default",
+				},
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       "AWSCluster",
+				},
+				Spec: infrav1.AWSClusterSpec{
+					IdentityRef: &infrav1.AWSIdentityReference{
+						Name: "self-referencing-identity",
+						Kind: infrav1.ClusterRoleIdentityKind,
+					},
+				},
+			},
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
+				identity := &infrav1.AWSClusterRoleIdentity{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "self-referencing-identity",
+					},
+					Spec: infrav1.AWSClusterRoleIdentitySpec{
+						AWSRoleSpec: infrav1.AWSRoleSpec{RoleArn: "role-arn"},
+						SourceIdentityRef: &infrav1.AWSIdentityReference{
+							Name: "self-referencing-identity",
+							Kind: infrav1.ClusterRoleIdentityKind,
+						},
+						AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+							AllowedNamespaces: &infrav1.AllowedNamespaces{},
+						},
+					},
+				}
+				identity.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterRoleIdentity"))
+				err := c.Create(context.Background(), identity)
+				if err != nil {
+					t.Fatal(err)
+				}
+			},
+			expectError: true,
+		},
+		{
+			name: "A cycle of role identities referencing each other is rejected, not recursed into forever",
+			awsCluster: infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cluster5",
+					Namespace: "default",
+				},
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       "AWSCluster",
+				},
+				Spec: infrav1.AWSClusterSpec{
+					IdentityRef: &infrav1.AWSIdentityReference{
+						Name: "cycle-identity-a",
+						Kind: infrav1.ClusterRoleIdentityKind,
+					},
+				},
+			},
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
+				identityA := &infrav1.AWSClusterRoleIdentity{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cycle-identity-a",
+					},
+					Spec: infrav1.AWSClusterRoleIdentitySpec{
+						AWSRoleSpec: infrav1.AWSRoleSpec{RoleArn: "role-arn-a"},
+						SourceIdentityRef: &infrav1.AWSIdentityReference{
+							Name: "cycle-identity-b",
+							Kind: infrav1.ClusterRoleIdentityKind,
+						},
+						AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+							AllowedNamespaces: &infrav1.AllowedNamespaces{},
+						},
+					},
+				}
+				identityA.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterRoleIdentity"))
+				if err := c.Create(context.Background(), identityA); err != nil {
+					t.Fatal(err)
+				}
+
+				identityB := &infrav1.AWSClusterRoleIdentity{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cycle-identity-b",
+					},
+					Spec: infrav1.AWSClusterRoleIdentitySpec{
+						AWSRoleSpec: infrav1.AWSRoleSpec{RoleArn: "role-arn-b"},
+						SourceIdentityRef: &infrav1.AWSIdentityReference{
+							Name: "cycle-identity-a",
+							Kind: infrav1.ClusterRoleIdentityKind,
+						},
+						AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+							AllowedNamespaces: &infrav1.AllowedNamespaces{},
+						},
+					},
+				}
+				identityB.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterRoleIdentity"))
+				if err := c.Create(context.Background(), identityB); err != nil {
+					t.Fatal(err)
+				}
+			},
+			expectError: true,
+		},
+		{
+			name: "Can build a nested role chain identity",
+			awsCluster: infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cluster6",
+					Namespace: "default",
+				},
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: infrav1.GroupVersion.String(),
+					Kind:       "AWSCluster",
+				},
+				Spec: infrav1.AWSClusterSpec{
+					IdentityRef: &infrav1.AWSIdentityReference{
+						Name: "role-identity-a",
+						Kind: infrav1.ClusterRoleIdentityKind,
+					},
+				},
+			},
+			setup: func(t *testing.T, c client.Client) {
+				t.Helper()
+
+				staticPrincipal := &infrav1.AWSClusterStaticIdentity{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "static-identity",
+					},
+					Spec: infrav1.AWSClusterStaticIdentitySpec{ //nolint:gosec // G101: test fixture, not real credentials
+						SecretRef: "static-credentials-secret",
+						AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+							AllowedNamespaces: &infrav1.AllowedNamespaces{},
+						},
+					},
+				}
+				staticPrincipal.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterStaticIdentity"))
+				err := c.Create(context.Background(), staticPrincipal)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				credentialsSecret := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "static-credentials-secret",
+						Namespace: system.GetManagerNamespace(),
+					},
+					Data: map[string][]byte{
+						"AccessKeyID":     []byte("1234567890"),
+						"SecretAccessKey": []byte("abcdefghijklmnop"),
+						"SessionToken":    []byte("asdfasdfasdf"),
+					},
+				}
+				credentialsSecret.SetGroupVersionKind(schema.GroupVersionKind{Group: "", Kind: "Secret", Version: "v1"})
+				err = c.Create(context.Background(), credentialsSecret)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				roleIdentityB := &infrav1.AWSClusterRoleIdentity{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "role-identity-b",
+					},
+					Spec: infrav1.AWSClusterRoleIdentitySpec{
+						AWSRoleSpec: infrav1.AWSRoleSpec{RoleArn: "role-arn-b"},
+						SourceIdentityRef: &infrav1.AWSIdentityReference{
+							Name: "static-identity",
+							Kind: infrav1.ClusterStaticIdentityKind,
+						},
+						AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+							AllowedNamespaces: &infrav1.AllowedNamespaces{},
+						},
+					},
+				}
+				roleIdentityB.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterRoleIdentity"))
+				err = c.Create(context.Background(), roleIdentityB)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				roleIdentityA := &infrav1.AWSClusterRoleIdentity{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "role-identity-a",
+					},
+					Spec: infrav1.AWSClusterRoleIdentitySpec{
+						AWSRoleSpec: infrav1.AWSRoleSpec{RoleArn: "role-arn-a"},
+						SourceIdentityRef: &infrav1.AWSIdentityReference{
+							Name: "role-identity-b",
+							Kind: infrav1.ClusterRoleIdentityKind,
+						},
+						AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+							AllowedNamespaces: &infrav1.AllowedNamespaces{},
+						},
+					},
+				}
+				roleIdentityA.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterRoleIdentity"))
+				err = c.Create(context.Background(), roleIdentityA)
+				if err != nil {
+					t.Fatal(err)
+				}
+			},
+			expect: func(providers []identity.AWSPrincipalTypeProvider) {
+				if len(providers) != 1 {
+					t.Fatalf("Expected 1 providers, got %v", len(providers))
+				}
+				p, ok := providers[0].(*identity.AWSRolePrincipalTypeProvider)
+				if !ok {
+					t.Fatal("Expected providers to be of type AWSRolePrincipalTypeProvider")
+				}
+				if p.Principal.Spec.RoleArn != "role-arn-a" {
+					t.Fatalf("Expected Role Provider ARN to be 'role-arn-a', got '%s'", p.Principal.Spec.RoleArn)
+				}
+			},
+		},
 	}
 
 	for _, tc := range testCases {
