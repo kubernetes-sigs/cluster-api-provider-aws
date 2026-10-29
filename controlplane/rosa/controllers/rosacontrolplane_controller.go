@@ -95,9 +95,6 @@ const (
 
 	// credentialRefreshThreshold is how long before expiry a break-glass credential should be refreshed.
 	credentialRefreshThreshold = 1 * time.Hour
-
-	conditionRequeueInterval = 10 * time.Second
-	defaultRequeueInterval   = 60 * time.Second
 )
 
 // ROSAControlPlaneReconciler reconciles a ROSAControlPlane object.
@@ -216,7 +213,7 @@ func (r *ROSAControlPlaneReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	if isPaused, conditionChanged, err := paused.EnsurePausedCondition(ctx, r.Client, cluster, rosaControlPlane); err != nil || isPaused {
 		return ctrl.Result{}, err
 	} else if conditionChanged {
-		return ctrl.Result{RequeueAfter: conditionRequeueInterval}, nil
+		return ctrl.Result{RequeueAfter: rosa.ConditionRequeueInterval}, nil
 	}
 
 	rosaScope, err := scope.NewROSAControlPlaneScope(scope.ROSAControlPlaneScopeParams{
@@ -341,7 +338,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 			rosaScope.ControlPlane.Spec.ControlPlaneEndpoint = *apiEndpoint
 
 			if err := r.reconcileLogForwarders(rosaScope, ocmClient, cluster); err != nil {
-				return ctrl.Result{RequeueAfter: defaultRequeueInterval}, fmt.Errorf("failed to reconcile logForwarders: %w", err)
+				return ctrl.Result{RequeueAfter: rosa.DefaultRequeueInterval}, fmt.Errorf("failed to reconcile logForwarders: %w", err)
 			}
 
 			if err := r.reconcileComponentRoutes(rosaScope, ocmClient, cluster); err != nil {
@@ -391,7 +388,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 
 		rosaScope.Info("waiting for cluster to become ready", "state", cluster.Status().State())
 		// Requeue so that status.ready is set to true when the cluster is fully created.
-		return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
+		return ctrl.Result{RequeueAfter: rosa.DefaultRequeueInterval}, nil
 	}
 
 	rosaNet := &expinfrav1.ROSANetwork{}
@@ -446,7 +443,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 		}
 	}
 
-	return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
+	return ctrl.Result{RequeueAfter: rosa.DefaultRequeueInterval}, nil
 }
 
 func (r *ROSAControlPlaneReconciler) reconcileRosaRoleConfig(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (*expinfrav1.ROSARoleConfig, error) {
@@ -555,7 +552,7 @@ func (r *ROSAControlPlaneReconciler) reconcileDelete(ctx context.Context, rosaSc
 	rosaScope.ControlPlane.Status.Ready = false
 	rosaScope.Info("waiting for cluster to be deleted")
 	// Requeue to remove the finalizer when the cluster is fully deleted.
-	return ctrl.Result{RequeueAfter: defaultRequeueInterval}, nil
+	return ctrl.Result{RequeueAfter: rosa.DefaultRequeueInterval}, nil
 }
 
 // deleteMachinePools check if the controlplane has related machinePools and delete them.
