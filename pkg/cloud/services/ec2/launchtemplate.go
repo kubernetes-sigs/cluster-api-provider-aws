@@ -1021,7 +1021,16 @@ func (s *Service) LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, inc
 		return true, services.LaunchTemplateNeedsUpdateReasonInstanceType, nil
 	}
 
-	if !cmp.Equal(incoming.InstanceMetadataOptions, existing.InstanceMetadataOptions) {
+	desired := incoming.InstanceMetadataOptions
+	current := existing.InstanceMetadataOptions
+
+	if desired != nil && desired.HTTPProtocolIPv6 == "" && current != nil {
+		copied := *desired
+		copied.HTTPProtocolIPv6 = current.HTTPProtocolIPv6
+		desired = &copied
+	}
+
+	if !cmp.Equal(desired, current) {
 		return true, services.LaunchTemplateNeedsUpdateReasonInstanceMetadataOptions, nil
 	}
 
