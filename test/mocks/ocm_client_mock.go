@@ -21,6 +21,7 @@ limitations under the License.
 package mocks
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -225,6 +226,21 @@ func (m *MockOCMClient) GetCluster(arg0 string, arg1 *aws.Creator) (*v1.Cluster,
 func (mr *MockOCMClientMockRecorder) GetCluster(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCluster", reflect.TypeOf((*MockOCMClient)(nil).GetCluster), arg0, arg1)
+}
+
+// GetClusterAutoscaler mocks base method.
+func (m *MockOCMClient) GetClusterAutoscaler(arg0 context.Context, arg1 string) (*v1.ClusterAutoscaler, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClusterAutoscaler", arg0, arg1)
+	ret0, _ := ret[0].(*v1.ClusterAutoscaler)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetClusterAutoscaler indicates an expected call of GetClusterAutoscaler.
+func (mr *MockOCMClientMockRecorder) GetClusterAutoscaler(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterAutoscaler", reflect.TypeOf((*MockOCMClient)(nil).GetClusterAutoscaler), arg0, arg1)
 }
 
 // GetControlPlaneUpgradePolicies mocks base method.
@@ -451,6 +467,21 @@ func (m *MockOCMClient) UpdateCluster(arg0 string, arg1 *aws.Creator, arg2 ocm.S
 func (mr *MockOCMClientMockRecorder) UpdateCluster(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateCluster", reflect.TypeOf((*MockOCMClient)(nil).UpdateCluster), arg0, arg1, arg2)
+}
+
+// UpdateClusterAutoscaler mocks base method.
+func (m *MockOCMClient) UpdateClusterAutoscaler(arg0 context.Context, arg1 string, arg2 *v1.ClusterAutoscaler) (*v1.ClusterAutoscaler, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateClusterAutoscaler", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*v1.ClusterAutoscaler)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateClusterAutoscaler indicates an expected call of UpdateClusterAutoscaler.
+func (mr *MockOCMClientMockRecorder) UpdateClusterAutoscaler(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterAutoscaler", reflect.TypeOf((*MockOCMClient)(nil).UpdateClusterAutoscaler), arg0, arg1, arg2)
 }
 
 // UpdateClusterDeletionProtection mocks base method.

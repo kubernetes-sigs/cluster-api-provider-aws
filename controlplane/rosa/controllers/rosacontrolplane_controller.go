@@ -340,6 +340,11 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 			}
 			rosaScope.ControlPlane.Spec.ControlPlaneEndpoint = *apiEndpoint
 
+			// Reconcile the cluster autoscaler first, so the configuration is sent before a kubeconfig
+			// exists and workloads can be deployed. A retriable error doesn't block the remaining steps;
+			// it is returned at the end so the request is requeued.
+			clusterAutoscalerErr := r.reconcileClusterAutoscaler(ctx, rosaScope, ocmClient, cluster)
+
 			if err := r.reconcileLogForwarders(rosaScope, ocmClient, cluster); err != nil {
 				return ctrl.Result{RequeueAfter: defaultRequeueInterval}, fmt.Errorf("failed to reconcile logForwarders: %w", err)
 			}
@@ -367,6 +372,10 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 				}
 			}
 
+			if clusterAutoscalerErr != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to reconcile cluster autoscaler: %w", clusterAutoscalerErr)
+			}
+
 			return ctrl.Result{}, nil
 		case cmv1.ClusterStateError:
 			errorMessage := cluster.Status().ProvisionErrorMessage()
@@ -388,6 +397,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 			clusterv1beta1.ConditionSeverityInfo,
 			"%s",
 			cluster.Status().Description())
+		markClusterAutoscalerWaitingForCluster(rosaScope, cluster.Status().State())
 
 		rosaScope.Info("waiting for cluster to become ready", "state", cluster.Status().State())
 		// Requeue so that status.ready is set to true when the cluster is fully created.
