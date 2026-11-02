@@ -26,6 +26,9 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
+// RosaSpotMarketOptionsOnDemandPrice is the maxPrice sentinel meaning "bid the on-demand price".
+const RosaSpotMarketOptionsOnDemandPrice = "on-demand"
+
 // RosaMachinePoolSpec defines the desired state of RosaMachinePool.
 type RosaMachinePoolSpec struct {
 	// NodePoolName specifies the name of the nodepool in Rosa
@@ -144,6 +147,32 @@ type RosaMachinePoolSpec struct {
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf", message="ec2MetadataHttpTokens is immutable"
 	// +optional
 	Ec2MetadataHTTPTokens rosacontrolplanev1.Ec2MetadataHTTPTokens `json:"ec2MetadataHttpTokens,omitempty"`
+
+	// SpotMarketOptions configures the node pool to use AWS Spot instances.
+	// Omit this field to use on-demand instances (default).
+	// Set maxPrice to cap the hourly bid, or leave it at "on-demand" to bid the
+	// on-demand price with no separate cap.
+	//
+	// Setting both spotMarketOptions and capacityReservationID is not allowed.
+	// SpotMarketOptions cannot be added/removed after the MachinePool is created.
+	//
+	// +optional
+	SpotMarketOptions *RosaSpotMarketOptions `json:"spotMarketOptions,omitempty"`
+}
+
+// RosaSpotMarketOptions defines the options available to a user when configuring Machines to run on Spot instances.
+type RosaSpotMarketOptions struct {
+	// MaxPrice is the maximum hourly price to bid for Spot instances, or "on-demand" to
+	// bid the on-demand price with no separate cap. A numeric price must be greater than
+	// zero.
+	//
+	// Once a numeric price is set it can be raised or lowered, but it cannot be changed
+	// back to "on-demand".
+	//
+	// +optional
+	// +kubebuilder:default="on-demand"
+	// +kubebuilder:validation:Pattern=`^([1-9][0-9]*(\.[0-9]+)?|0\.[0-9]*[1-9][0-9]*|on-demand)$`
+	MaxPrice *string `json:"maxPrice,omitempty"`
 }
 
 // RosaTaint represents a taint to be applied to a node.
@@ -283,6 +312,13 @@ type ROSAMachinePoolList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []ROSAMachinePool `json:"items"`
+}
+
+// IsOnDemandPrice reports whether the bid is the on-demand price, which the ROSA API
+// expresses by storing no max_price at all. A nil receiver or nil MaxPrice counts as
+// on-demand so objects written before the default existed keep working.
+func (s *RosaSpotMarketOptions) IsOnDemandPrice() bool {
+	return s == nil || s.MaxPrice == nil || *s.MaxPrice == RosaSpotMarketOptionsOnDemandPrice
 }
 
 // GetConditions returns the observations of the operational state of the RosaMachinePool resource.
