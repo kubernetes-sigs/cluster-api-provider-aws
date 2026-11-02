@@ -20,4 +20,6 @@ limitations under the License.
 //go:generate /usr/bin/env bash -c "cat ../../hack/boilerplate/boilerplate.generatego.txt capa_clusterscoper_mock.go > _capa_clusterscoper_mock.go && mv _capa_clusterscoper_mock.go capa_clusterscoper_mock.go"
 //go:generate ../../hack/tools/bin/mockgen -destination ocm_client_mock.go -package mocks sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa OCMClient
 //go:generate /usr/bin/env bash -c "cat ../../hack/boilerplate/boilerplate.generatego.txt ocm_client_mock.go > _ocm_client_mock.go && mv _ocm_client_mock.go ocm_client_mock.go"
+//go:generate ../../hack/tools/bin/mockgen -destination cluster_autoscaler_client_mock.go -package mocks sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa ClusterAutoscalerClient
+//go:generate /usr/bin/env bash -c "cat ../../hack/boilerplate/boilerplate.generatego.txt cluster_autoscaler_client_mock.go > _cluster_autoscaler_client_mock.go && mv _cluster_autoscaler_client_mock.go cluster_autoscaler_client_mock.go"
 package mocks
