@@ -212,6 +212,7 @@ func (s *ROSAControlPlaneScope) PatchObject() error {
 			rosacontrolplanev1.ROSAControlPlaneReadyCondition,
 			rosacontrolplanev1.ROSAControlPlaneValidCondition,
 			rosacontrolplanev1.ROSAControlPlaneUpgradingCondition,
+			rosacontrolplanev1.ClusterAutoscalerConfiguredCondition,
 		}})
 }
 

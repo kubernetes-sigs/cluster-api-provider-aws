@@ -34,6 +34,9 @@ const (
 
 	// ROSAControlPlaneRoleConfigReadyV1Beta2Condition reports whether the referenced RosaRoleConfig is ready.
 	ROSAControlPlaneRoleConfigReadyV1Beta2Condition = "ROSARoleConfigReady"
+
+	// ROSAControlPlaneClusterAutoscalerConfiguredV1Beta2Condition reports whether spec.clusterAutoscaler has been accepted by OCM.
+	ROSAControlPlaneClusterAutoscalerConfiguredV1Beta2Condition = "ClusterAutoscalerConfigured"
 )
 
 // ROSAControlPlane v1beta2 reason constants.
