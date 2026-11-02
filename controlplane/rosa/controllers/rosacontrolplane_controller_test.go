@@ -614,6 +614,19 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 
 	expect(ocmMock.EXPECT())
 
+	// spec.clusterAutoscaler is not set, so the autoscaler is only read to populate status.
+	autoscalerMock := mocks.NewMockClusterAutoscalerClient(mockCtrl)
+	currentAutoscaler, err := v1.NewClusterAutoscaler().
+		ResourceLimits(v1.NewAutoscalerResourceLimits().MaxNodesTotal(50)).
+		MaxPodGracePeriod(600).
+		MaxNodeProvisionTime("15m").
+		PodPriorityThreshold(-10).
+		Build()
+	g.Expect(err).ToNot(HaveOccurred())
+	autoscalerMock.EXPECT().GetClusterAutoscaler(gomock.Any(), "cluster-1").Return(currentAutoscaler, nil).Times(1)
+	autoscalerMock.EXPECT().UpdateClusterAutoscaler(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+	autoscalerMock.EXPECT().Close().Return(nil).Times(1)
+
 	// We need to mock http GET on this url
 	redirectURL := "https://url.com/oauth/authorize?response_type=token&client_id=openshift-challenging-client#access_token=mocktoken&expires_in=1234"
 	mockServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -679,6 +692,9 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 		NewOCMClient: func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error) {
 			return ocmMock, nil
 		},
+		NewClusterAutoscalerClient: func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.ClusterAutoscalerClient, error) {
+			return autoscalerMock, nil
+		},
 	}
 
 	req := ctrl.Request{}
@@ -691,6 +707,10 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 	g.Expect(errGet2).NotTo(HaveOccurred())
 	g.Expect(cp.Status.Version).To(Equal(rosaControlPlane.Spec.Version))
 	g.Expect(cp.Status.Ready).To(BeTrue())
+	g.Expect(cp.Status.ClusterAutoscaler).NotTo(BeNil())
+	g.Expect(cp.Status.ClusterAutoscaler.ResourceLimits.MaxNodesTotal).To(HaveValue(Equal(int32(50))))
+	g.Expect(cp.Status.ClusterAutoscaler.MaxNodeProvisionTime.Duration).To(Equal(15 * time.Minute))
+	g.Expect(v1beta1conditions.Get(cp, rosacontrolplanev1.ClusterAutoscalerConfiguredCondition)).To(BeNil())
 
 	// cleanup
 	for _, obj := range objects {

@@ -34,6 +34,18 @@ const (
 	// ROSARoleConfigReadyCondition condition reports whether the referenced RosaRoleConfig is ready.
 	ROSARoleConfigReadyCondition clusterv1beta1.ConditionType = "ROSARoleConfigReady"
 
+	// ClusterAutoscalerConfiguredCondition condition reports whether spec.clusterAutoscaler has been accepted by OCM.
+	ClusterAutoscalerConfiguredCondition clusterv1beta1.ConditionType = "ClusterAutoscalerConfigured"
+
+	// ClusterAutoscalerWaitingForClusterReason used when the cluster autoscaler can't be configured yet because the cluster isn't ready.
+	ClusterAutoscalerWaitingForClusterReason = "WaitingForCluster"
+
+	// ClusterAutoscalerValidationFailedReason used when OCM rejects the cluster autoscaler configuration.
+	ClusterAutoscalerValidationFailedReason = "ValidationFailed"
+
+	// ClusterAutoscalerNotAvailableReason used when the cluster autoscaler API is not available for the cluster.
+	ClusterAutoscalerNotAvailableReason = "NotAvailable"
+
 	// ReconciliationFailedReason used to report reconciliation failures.
 	ReconciliationFailedReason = "ReconciliationFailed"
 

@@ -10994,6 +10994,222 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.ClusterAutoscaler">ClusterAutoscaler
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneSpec">RosaControlPlaneSpec</a>)
+</p>
+<p>
+<p>ClusterAutoscaler configures the cluster-wide behaviour of the cluster autoscaler of a ROSA HCP cluster.</p>
+<p>The cluster autoscaler always exists on a ROSA HCP cluster. When this configuration is set,
+the controller owns the whole autoscaler configuration: fields that are omitted are reconciled
+to the ROSA HCP default values, and changes made outside of CAPA (for example with the ROSA CLI)
+are overwritten. Set it to an empty object ({}) to reset every field to its default.</p>
+<p>Machine pool level limits (minimum and maximum replicas) are configured on each machine pool.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>resourceLimits</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ClusterAutoscalerResourceLimits">
+ClusterAutoscalerResourceLimits
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>resourceLimits configures cluster-wide resource limits for the cluster autoscaler.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>maxPodGracePeriod</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>maxPodGracePeriod is the maximum time, in seconds, the cluster autoscaler waits for pods to
+terminate gracefully before removing a node during scale down.
+Must be 0 or at least 600. Defaults to 600 when omitted.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>maxNodeProvisionTime</code><br/>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>maxNodeProvisionTime is the maximum time the cluster autoscaler waits for a node to be provisioned
+before considering the scale up failed, for example &ldquo;15m&rdquo;.
+Must be between 15m and 60m. Defaults to 15m when omitted.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>podPriorityThreshold</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>podPriorityThreshold is the priority below which pods do not trigger a scale up and are not
+considered when deciding whether a node can be removed.
+Must be at most 1000000000. Defaults to -10 when omitted.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.ClusterAutoscalerResourceLimits">ClusterAutoscalerResourceLimits
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.ClusterAutoscaler">ClusterAutoscaler</a>)
+</p>
+<p>
+<p>ClusterAutoscalerResourceLimits configures cluster-wide resource limits for the cluster autoscaler.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>maxNodesTotal</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>maxNodesTotal is the maximum number of worker nodes across all machine pools.
+The cluster autoscaler does not scale up beyond this value.
+Must be 0 (no limit) or at least 2. Defaults to 0 when omitted.
+The total cluster size is also limited by ROSA and is validated by OCM.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.ClusterAutoscalerResourceLimitsStatus">ClusterAutoscalerResourceLimitsStatus
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.ClusterAutoscalerStatus">ClusterAutoscalerStatus</a>)
+</p>
+<p>
+<p>ClusterAutoscalerResourceLimitsStatus reports the cluster-wide resource limits currently stored in OCM.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>maxNodesTotal</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>maxNodesTotal is the maximum number of worker nodes across all machine pools. 0 means no limit.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="controlplane.cluster.x-k8s.io/v1beta2.ClusterAutoscalerStatus">ClusterAutoscalerStatus
+</h3>
+<p>
+(<em>Appears on:</em><a href="#controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneStatus">RosaControlPlaneStatus</a>)
+</p>
+<p>
+<p>ClusterAutoscalerStatus reports the cluster autoscaler configuration currently stored in OCM,
+including default values and values set outside of CAPA.
+It intentionally has no validation so that unexpected values reported by OCM never block status updates.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>resourceLimits</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ClusterAutoscalerResourceLimitsStatus">
+ClusterAutoscalerResourceLimitsStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>resourceLimits reports the cluster-wide resource limits.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>maxPodGracePeriod</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>maxPodGracePeriod is the maximum time, in seconds, given to pods to terminate during scale down.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>maxNodeProvisionTime</code><br/>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>maxNodeProvisionTime is the maximum time to wait for a node to be provisioned.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>podPriorityThreshold</code><br/>
+<em>
+int32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>podPriorityThreshold is the priority below which pods do not trigger a scale up.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.ComponentRouteKey">ComponentRouteKey
 (<code>string</code> alias)</p></h3>
 <p>
@@ -12107,6 +12323,25 @@ S3LogForwarderConfig
 <p>componentRoutes allows customizing the hostname and TLS certificate for console and downloads routes.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>clusterAutoscaler</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ClusterAutoscaler">
+ClusterAutoscaler
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>clusterAutoscaler configures the cluster-wide behaviour of the cluster autoscaler.
+When omitted, the controller does not manage the cluster autoscaler and leaves its current
+configuration in OCM unchanged. When set, the controller reconciles the whole configuration:
+omitted fields are set to the ROSA HCP defaults. Set it to {} to reset all fields to their defaults.
+Removing it stops management and keeps the current values in OCM.
+The configuration is sent to OCM once the cluster is ready.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -12863,6 +13098,25 @@ S3LogForwarderConfig
 <p>componentRoutes allows customizing the hostname and TLS certificate for console and downloads routes.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>clusterAutoscaler</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ClusterAutoscaler">
+ClusterAutoscaler
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>clusterAutoscaler configures the cluster-wide behaviour of the cluster autoscaler.
+When omitted, the controller does not manage the cluster autoscaler and leaves its current
+configuration in OCM unchanged. When set, the controller reconciles the whole configuration:
+omitted fields are set to the ROSA HCP defaults. Set it to {} to reset all fields to their defaults.
+Removing it stops management and keeps the current values in OCM.
+The configuration is sent to OCM once the cluster is ready.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="controlplane.cluster.x-k8s.io/v1beta2.RosaControlPlaneStatus">RosaControlPlaneStatus
@@ -13011,6 +13265,22 @@ string
 </td>
 <td>
 <p>Available channels for the ROSA hosted control plane.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clusterAutoscaler</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.ClusterAutoscalerStatus">
+ClusterAutoscalerStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>clusterAutoscaler reports the cluster autoscaler configuration currently stored in OCM,
+including default values and values set outside of CAPA. It is populated once the cluster is ready,
+whether or not spec.clusterAutoscaler is set.</p>
 </td>
 </tr>
 <tr>
