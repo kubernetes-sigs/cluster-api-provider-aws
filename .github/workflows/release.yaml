@@ -4,6 +4,12 @@ on:
   push:
     tags:
     - 'v*'
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Tag to release (defaults to the triggering ref when omitted)'
+        required: false
+        type: string
 
 permissions:
   contents: write # required to write to github release.
@@ -17,18 +23,21 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref_name }}
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version: '1.26'
+      - name: Build release-tool
+        working-directory: hack/tools/release-tools
+        run: go build -o ../../../bin/release-tool .
       - name: Set version info
         run: |
-          echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_ENV
-          # NB: this gets the closest tag cut from the same branch; for new minor tags, it will find the previous minor, not the previous patch release
-          # (for example v2.7.0, not v2.7.3). For new patch releases, it should fetch the previous patch (e.g. 2.7.3, not v2.7.0)
-          echo "PREVIOUS_VERSION=$(git describe --abbrev=0 2> /dev/null)" >> $GITHUB_ENV 
-          echo "RELEASE_BRANCH=release-$(echo ${GITHUB_REF_NAME} | grep -Eo '[0-9]\.[0-9]+')" >> $GITHUB_ENV
-          echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> $GITHUB_ENV
+          version="${{ inputs.tag || github.ref_name }}"
+          echo "VERSION=${version}" >> $GITHUB_ENV
+          echo "PREVIOUS_VERSION=$(git tag -l 'v*' | ./bin/release-tool changelog previous-version --version "${version}")" >> $GITHUB_ENV
+          echo "RELEASE_BRANCH=release-$(echo ${version} | grep -Eo '[0-9]\.[0-9]+')" >> $GITHUB_ENV
+          echo "RELEASE_TAG=${version}" >> $GITHUB_ENV
       - name: Run release
         run: |
           echo "Version is: $VERSION"

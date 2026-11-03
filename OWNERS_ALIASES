@@ -18,6 +18,8 @@ aliases:
     - faiq
     - fiunchinho
     - raykrueger
+  cluster-api-provider-aws-release-team:
+    - serngawy
   # -----------------------------------------------------------
   # OWNER_ALIASES for ROSA Work
   # -----------------------------------------------------------

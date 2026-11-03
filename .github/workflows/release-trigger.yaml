@@ -1,0 +1,93 @@
+name: release-trigger
+
+on:
+  push:
+    branches:
+      - main
+      - 'release-*'
+    paths:
+      - 'CHANGELOG/*.md'
+
+permissions:
+  contents: write # required to push the release branch and the tag.
+
+jobs:
+  trigger-release:
+    name: Create release branch/tag from a merged CHANGELOG PR
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@22103cc46bda19c2b464ffe86db46df6922fd323 # tag=v47.0.5
+        with:
+          files: CHANGELOG/*.md
+
+      - name: Determine release version
+        id: version
+        run: |
+          if [[ "${{ steps.changed-files.outputs.added_files_count }}" != "1" ]]; then
+            echo "exactly 1 newly added CHANGELOG/*.md file is required to trigger a release, found ${{ steps.changed-files.outputs.added_files_count }} added"
+            exit 1
+          fi
+          if [[ "${{ steps.changed-files.outputs.all_changed_files_count }}" != "${{ steps.changed-files.outputs.added_files_count }}" ]]; then
+            echo "no other CHANGELOG/*.md files may be modified or renamed in the same push (found ${{ steps.changed-files.outputs.all_changed_files_count }} changed vs ${{ steps.changed-files.outputs.added_files_count }} added)"
+            exit 1
+          fi
+          changed_file="${{ steps.changed-files.outputs.added_files }}"
+          version="$(basename "${changed_file}" .md)"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: hack/tools/release-tools/go.sum
+
+      - name: Build release-tool
+        working-directory: hack/tools/release-tools
+        run: go build -o ../../../bin/release-tool .
+
+      - name: Validate version against target branch
+        id: validate
+        run: ./bin/release-tool changelog validate-trigger --branch "${GITHUB_REF_NAME}" --version "${{ steps.version.outputs.version }}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate tag does not already exist
+        run: |
+          if [[ $(git tag -l "${{ steps.version.outputs.version }}") ]]; then
+            echo "Tag ${{ steps.version.outputs.version }} already exists, exiting"
+            exit 1
+          fi
+
+      - name: Configure git identity
+        run: |
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+
+      - name: Create release branch
+        if: steps.validate.outputs.create_release_branch == 'true'
+        run: |
+          release_branch="${{ steps.validate.outputs.release_branch }}"
+          git checkout -b "${release_branch}"
+          git push origin "${release_branch}"
+
+      - name: Create and push release tag
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          git tag -a "${version}" -F "CHANGELOG/${version}.md"
+          git push origin "${version}"
+
+  run-release:
+    name: Run the release build
+    needs: trigger-release
+    uses: ./.github/workflows/release.yaml
+    permissions:
+      contents: write
+    with:
+      tag: ${{ needs.trigger-release.outputs.version }}

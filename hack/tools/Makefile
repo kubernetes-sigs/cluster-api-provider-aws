@@ -174,6 +174,14 @@ $(GORELEASER_BIN): $(GORELEASER)
 $(GORELEASER):
 	GOBIN=$(abspath $(BIN_DIR)) go install $(GORELEASER_PKG)@$(GORELEASER_VERSION)
 
+RELEASE_TOOL_BIN := release-tool
+RELEASE_TOOL := $(BIN_DIR)/$(RELEASE_TOOL_BIN)
+.PHONY: $(RELEASE_TOOL_BIN)
+$(RELEASE_TOOL_BIN): $(RELEASE_TOOL)
+
+$(RELEASE_TOOL): $(shell find release-tools -name '*.go') ## Build the CAPA release-tool CLI.
+	cd release-tools && go build -o $(abspath $(BIN_DIR))/$(RELEASE_TOOL_BIN) .
+
 
 ## ------------------------------------------------------------------------------------------------
 ## AWS Session Manager Plugin Installation. Currently support Linux and MacOS AMD64 architectures.
