@@ -171,6 +171,13 @@ func (in *AWSManagedControlPlaneSpec) DeepCopyInto(out *AWSManagedControlPlaneSp
 		*out = new(OIDCIdentityProviderConfig)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.OIDCIdentityProviderConfigs != nil {
+		in, out := &in.OIDCIdentityProviderConfigs, &out.OIDCIdentityProviderConfigs
+		*out = make([]OIDCIdentityProviderConfig, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.AccessConfig != nil {
 		in, out := &in.AccessConfig, &out.AccessConfig
 		*out = new(AccessConfig)
@@ -249,6 +256,11 @@ func (in *AWSManagedControlPlaneStatus) DeepCopyInto(out *AWSManagedControlPlane
 		}
 	}
 	out.IdentityProviderStatus = in.IdentityProviderStatus
+	if in.IdentityProviderStatuses != nil {
+		in, out := &in.IdentityProviderStatuses, &out.IdentityProviderStatuses
+		*out = make([]IdentityProviderStatus, len(*in))
+		copy(*out, *in)
+	}
 	if in.Version != nil {
 		in, out := &in.Version, &out.Version
 		*out = new(string)
