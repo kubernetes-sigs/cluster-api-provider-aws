@@ -108,7 +108,7 @@ else
     KUBECTL_MADISON_CMD="apt-cache madison kubectl | grep \"${KUBECTL_LOOKUP_PATTERN}\" | sort -V | tail -n 1 || echo \"${KUBECTL_NOT_FOUND_MSG}\""
 fi
 
-PACKAGE_INFO=$(${CONTAINER_CMD} run --platform=linux/amd64 --rm -i ubuntu:22.04 /bin/bash <<EOF
+PACKAGE_INFO=$(${CONTAINER_CMD} run --rm -i ubuntu:24.04 /bin/bash <<EOF
 set -e # Exit on error inside the container script
 export DEBIAN_FRONTEND=noninteractive
 apt-get update > /dev/null
