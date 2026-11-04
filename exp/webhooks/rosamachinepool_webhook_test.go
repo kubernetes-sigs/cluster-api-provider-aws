@@ -23,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 )
@@ -311,5 +312,50 @@ func TestROSAMachinePoolSpotMarketOptionsUpdate(t *testing.T) {
 			newPoolWith(&expinfrav1.RosaSpotMarketOptions{}, "cr-123456789012345678"))
 		g.Expect(err).To(HaveOccurred())
 		g.Expect(err.Error()).To(ContainSubstring("setting both spotMarketOptions and capacityReservationID is not allowed"))
+	})
+}
+
+func TestROSAMachinePoolAdditionalTagsUpdate(t *testing.T) {
+	w := &ROSAMachinePool{}
+
+	t.Run("changing additionalTags is allowed", func(t *testing.T) {
+		g := NewWithT(t)
+		oldPool := &expinfrav1.ROSAMachinePool{
+			Spec: expinfrav1.RosaMachinePoolSpec{
+				NodePoolName:   "test-pool",
+				InstanceType:   "m5.large",
+				AdditionalTags: infrav1.Tags{"team": "a", "old": "x"},
+			},
+		}
+		newPool := &expinfrav1.ROSAMachinePool{
+			Spec: expinfrav1.RosaMachinePoolSpec{
+				NodePoolName:   "test-pool",
+				InstanceType:   "m5.large",
+				AdditionalTags: infrav1.Tags{"team": "b"},
+			},
+		}
+
+		_, err := w.ValidateUpdate(context.Background(), oldPool, newPool)
+		g.Expect(err).ToNot(HaveOccurred())
+	})
+
+	t.Run("invalid additionalTags are rejected", func(t *testing.T) {
+		g := NewWithT(t)
+		oldPool := &expinfrav1.ROSAMachinePool{
+			Spec: expinfrav1.RosaMachinePoolSpec{
+				NodePoolName: "test-pool",
+				InstanceType: "m5.large",
+			},
+		}
+		newPool := &expinfrav1.ROSAMachinePool{
+			Spec: expinfrav1.RosaMachinePoolSpec{
+				NodePoolName:   "test-pool",
+				InstanceType:   "m5.large",
+				AdditionalTags: infrav1.Tags{"aws:reserved": "x"},
+			},
+		}
+
+		_, err := w.ValidateUpdate(context.Background(), oldPool, newPool)
+		g.Expect(err).To(HaveOccurred())
 	})
 }

@@ -21,9 +21,11 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
+	"github.com/openshift-online/ocm-common/pkg/deprecation"
 	sdk "github.com/openshift-online/ocm-sdk-go"
-	ocmcfg "github.com/openshift/rosa/pkg/config"
+	"github.com/openshift/rosa/pkg/logging"
 	"github.com/openshift/rosa/pkg/ocm"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -53,55 +55,84 @@ type OCMSecretsRetriever interface {
 
 // NewOCMClient creates a new OCM client.
 func NewOCMClient(ctx context.Context, rosaScope OCMSecretsRetriever) (*ocm.Client, error) {
-	token, url, clientID, clientSecret, err := ocmCredentials(ctx, rosaScope)
+	connection, err := newOCMConnection(ctx, rosaScope)
 	if err != nil {
 		return nil, err
 	}
 
-	ocmConfig := ocmcfg.Config{
-		URL:       url,
-		UserAgent: capaAgentName,
-		Version:   version.Get().GitVersion,
-	}
-
-	if clientID != "" && clientSecret != "" {
-		ocmConfig.ClientID = clientID
-		ocmConfig.ClientSecret = clientSecret
-	} else if token != "" {
-		ocmConfig.AccessToken = token
-	}
-
-	return ocm.NewClient().Logger(logrus.New()).Config(&ocmConfig).Build()
+	return ocm.NewClientWithConnection(connection), nil
 }
 
 // NewWrappedOCMClient creates a new OCM client wrapped in ocmclient struct that implements OCMClient interface.
 // This is needed to be able to mock OCM in tests. NewOCMClient is left unchanged so we don't change public interface.
 func NewWrappedOCMClient(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (OCMClient, error) {
-	ocmClient, err := NewOCMClient(ctx, rosaScope)
-	c := ocmclient{
-		ocmClient: ocmClient,
-	}
-
-	return &c, err
+	return newWrappedOCMClient(ctx, rosaScope)
 }
 
 // NewWrappedOCMClientWithoutControlPlane creates OCM connection without controlplane.
 func NewWrappedOCMClientWithoutControlPlane(ctx context.Context, rosaScope OCMSecretsRetriever) (OCMClient, error) {
-	ocmClient, err := NewOCMClient(ctx, rosaScope)
-	c := ocmclient{
-		ocmClient: ocmClient,
-	}
-
-	return &c, err
+	return newWrappedOCMClient(ctx, rosaScope)
 }
 
 // NewWrappedOCMClientFromOCMClient makes a wrapped OCM client from an existing OCM client.
+// The returned client can't make raw OCM requests, such as day-2 AWS tag edits.
 func NewWrappedOCMClientFromOCMClient(ctx context.Context, ocmClient *ocm.Client) (OCMClient, error) {
 	c := ocmclient{
 		ocmClient: ocmClient,
 	}
 
 	return &c, nil
+}
+
+// newWrappedOCMClient shares one OCM connection between the rosa-cli client and raw OCM requests.
+func newWrappedOCMClient(ctx context.Context, rosaScope OCMSecretsRetriever) (OCMClient, error) {
+	connection, err := newOCMConnection(ctx, rosaScope)
+	if err != nil {
+		return &ocmclient{}, err
+	}
+
+	return &ocmclient{
+		ocmClient:  ocm.NewClientWithConnection(connection),
+		connection: connection,
+	}, nil
+}
+
+// newOCMConnection builds an authenticated OCM connection the same way the rosa-cli client builder does.
+func newOCMConnection(ctx context.Context, rosaScope OCMSecretsRetriever) (*sdk.Connection, error) {
+	token, url, clientID, clientSecret, err := ocmCredentials(ctx, rosaScope)
+	if err != nil {
+		return nil, err
+	}
+
+	logger, err := logging.NewOCMLogger().Logger(logrus.New()).Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build logger: %w", err)
+	}
+
+	connBuilder := sdk.NewConnectionBuilder().
+		Logger(logger).
+		TransportWrapper(deprecation.NewTransportWrapper()).
+		URL(url).
+		Agent(capaAgentName + "/" + version.Get().GitVersion + " " + sdk.DefaultAgent)
+
+	if clientID != "" && clientSecret != "" {
+		connBuilder.Client(clientID, clientSecret)
+	} else if token != "" {
+		connBuilder.Tokens(token)
+	}
+
+	connection, err := connBuilder.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ocm connection: %w", err)
+	}
+
+	// Fail early on invalid credentials, as the rosa-cli client builder does.
+	if _, _, err := connection.Tokens(10 * time.Minute); err != nil {
+		_ = connection.Close()
+		return nil, fmt.Errorf("error creating connection. Not able to get authentication token: %w", err)
+	}
+
+	return connection, nil
 }
 
 func newOCMRawConnection(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (*sdk.Connection, error) {

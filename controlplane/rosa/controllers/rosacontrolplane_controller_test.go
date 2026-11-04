@@ -43,6 +43,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	restclient "k8s.io/client-go/rest"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -2372,4 +2373,99 @@ func TestComponentRoutesEqual(t *testing.T) {
 			g.Expect(componentRoutesEqual(tt.current, tt.desired)).To(Equal(tt.want))
 		})
 	}
+}
+
+func TestReconcileClusterTags(t *testing.T) {
+	buildCluster := func(g *WithT, version string, tags map[string]string) *v1.Cluster {
+		cluster, err := v1.NewCluster().ID("cluster-123").
+			Version(v1.NewVersion().RawID(version)).
+			AWS(v1.NewAWS().Tags(tags)).
+			Build()
+		g.Expect(err).ToNot(HaveOccurred())
+		return cluster
+	}
+	buildScope := func(tags infrav1.Tags) *scope.ROSAControlPlaneScope {
+		return &scope.ROSAControlPlaneScope{
+			ControlPlane: &rosacontrolplanev1.ROSAControlPlane{
+				Spec: rosacontrolplanev1.RosaControlPlaneSpec{AdditionalTags: tags},
+			},
+			Logger: *logger.FromContext(context.TODO()),
+		}
+	}
+
+	t.Run("patches changed tags on 4.20+", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl := gomock.NewController(t)
+		mockOCM := mocks.NewMockOCMClient(mockCtrl)
+
+		cluster := buildCluster(g, "4.20.1", map[string]string{"red-hat-managed": "true", "team": "a", "old": "x"})
+		rosaScope := buildScope(infrav1.Tags{"team": "b", "env": "prod"})
+
+		mockOCM.EXPECT().GetClusterUserTags("cluster-123").Return(map[string]string{"team": "a", "old": "x"}, nil)
+		mockOCM.EXPECT().UpdateClusterTags("cluster-123", map[string]*string{
+			"team": ptr.To("b"),
+			"env":  ptr.To("prod"),
+			"old":  nil,
+		}).Return(nil)
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		g.Expect(reconciler.reconcileClusterTags(rosaScope, mockOCM, cluster)).To(Succeed())
+	})
+
+	t.Run("removes all customer tags when spec is cleared", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl := gomock.NewController(t)
+		mockOCM := mocks.NewMockOCMClient(mockCtrl)
+
+		cluster := buildCluster(g, "4.21.0", map[string]string{"team": "a"})
+		rosaScope := buildScope(nil)
+
+		mockOCM.EXPECT().GetClusterUserTags("cluster-123").Return(map[string]string{"team": "a"}, nil)
+		mockOCM.EXPECT().UpdateClusterTags("cluster-123", map[string]*string{"team": nil}).Return(nil)
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		g.Expect(reconciler.reconcileClusterTags(rosaScope, mockOCM, cluster)).To(Succeed())
+	})
+
+	t.Run("does nothing when tags match", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl := gomock.NewController(t)
+		mockOCM := mocks.NewMockOCMClient(mockCtrl)
+
+		cluster := buildCluster(g, "4.20.0", map[string]string{"team": "a"})
+		rosaScope := buildScope(infrav1.Tags{"team": "a"})
+
+		mockOCM.EXPECT().GetClusterUserTags("cluster-123").Return(map[string]string{"team": "a"}, nil)
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		g.Expect(reconciler.reconcileClusterTags(rosaScope, mockOCM, cluster)).To(Succeed())
+	})
+
+	t.Run("returns update errors", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl := gomock.NewController(t)
+		mockOCM := mocks.NewMockOCMClient(mockCtrl)
+
+		cluster := buildCluster(g, "4.20.0", nil)
+		rosaScope := buildScope(infrav1.Tags{"team": "a"})
+
+		mockOCM.EXPECT().GetClusterUserTags("cluster-123").Return(map[string]string{}, nil)
+		mockOCM.EXPECT().UpdateClusterTags("cluster-123", gomock.Any()).Return(fmt.Errorf("boom"))
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		g.Expect(reconciler.reconcileClusterTags(rosaScope, mockOCM, cluster)).To(MatchError(ContainSubstring("boom")))
+	})
+
+	t.Run("skips OCM calls before 4.20", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl := gomock.NewController(t)
+		// No expectations: any OCM call fails the test.
+		mockOCM := mocks.NewMockOCMClient(mockCtrl)
+
+		cluster := buildCluster(g, "4.19.5", map[string]string{"team": "a"})
+		rosaScope := buildScope(infrav1.Tags{"team": "b"})
+
+		reconciler := &ROSAControlPlaneReconciler{}
+		g.Expect(reconciler.reconcileClusterTags(rosaScope, mockOCM, cluster)).To(Succeed())
+	})
 }
