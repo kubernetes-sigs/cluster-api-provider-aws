@@ -62,7 +62,9 @@ type RosaMachinePoolSpec struct {
 	Taints []RosaTaint `json:"taints,omitempty"`
 
 	// AdditionalTags are user-defined tags to be added on the underlying EC2 instances associated with this machine pool.
-	// +immutable
+	// Tags inherited from the ROSAControlPlane additionalTags don't need to be repeated here.
+	// Changes after creation are applied in place and require a control plane version of 4.20.0 or greater;
+	// on older versions they are ignored until the control plane is upgraded.
 	// +optional
 	AdditionalTags infrav1.Tags `json:"additionalTags,omitempty"`
 

@@ -22,6 +22,7 @@ import (
 
 	. "github.com/onsi/gomega"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	rosacontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/rosa/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 )
@@ -110,5 +111,50 @@ func TestROSAMachinePoolEc2MetadataHTTPTokensImmutability(t *testing.T) {
 
 		_, err := w.ValidateUpdate(context.Background(), oldPool, newPool)
 		g.Expect(err).ToNot(HaveOccurred())
+	})
+}
+
+func TestROSAMachinePoolAdditionalTagsUpdate(t *testing.T) {
+	w := &ROSAMachinePool{}
+
+	t.Run("changing additionalTags is allowed", func(t *testing.T) {
+		g := NewWithT(t)
+		oldPool := &expinfrav1.ROSAMachinePool{
+			Spec: expinfrav1.RosaMachinePoolSpec{
+				NodePoolName:   "test-pool",
+				InstanceType:   "m5.large",
+				AdditionalTags: infrav1.Tags{"team": "a", "old": "x"},
+			},
+		}
+		newPool := &expinfrav1.ROSAMachinePool{
+			Spec: expinfrav1.RosaMachinePoolSpec{
+				NodePoolName:   "test-pool",
+				InstanceType:   "m5.large",
+				AdditionalTags: infrav1.Tags{"team": "b"},
+			},
+		}
+
+		_, err := w.ValidateUpdate(context.Background(), oldPool, newPool)
+		g.Expect(err).ToNot(HaveOccurred())
+	})
+
+	t.Run("invalid additionalTags are rejected", func(t *testing.T) {
+		g := NewWithT(t)
+		oldPool := &expinfrav1.ROSAMachinePool{
+			Spec: expinfrav1.RosaMachinePoolSpec{
+				NodePoolName: "test-pool",
+				InstanceType: "m5.large",
+			},
+		}
+		newPool := &expinfrav1.ROSAMachinePool{
+			Spec: expinfrav1.RosaMachinePoolSpec{
+				NodePoolName:   "test-pool",
+				InstanceType:   "m5.large",
+				AdditionalTags: infrav1.Tags{"aws:reserved": "x"},
+			},
+		}
+
+		_, err := w.ValidateUpdate(context.Background(), oldPool, newPool)
+		g.Expect(err).To(HaveOccurred())
 	})
 }

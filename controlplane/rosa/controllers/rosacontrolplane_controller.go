@@ -66,6 +66,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/annotations"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/rosa"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/utils"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
@@ -350,6 +351,9 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 
 			if err := r.updateOCMCluster(rosaScope, ocmClient, cluster, creator); err != nil {
 				return ctrl.Result{}, fmt.Errorf("failed to update rosa control plane: %w", err)
+			}
+			if err := r.reconcileClusterTags(rosaScope, ocmClient, cluster); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to reconcile AWS tags: %w", err)
 			}
 			if err := r.reconcileClusterVersion(rosaScope, ocmClient, cluster); err != nil {
 				return ctrl.Result{}, err
@@ -952,6 +956,34 @@ func (r *ROSAControlPlaneReconciler) updateOCMClusterSpec(rosaControlPlane *rosa
 	}
 
 	return ocmClusterSpec, updated
+}
+
+// reconcileClusterTags syncs spec.additionalTags to the cluster's customer AWS tags.
+// Day-2 tag edits require a 4.20+ control plane; on older versions drift is only reported.
+func (r *ROSAControlPlaneReconciler) reconcileClusterTags(rosaScope *scope.ROSAControlPlaneScope, ocmClient rosa.OCMClient, cluster *cmv1.Cluster) error {
+	desired := rosaScope.ControlPlane.Spec.AdditionalTags
+	version := rosa.RawVersionID(cluster.Version())
+	if !rosa.SupportsDayTwoTags(version) {
+		// cluster.AWS().Tags() includes OCM system tags, so only additions and changes are detectable.
+		if rosa.TagsDrifted(cluster.AWS().Tags(), desired) {
+			rosaScope.Info("Skipping AWS tag update: editing AWS tags requires OpenShift 4.20.0 or greater", "version", version)
+			record.Warnf(rosaScope.ControlPlane, "AWSTagsUpdateUnsupported",
+				"spec.additionalTags differs from the cluster's AWS tags, but editing AWS tags requires OpenShift 4.20.0 or greater (current version %q)", version)
+		}
+		return nil
+	}
+
+	current, err := ocmClient.GetClusterUserTags(cluster.ID())
+	if err != nil {
+		return err
+	}
+	changes := rosa.TagChanges(current, desired)
+	if len(changes) == 0 {
+		return nil
+	}
+
+	rosaScope.Info("Updating cluster AWS tags")
+	return ocmClient.UpdateClusterTags(cluster.ID(), changes)
 }
 
 func (r *ROSAControlPlaneReconciler) reconcileExternalAuth(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope, cluster *cmv1.Cluster) error {
