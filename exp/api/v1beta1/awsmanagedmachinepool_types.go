@@ -271,5 +271,5 @@ type AWSManagedMachinePoolList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&AWSManagedMachinePool{}, &AWSManagedMachinePoolList{})
+	objectTypes = append(objectTypes, &AWSManagedMachinePool{}, &AWSManagedMachinePoolList{})
 }

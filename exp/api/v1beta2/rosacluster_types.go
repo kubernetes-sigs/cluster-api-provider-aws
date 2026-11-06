@@ -114,5 +114,5 @@ func (r *ROSACluster) SetV1Beta2Conditions(conditions []metav1.Condition) {
 }
 
 func init() {
-	SchemeBuilder.Register(&ROSACluster{}, &ROSAClusterList{})
+	objectTypes = append(objectTypes, &ROSACluster{}, &ROSAClusterList{})
 }

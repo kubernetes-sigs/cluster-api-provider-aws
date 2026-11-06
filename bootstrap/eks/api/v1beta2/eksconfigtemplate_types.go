@@ -52,5 +52,5 @@ type EKSConfigTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&EKSConfigTemplate{}, &EKSConfigTemplateList{})
+	objectTypes = append(objectTypes, &EKSConfigTemplate{}, &EKSConfigTemplateList{})
 }

@@ -321,5 +321,5 @@ func (r *AWSManagedControlPlane) SetConditions(conditions clusterv1beta1.Conditi
 }
 
 func init() {
-	SchemeBuilder.Register(&AWSManagedControlPlane{}, &AWSManagedControlPlaneList{})
+	objectTypes = append(objectTypes, &AWSManagedControlPlane{}, &AWSManagedControlPlaneList{})
 }
