@@ -89,5 +89,18 @@ func NodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 		}
 	}
 
+	if spotOpts := nodePool.AWSNodePool().SpotMarketOptions(); spotOpts != nil {
+		// The ROSA API stores no max_price for an on-demand-priced spot pool, which is
+		// exactly what the sentinel means. Report it as the sentinel so the observed
+		// spec matches a defaulted desired spec and computeSpecDiff converges.
+		capaSpotOpts := &expinfrav1.RosaSpotMarketOptions{
+			MaxPrice: ptr.To(expinfrav1.RosaSpotMarketOptionsOnDemandPrice),
+		}
+		if maxPrice, ok := spotOpts.GetMaxPrice(); ok {
+			capaSpotOpts.MaxPrice = &maxPrice
+		}
+		spec.SpotMarketOptions = capaSpotOpts
+	}
+
 	return spec
 }

@@ -33298,6 +33298,25 @@ When omitted, the API default is used (currently &ldquo;required&rdquo;).
 This field is immutable and cannot be changed after node pool creation.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>spotMarketOptions</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaSpotMarketOptions">
+RosaSpotMarketOptions
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SpotMarketOptions configures the node pool to use AWS Spot instances.
+Omit this field to use on-demand instances (default).
+Set maxPrice to cap the hourly bid, or leave it at &ldquo;on-demand&rdquo; to bid the
+on-demand price with no separate cap.</p>
+<p>Setting both spotMarketOptions and capacityReservationID is not allowed.
+SpotMarketOptions cannot be added/removed after the MachinePool is created.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -34751,6 +34770,25 @@ When omitted, the API default is used (currently &ldquo;required&rdquo;).
 This field is immutable and cannot be changed after node pool creation.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>spotMarketOptions</code><br/>
+<em>
+<a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaSpotMarketOptions">
+RosaSpotMarketOptions
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SpotMarketOptions configures the node pool to use AWS Spot instances.
+Omit this field to use on-demand instances (default).
+Set maxPrice to cap the hourly bid, or leave it at &ldquo;on-demand&rdquo; to bid the
+on-demand price with no separate cap.</p>
+<p>Setting both spotMarketOptions and capacityReservationID is not allowed.
+SpotMarketOptions cannot be added/removed after the MachinePool is created.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolStatus">RosaMachinePoolStatus
@@ -34890,6 +34928,40 @@ See <a href="https://github.com/kubernetes-sigs/cluster-api/blob/main/docs/propo
 <td>
 <em>(Optional)</em>
 <p>conditions represents the observations of a ROSAMachinePool&rsquo;s current state.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="infrastructure.cluster.x-k8s.io/v1beta2.RosaSpotMarketOptions">RosaSpotMarketOptions
+</h3>
+<p>
+(<em>Appears on:</em><a href="#infrastructure.cluster.x-k8s.io/v1beta2.RosaMachinePoolSpec">RosaMachinePoolSpec</a>)
+</p>
+<p>
+<p>RosaSpotMarketOptions defines the options available to a user when configuring Machines to run on Spot instances.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>maxPrice</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MaxPrice is the maximum hourly price to bid for Spot instances, or &ldquo;on-demand&rdquo; to
+bid the on-demand price with no separate cap. A numeric price must be greater than
+zero.</p>
+<p>Once a numeric price is set it can be raised or lowered, but it cannot be changed
+back to &ldquo;on-demand&rdquo;.</p>
 </td>
 </tr>
 </tbody>
