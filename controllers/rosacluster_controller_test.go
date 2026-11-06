@@ -219,6 +219,7 @@ func TestRosaClusterReconcile(t *testing.T) {
 		ocmMock := mocks.NewMockOCMClient(mockCtrl)
 
 		nodePoolName := "nodepool-1"
+		zeroNodePoolName := "nodepool-zero"
 		expect := func(m *mocks.MockOCMClientMockRecorder) {
 			m.GetNodePools(gomock.Any()).AnyTimes().DoAndReturn(func(clusterId string) ([]*cmv1.NodePool, error) {
 				// Build a NodePool.
@@ -256,7 +257,20 @@ func TestRosaClusterReconcile(t *testing.T) {
 
 				nodePool, err := builder.Build()
 				g.Expect(err).ToNot(HaveOccurred())
-				return []*cmv1.NodePool{nodePool}, err
+
+				zeroBuilder := cmv1.NewNodePool().
+					ID(zeroNodePoolName).
+					Version(cmv1.NewVersion().ID("openshift-v4.15.0")).
+					Replicas(0).
+					Status(
+						cmv1.NewNodePoolStatus().
+							Message("").
+							CurrentReplicas(0),
+					)
+
+				zeroNodePool, err := zeroBuilder.Build()
+				g.Expect(err).ToNot(HaveOccurred())
+				return []*cmv1.NodePool{nodePool, zeroNodePool}, err
 			})
 		}
 		expect(ocmMock.EXPECT())
@@ -290,14 +304,28 @@ func TestRosaClusterReconcile(t *testing.T) {
 		keyMP := client.ObjectKey{Name: nodePoolName, Namespace: ns.Name}
 		errMP := testEnv.Get(ctx, keyMP, machinePool)
 		g.Expect(errMP).ToNot(HaveOccurred())
+		g.Expect(machinePool.Spec.Replicas).To(Equal(ptr.To(int32(2))))
+
+		zeroRosaMachinePool := &expinfrav1.ROSAMachinePool{}
+		keyZeroRosaMP := client.ObjectKey{Name: zeroNodePoolName, Namespace: ns.Name}
+		errZeroRosaMP := testEnv.Get(ctx, keyZeroRosaMP, zeroRosaMachinePool)
+		g.Expect(errZeroRosaMP).ToNot(HaveOccurred())
+
+		zeroMachinePool := &clusterv1.MachinePool{}
+		keyZeroMP := client.ObjectKey{Name: zeroNodePoolName, Namespace: ns.Name}
+		errZeroMP := testEnv.Get(ctx, keyZeroMP, zeroMachinePool)
+		g.Expect(errZeroMP).ToNot(HaveOccurred())
+		g.Expect(zeroMachinePool.Spec.Replicas).To(Equal(ptr.To(int32(0))))
 
 		// Test get RosaMachinePoolNames
 		rosaMachinePools, err := r.getRosaMachinePoolNames(ctx, capiCluster)
 		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(len(rosaMachinePools)).To(Equal(1))
+		g.Expect(len(rosaMachinePools)).To(Equal(2))
 
 		cleanupObject(g, rosaMachinePool)
 		cleanupObject(g, machinePool)
+		cleanupObject(g, zeroRosaMachinePool)
+		cleanupObject(g, zeroMachinePool)
 		cleanupObject(g, rosaCluster)
 		cleanupObject(g, rosaControlPlane)
 		cleanupObject(g, capiCluster)
