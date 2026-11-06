@@ -230,7 +230,5 @@ if [ ${GUNZIP_RETURN} -ne 0 ]; then
   log::error_exit "could not unzip data" 4
 fi
 
-log::info "restarting cloud-init"
-systemctl restart cloud-init
 log::success_exit
 `
