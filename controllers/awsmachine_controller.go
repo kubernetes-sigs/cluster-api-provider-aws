@@ -1046,7 +1046,8 @@ func (r *AWSMachineReconciler) reconcileLBAttachment(ctx context.Context, machin
 
 	errs := []error{}
 	for _, lbSpec := range elbScope.ControlPlaneLoadBalancers() {
-		if lbSpec == nil {
+		// Nothing to reconcile: CAPA does not manage a load balancer of this type.
+		if lbSpec == nil || lbSpec.LoadBalancerType == infrav1.LoadBalancerTypeDisabled {
 			continue
 		}
 		// In order to prevent sending request to a "not-ready" control plane machines, it is required to remove the machine
