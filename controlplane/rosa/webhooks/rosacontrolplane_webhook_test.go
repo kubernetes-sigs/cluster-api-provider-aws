@@ -141,6 +141,72 @@ func TestValidateComponentRoutes(t *testing.T) {
 	})
 }
 
+func TestValidateNotificationContacts(t *testing.T) {
+	w := &ROSAControlPlane{}
+
+	t.Run("unset is valid", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{},
+		}
+		errs := w.validateNotificationContacts(rosaCP)
+		g.Expect(errs).To(BeEmpty())
+	})
+
+	t.Run("usernames including email-shaped are valid", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		contacts := []string{"user1", "user@example.com"}
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				NotificationContacts: contacts,
+			},
+		}
+		errs := w.validateNotificationContacts(rosaCP)
+		g.Expect(errs).To(BeEmpty())
+	})
+
+	t.Run("blank entry is invalid", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		contacts := []string{"user1", "  "}
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				NotificationContacts: contacts,
+			},
+		}
+		errs := w.validateNotificationContacts(rosaCP)
+		g.Expect(errs).ToNot(BeEmpty())
+		g.Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+		g.Expect(errs[0].Error()).To(ContainSubstring("must not be blank"))
+	})
+
+	t.Run("explicitly empty list is valid", func(t *testing.T) {
+		g := NewGomegaWithT(t)
+		rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				NotificationContacts: []string{},
+			},
+		}
+		errs := w.validateNotificationContacts(rosaCP)
+		g.Expect(errs).To(BeEmpty())
+	})
+
+	t.Run("surrounding whitespace is invalid", func(t *testing.T) {
+		for _, contact := range []string{" user-a", "user-a ", " user-a ", "\tuser-a\n"} {
+			g := NewGomegaWithT(t)
+			rosaCP := &rosacontrolplanev1.ROSAControlPlane{
+				Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+					NotificationContacts: []string{"user1", contact},
+				},
+			}
+			errs := w.validateNotificationContacts(rosaCP)
+			g.Expect(errs).To(HaveLen(1), "contact %q", contact)
+			g.Expect(errs[0].Type).To(Equal(field.ErrorTypeInvalid))
+			g.Expect(errs[0].Field).To(Equal("spec.notificationContacts[1]"))
+			g.Expect(errs[0].Error()).To(ContainSubstring("must not contain leading or trailing whitespace"))
+		}
+	})
+}
+
 func TestValidateEc2MetadataHttpTokensImmutability(t *testing.T) {
 	w := &ROSAControlPlane{}
 
