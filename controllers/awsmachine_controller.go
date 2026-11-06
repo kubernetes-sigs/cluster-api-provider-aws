@@ -738,7 +738,7 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 
 	// tasks that can only take place during operational instance states
 	if machineScope.InstanceIsOperational() {
-		err := r.reconcileOperationalState(ec2svc, machineScope, instance)
+		err := r.reconcileOperationalState(ctx, ec2svc, machineScope, instance)
 		if err != nil {
 			return ctrl.Result{}, err
 		}
@@ -752,7 +752,7 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 	return ctrl.Result{}, nil
 }
 
-func (r *AWSMachineReconciler) reconcileOperationalState(ec2svc services.EC2Interface, machineScope *scope.MachineScope, instance *infrav1.Instance) error {
+func (r *AWSMachineReconciler) reconcileOperationalState(ctx context.Context, ec2svc services.EC2Interface, machineScope *scope.MachineScope, instance *infrav1.Instance) error {
 	machineScope.SetAddresses(instance.Addresses)
 
 	existingSecurityGroups, err := ec2svc.GetInstanceSecurityGroups(*machineScope.GetInstanceID())
@@ -774,6 +774,17 @@ func (r *AWSMachineReconciler) reconcileOperationalState(ec2svc services.EC2Inte
 	if err != nil {
 		machineScope.Error(err, "failed to ensure instance metadata options")
 		return err
+	}
+
+	// Ensure the source/destination check on the instance's network interfaces matches
+	// the spec. This runs on every reconcile so that the setting is retried against the
+	// running instance rather than applied once at creation (when DescribeNetworkInterfaces
+	// may be briefly eventually consistent).
+	if setting := machineScope.AWSMachine.Spec.SourceDestCheck; setting != "" {
+		if err := ec2svc.ModifySourceDestCheck(ctx, instance.ID, setting); err != nil {
+			machineScope.Error(err, "failed to modify source/destination check")
+			return err
+		}
 	}
 
 	return nil
