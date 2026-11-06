@@ -272,6 +272,12 @@ func (r *ROSAClusterReconciler) buildROSAMachinePool(nodePoolName string, cluste
 		},
 		Spec: rosaMPSpec,
 	}
+	// MachinePool.spec.replicas is the source of truth for a fixed-size NodePool, so seed it from
+	// the NodePool. A default here would scale an idle replicas: 0 NodePool up on the next reconcile.
+	replicas := ptr.To(int32(1))
+	if nodePool.Autoscaling() == nil {
+		replicas = ptr.To(int32(nodePool.Replicas())) //#nosec G115
+	}
 	machinePool := &clusterv1.MachinePool{
 		TypeMeta: metav1.TypeMeta{
 			APIVersion: clusterv1.GroupVersion.String(),
@@ -286,7 +292,7 @@ func (r *ROSAClusterReconciler) buildROSAMachinePool(nodePoolName string, cluste
 		},
 		Spec: clusterv1.MachinePoolSpec{
 			ClusterName: clusterName,
-			Replicas:    ptr.To(int32(1)),
+			Replicas:    replicas,
 			Template: clusterv1.MachineTemplateSpec{
 				Spec: clusterv1.MachineSpec{
 					ClusterName: clusterName,
