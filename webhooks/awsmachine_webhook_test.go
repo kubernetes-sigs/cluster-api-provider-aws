@@ -837,6 +837,37 @@ func TestAWSMachineUpdate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "clearing sourceDestCheck is forbidden (immutable)",
+			oldMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType:    "test",
+					SourceDestCheck: infrav1.SourceDestCheckDisabled,
+				},
+			},
+			newMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType: "test",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "changing sourceDestCheck is forbidden (immutable)",
+			oldMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType:    "test",
+					SourceDestCheck: infrav1.SourceDestCheckDisabled,
+				},
+			},
+			newMachine: &infrav1.AWSMachine{
+				Spec: infrav1.AWSMachineSpec{
+					InstanceType:    "test",
+					SourceDestCheck: infrav1.SourceDestCheckEnabled,
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		ctx := context.TODO()

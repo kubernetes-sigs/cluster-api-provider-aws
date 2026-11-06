@@ -1164,6 +1164,49 @@ func (s *Service) DetachSecurityGroupsFromNetworkInterface(groups []string, inte
 	return nil
 }
 
+// ModifySourceDestCheck ensures the source/destination check on the instance's
+// CAPA-managed network interfaces matches the desired setting. It is safe to call on
+// every reconcile: interfaces already at the desired value are skipped, so a
+// steady-state reconcile performs no modifications. An empty setting is a no-op,
+// leaving the AWS default (source/destination checking enabled) in place.
+//
+// Interfaces that are not managed by CAPA (e.g. added by cilium) are left untouched,
+// matching the behaviour of UpdateInstanceSecurityGroups.
+func (s *Service) ModifySourceDestCheck(ctx context.Context, instanceID string, setting infrav1.SourceDestCheck) error {
+	if setting == "" {
+		return nil
+	}
+
+	interfaces, err := s.getInstanceENIs(instanceID)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get ENIs for instance %q", instanceID)
+	}
+
+	enabled := setting == infrav1.SourceDestCheckEnabled
+	for _, eni := range interfaces {
+		// Only modify interfaces managed by CAPA; other components may attach ENIs we
+		// must not change.
+		if !slices.ContainsFunc(eni.TagSet, func(t types.Tag) bool {
+			return aws.ToString(t.Key) == infrav1.ClusterTagKey(s.scope.Name())
+		}) {
+			s.scope.Debug("Skipping ENI without cluster tag", "eni-id", aws.ToString(eni.NetworkInterfaceId))
+			continue
+		}
+		if eni.SourceDestCheck != nil && aws.ToBool(eni.SourceDestCheck) == enabled {
+			continue
+		}
+
+		input := &ec2.ModifyNetworkInterfaceAttributeInput{
+			NetworkInterfaceId: eni.NetworkInterfaceId,
+			SourceDestCheck:    &types.AttributeBooleanValue{Value: aws.Bool(enabled)},
+		}
+		if _, err := s.EC2Client.ModifyNetworkInterfaceAttribute(ctx, input); err != nil {
+			return errors.Wrapf(err, "failed to modify source/destination check on interface %q", aws.ToString(eni.NetworkInterfaceId))
+		}
+	}
+	return nil
+}
+
 // checkRootVolume checks the input root volume options against the requested AMI's defaults
 // and returns the AMI's root device name.
 func (s *Service) checkRootVolume(rootVolume *infrav1.Volume, imageID string) (*string, error) {
