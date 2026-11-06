@@ -630,17 +630,7 @@ func (s *Service) createLaunchTemplateData(scope scope.LaunchTemplateScope, imag
 	}
 
 	if lt.InstanceMetadataOptions != nil {
-		data.MetadataOptions = &types.LaunchTemplateInstanceMetadataOptionsRequest{
-			HttpEndpoint:         types.LaunchTemplateInstanceMetadataEndpointState(string(lt.InstanceMetadataOptions.HTTPEndpoint)),
-			InstanceMetadataTags: types.LaunchTemplateInstanceMetadataTagsState(string(lt.InstanceMetadataOptions.InstanceMetadataTags)),
-		}
-
-		if lt.InstanceMetadataOptions.HTTPTokens != "" {
-			data.MetadataOptions.HttpTokens = types.LaunchTemplateHttpTokensState(string(lt.InstanceMetadataOptions.HTTPTokens))
-		}
-		if lt.InstanceMetadataOptions.HTTPPutResponseHopLimit != 0 {
-			data.MetadataOptions.HttpPutResponseHopLimit = utils.ToInt32Pointer(&lt.InstanceMetadataOptions.HTTPPutResponseHopLimit)
-		}
+		data.MetadataOptions = launchTemplateMetadataOptionsRequest(lt.InstanceMetadataOptions)
 	}
 
 	if lt.EnclaveOptions != nil {
@@ -904,6 +894,24 @@ func CapacityReservationPreferenceToSDK(preference infrav1.CapacityReservationPr
 	default:
 		return ""
 	}
+}
+
+// launchTemplateMetadataOptionsRequest must send every field SDKToLaunchTemplate reads back.
+func launchTemplateMetadataOptionsRequest(opts *infrav1.InstanceMetadataOptions) *types.LaunchTemplateInstanceMetadataOptionsRequest {
+	req := &types.LaunchTemplateInstanceMetadataOptionsRequest{
+		HttpEndpoint:         types.LaunchTemplateInstanceMetadataEndpointState(string(opts.HTTPEndpoint)),
+		InstanceMetadataTags: types.LaunchTemplateInstanceMetadataTagsState(string(opts.InstanceMetadataTags)),
+	}
+	if opts.HTTPTokens != "" {
+		req.HttpTokens = types.LaunchTemplateHttpTokensState(string(opts.HTTPTokens))
+	}
+	if opts.HTTPPutResponseHopLimit != 0 {
+		req.HttpPutResponseHopLimit = utils.ToInt32Pointer(&opts.HTTPPutResponseHopLimit)
+	}
+	if opts.HTTPProtocolIPv6 != "" {
+		req.HttpProtocolIpv6 = types.LaunchTemplateInstanceMetadataProtocolIpv6(string(opts.HTTPProtocolIPv6))
+	}
+	return req
 }
 
 // SDKToLaunchTemplate converts an AWS EC2 SDK instance to the CAPA instance type.

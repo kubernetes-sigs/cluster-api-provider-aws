@@ -2277,3 +2277,59 @@ func TestDeleteLaunchTemplateVersion(t *testing.T) {
 		})
 	}
 }
+
+// TestLaunchTemplateMetadataOptionsRoundTrip checks that metadata options sent to AWS read back
+// unchanged through SDKToLaunchTemplate. Any field lost on the way makes LaunchTemplateNeedsUpdate
+// report a difference on every reconcile, creating a new launch template version each time.
+func TestLaunchTemplateMetadataOptionsRoundTrip(t *testing.T) {
+	tests := []struct {
+		name string
+		opts infrav1.InstanceMetadataOptions
+	}{
+		{
+			name: "defaults",
+			opts: infrav1.InstanceMetadataOptions{},
+		},
+		{
+			name: "IPv6 endpoint enabled with IMDSv2 and hop limit 2",
+			opts: infrav1.InstanceMetadataOptions{
+				HTTPProtocolIPv6:        infrav1.InstanceMetadataEndpointStateEnabled,
+				HTTPTokens:              infrav1.HTTPTokensStateRequired,
+				HTTPPutResponseHopLimit: 2,
+			},
+		},
+		{
+			name: "endpoint disabled, instance tags enabled",
+			opts: infrav1.InstanceMetadataOptions{
+				HTTPEndpoint:         infrav1.InstanceMetadataEndpointStateDisabled,
+				InstanceMetadataTags: infrav1.InstanceMetadataEndpointStateEnabled,
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			want := tt.opts
+			want.SetDefaults()
+
+			req := launchTemplateMetadataOptionsRequest(&want)
+			// What AWS stores and returns for the request.
+			stored := ec2types.LaunchTemplateVersion{
+				LaunchTemplateData: &ec2types.ResponseLaunchTemplateData{
+					MetadataOptions: &ec2types.LaunchTemplateInstanceMetadataOptions{
+						HttpEndpoint:            req.HttpEndpoint,
+						HttpProtocolIpv6:        req.HttpProtocolIpv6,
+						HttpPutResponseHopLimit: req.HttpPutResponseHopLimit,
+						HttpTokens:              req.HttpTokens,
+						InstanceMetadataTags:    req.InstanceMetadataTags,
+					},
+				},
+			}
+
+			s := &Service{}
+			got, _, _, _, err := s.SDKToLaunchTemplate(stored)
+			g.Expect(err).NotTo(HaveOccurred())
+			g.Expect(got.InstanceMetadataOptions).To(Equal(&want))
+		})
+	}
+}
