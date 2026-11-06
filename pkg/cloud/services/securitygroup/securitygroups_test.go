@@ -1574,6 +1574,139 @@ func TestAdditionalManagedControlPlaneSecurityGroup(t *testing.T) {
 	}
 }
 
+func TestAdditionalEKSNodeSecurityGroupIngressRules(t *testing.T) {
+	scheme := runtime.NewScheme()
+	_ = ekscontrolplanev1.AddToScheme(scheme)
+
+	testCases := []struct {
+		name                          string
+		networkSpec                   infrav1.NetworkSpec
+		expectedAdditionalIngressRule infrav1.IngressRule
+	}{
+		{
+			name: "source security group roles are resolved to IDs",
+			networkSpec: infrav1.NetworkSpec{
+				AdditionalControlPlaneIngressRules: []infrav1.IngressRule{
+					{
+						Description:              "test",
+						Protocol:                 infrav1.SecurityGroupProtocolTCP,
+						FromPort:                 10250,
+						ToPort:                   10250,
+						SourceSecurityGroupRoles: []infrav1.SecurityGroupRole{infrav1.SecurityGroupEKSNodeAdditional},
+					},
+				},
+			},
+			expectedAdditionalIngressRule: infrav1.IngressRule{
+				Description:              "test",
+				Protocol:                 infrav1.SecurityGroupProtocolTCP,
+				FromPort:                 10250,
+				ToPort:                   10250,
+				SourceSecurityGroupRoles: []infrav1.SecurityGroupRole{infrav1.SecurityGroupEKSNodeAdditional},
+				SourceSecurityGroupIDs:   []string{"eks-node-additional-sg-id"},
+			},
+		},
+		{
+			name: "custom source security group IDs are merged with roles",
+			networkSpec: infrav1.NetworkSpec{
+				AdditionalControlPlaneIngressRules: []infrav1.IngressRule{
+					{
+						Description:              "test",
+						Protocol:                 infrav1.SecurityGroupProtocolTCP,
+						FromPort:                 10250,
+						ToPort:                   10250,
+						SourceSecurityGroupIDs:   []string{"custom-sg-id"},
+						SourceSecurityGroupRoles: []infrav1.SecurityGroupRole{infrav1.SecurityGroupNode},
+					},
+				},
+			},
+			expectedAdditionalIngressRule: infrav1.IngressRule{
+				Description:              "test",
+				Protocol:                 infrav1.SecurityGroupProtocolTCP,
+				FromPort:                 10250,
+				ToPort:                   10250,
+				SourceSecurityGroupRoles: []infrav1.SecurityGroupRole{infrav1.SecurityGroupNode},
+				SourceSecurityGroupIDs:   []string{"custom-sg-id", "node-sg-id"},
+			},
+		},
+		{
+			name: "cidr blocks are kept without source security groups",
+			networkSpec: infrav1.NetworkSpec{
+				AdditionalControlPlaneIngressRules: []infrav1.IngressRule{
+					{
+						Description: "test",
+						Protocol:    infrav1.SecurityGroupProtocolTCP,
+						FromPort:    10250,
+						ToPort:      10250,
+						CidrBlocks:  []string{"10.0.0.0/16"},
+					},
+				},
+			},
+			expectedAdditionalIngressRule: infrav1.IngressRule{
+				Description: "test",
+				Protocol:    infrav1.SecurityGroupProtocolTCP,
+				FromPort:    10250,
+				ToPort:      10250,
+				CidrBlocks:  []string{"10.0.0.0/16"},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			cs, err := scope.NewManagedControlPlaneScope(scope.ManagedControlPlaneScopeParams{
+				Client: fake.NewClientBuilder().WithScheme(scheme).Build(),
+				Cluster: &clusterv1.Cluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"},
+				},
+				ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+					Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+						NetworkSpec: tc.networkSpec,
+					},
+					Status: ekscontrolplanev1.AWSManagedControlPlaneStatus{
+						Network: infrav1.NetworkStatus{
+							SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{
+								infrav1.SecurityGroupControlPlane: {
+									ID: "cp-sg-id",
+								},
+								infrav1.SecurityGroupNode: {
+									ID: "node-sg-id",
+								},
+								infrav1.SecurityGroupEKSNodeAdditional: {
+									ID: "eks-node-additional-sg-id",
+								},
+							},
+						},
+					},
+				},
+			})
+			if err != nil {
+				t.Fatalf("Failed to create test context: %v", err)
+			}
+
+			s := NewService(cs, testSecurityGroupRoles)
+			rules, err := s.getSecurityGroupIngressRules(infrav1.SecurityGroupEKSNodeAdditional)
+			if err != nil {
+				t.Fatalf("Failed to lookup EKS node additional security group ingress rules: %v", err)
+			}
+
+			found := false
+			for _, r := range rules {
+				if r.Description == "test" {
+					found = true
+
+					if !reflect.DeepEqual(r, tc.expectedAdditionalIngressRule) {
+						t.Fatalf("Expected ingress rule %#v, got %#v", tc.expectedAdditionalIngressRule, r)
+					}
+				}
+			}
+
+			if !found {
+				t.Fatal("Additional ingress rule was not found")
+			}
+		})
+	}
+}
+
 func TestControlPlaneLoadBalancerIngressRules(t *testing.T) {
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
