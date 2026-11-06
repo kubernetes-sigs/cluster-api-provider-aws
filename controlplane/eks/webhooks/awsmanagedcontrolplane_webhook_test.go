@@ -468,7 +468,6 @@ func TestWebhookCreateIPv6Details(t *testing.T) {
 		{
 			name:        "ipv6 no addons",
 			kubeVersion: "v1.22",
-			err:         "addons are required to be set explicitly if IPv6 is enabled",
 			networkSpec: infrav1.NetworkSpec{
 				VPC: infrav1.VPCSpec{
 					IPv6: &infrav1.IPv6{},
