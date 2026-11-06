@@ -10,22 +10,20 @@ import (
 	errors "github.com/zgalor/weberr"
 )
 
-// IsNodePoolReady checkes whether the nodepool is provisoned and all replicas are available.
-// If autosacling is enabled, NodePool must have replicas >= autosacling.MinReplica to be considered ready.
+// IsNodePoolReady checks whether the NodePool is provisioned and all replicas are available.
+// A NodePool with fixed replicas is ready once its current replicas match the requested replicas,
+// including replicas: 0, which is ready when no replicas are running.
+// If autoscaling is enabled, NodePool must have replicas >= autoscaling.MinReplica to be considered ready.
 func IsNodePoolReady(nodePool *cmv1.NodePool) bool {
 	if nodePool.Status().Message() != "" {
 		return false
 	}
 
-	if nodePool.Replicas() != 0 {
-		return nodePool.Replicas() == nodePool.Status().CurrentReplicas()
-	}
-
-	if nodePool.Autoscaling() != nil {
+	if nodePool.Replicas() == 0 && nodePool.Autoscaling() != nil {
 		return nodePool.Status().CurrentReplicas() >= nodePool.Autoscaling().MinReplica()
 	}
 
-	return false
+	return nodePool.Replicas() == nodePool.Status().CurrentReplicas()
 }
 
 // CreateVersionID creates a version ID based on the version, channelGroup, and channel.
