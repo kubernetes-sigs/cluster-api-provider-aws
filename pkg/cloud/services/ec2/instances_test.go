@@ -7029,3 +7029,63 @@ func TestSDKToInstance_InstanceMetadataOptions(t *testing.T) {
 		})
 	}
 }
+
+func TestModifyInstanceMetadataOptions_HTTPProtocolIPv6(t *testing.T) {
+	testCases := []struct {
+		name    string
+		options *infrav1.InstanceMetadataOptions
+		want    types.InstanceMetadataProtocolState
+	}{
+		{
+			name:    "omitted IPv6 IMDS is not sent",
+			options: &infrav1.InstanceMetadataOptions{},
+			want:    "",
+		},
+		{
+			name: "disabled IPv6 IMDS is sent",
+			options: &infrav1.InstanceMetadataOptions{
+				HTTPProtocolIPv6: infrav1.InstanceMetadataEndpointStateDisabled,
+			},
+			want: types.InstanceMetadataProtocolStateDisabled,
+		},
+		{
+			name: "enabled IPv6 IMDS is sent",
+			options: &infrav1.InstanceMetadataOptions{
+				HTTPProtocolIPv6: infrav1.InstanceMetadataEndpointStateEnabled,
+			},
+			want: types.InstanceMetadataProtocolStateEnabled,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
+
+			ec2Mock.EXPECT().ModifyInstanceMetadataOptions(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(_ context.Context, input *ec2.ModifyInstanceMetadataOptionsInput, _ ...func(*ec2.Options)) (*ec2.ModifyInstanceMetadataOptionsOutput, error) {
+					g.Expect(input.HttpProtocolIpv6).To(Equal(tc.want))
+					return &ec2.ModifyInstanceMetadataOptionsOutput{}, nil
+				},
+			)
+
+			scheme, err := setupScheme()
+			g.Expect(err).ToNot(HaveOccurred())
+			client := fake.NewClientBuilder().WithScheme(scheme).Build()
+			cs, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client:  client,
+				Cluster: &clusterv1.Cluster{},
+				AWSCluster: &infrav1.AWSCluster{
+					ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				},
+			})
+			g.Expect(err).ToNot(HaveOccurred())
+
+			ec2Svc := NewService(cs)
+			ec2Svc.EC2Client = ec2Mock
+			g.Expect(ec2Svc.ModifyInstanceMetadataOptions("i-test", tc.options)).To(Succeed())
+		})
+	}
+}

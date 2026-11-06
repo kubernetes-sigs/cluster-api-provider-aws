@@ -746,6 +746,23 @@ func TestServiceLaunchTemplateNeedsUpdate(t *testing.T) {
 			wantErr:               false,
 		},
 		{
+			name: "unset IPv6 IMDS matches an existing launch template",
+			incoming: &expinfrav1.AWSLaunchTemplate{
+				InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{},
+			},
+			existing: &expinfrav1.AWSLaunchTemplate{
+				AdditionalSecurityGroups: []infrav1.AWSResourceReference{
+					{ID: aws.String("sg-111")},
+					{ID: aws.String("sg-222")},
+				},
+				InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{
+					HTTPProtocolIPv6: infrav1.InstanceMetadataEndpointStateDisabled,
+				},
+			},
+			want:    false,
+			wantErr: false,
+		},
+		{
 			name: "new launch template instance metadata options, requiring IMDSv2",
 			incoming: &expinfrav1.AWSLaunchTemplate{
 				InstanceMetadataOptions: &infrav1.InstanceMetadataOptions{

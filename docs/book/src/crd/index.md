@@ -27257,9 +27257,10 @@ InstanceMetadataState
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Enables or disables the IPv6 endpoint for the instance metadata service.
 This applies only if you enabled the HTTP metadata endpoint.</p>
-<p>Default: disabled</p>
+<p>If unset, the partition default is used.</p>
 </td>
 </tr>
 <tr>

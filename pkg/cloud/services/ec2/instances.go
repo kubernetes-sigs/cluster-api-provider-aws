@@ -1015,8 +1015,10 @@ func (s *Service) SDKToInstance(v types.Instance) (*infrav1.Instance, error) {
 		metadataOptions.HTTPEndpoint = infrav1.InstanceMetadataState(string(v.MetadataOptions.HttpEndpoint))
 		metadataOptions.HTTPTokens = infrav1.HTTPTokensState(string(v.MetadataOptions.HttpTokens))
 		metadataOptions.InstanceMetadataTags = infrav1.InstanceMetadataState(string(v.MetadataOptions.InstanceMetadataTags))
-		// AWS EUSC does not support IPv6 IMDS and omits this field entirely,
-		// so treat an empty value as disabled to match the spec default.
+		// AWS EUSC does not support IPv6 IMDS and omits this field entirely.
+		// An absent field means IPv6 IMDS is off, so report it as disabled to
+		// match a spec that disables it explicitly and avoid a redundant
+		// ModifyInstanceMetadataOptions call on every reconcile.
 		if v.MetadataOptions.HttpProtocolIpv6 == "" {
 			metadataOptions.HTTPProtocolIPv6 = infrav1.InstanceMetadataEndpointStateDisabled
 		} else {
@@ -1191,8 +1193,10 @@ func (s *Service) ModifyInstanceMetadataOptions(instanceID string, options *infr
 		HttpPutResponseHopLimit: utils.ToInt32Pointer(&options.HTTPPutResponseHopLimit),
 		HttpTokens:              types.HttpTokensState(string(options.HTTPTokens)),
 		InstanceMetadataTags:    types.InstanceMetadataTagsState(string(options.InstanceMetadataTags)),
-		HttpProtocolIpv6:        types.InstanceMetadataProtocolState(string(options.HTTPProtocolIPv6)),
 		InstanceId:              aws.String(instanceID),
+	}
+	if options.HTTPProtocolIPv6 != "" {
+		input.HttpProtocolIpv6 = types.InstanceMetadataProtocolState(string(options.HTTPProtocolIPv6))
 	}
 
 	s.scope.Info("Updating instance metadata options", "instance id", instanceID, "options", input)
