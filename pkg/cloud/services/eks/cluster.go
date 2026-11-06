@@ -199,6 +199,10 @@ func (s *Service) setStatus(cluster *ekstypes.Cluster) error {
 	// Set the current Kubernetes control plane version in the status.
 	s.scope.ControlPlane.Status.Version = computeCurrentStatusVersion(cluster.Version, specSemver, clusterSemver)
 
+	if serviceCIDR := clusterServiceCIDR(cluster); serviceCIDR != "" {
+		s.scope.ControlPlane.Status.ServiceCIDR = aws.String(serviceCIDR)
+	}
+
 	// Set the current cluster status in the control plane status.
 	switch cluster.Status {
 	case ekstypes.ClusterStatusDeleting:
@@ -320,6 +324,17 @@ func makeEksEncryptionConfigs(encryptionConfig *ekscontrolplanev1.EncryptionConf
 		},
 		Resources: aws.ToStringSlice(encryptionConfig.Resources),
 	})
+}
+
+// clusterServiceCIDR returns the IPv6 service CIDR if set, otherwise the IPv4 one.
+func clusterServiceCIDR(cluster *ekstypes.Cluster) string {
+	if cluster.KubernetesNetworkConfig == nil {
+		return ""
+	}
+	if cidr := aws.ToString(cluster.KubernetesNetworkConfig.ServiceIpv6Cidr); cidr != "" {
+		return cidr
+	}
+	return aws.ToString(cluster.KubernetesNetworkConfig.ServiceIpv4Cidr)
 }
 
 func makeKubernetesNetworkConfig(serviceCidrs *clusterv1.NetworkRanges) (*ekstypes.KubernetesNetworkConfigRequest, error) {

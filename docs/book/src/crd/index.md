@@ -8386,6 +8386,19 @@ in the cluster.</p>
 </tr>
 <tr>
 <td>
+<code>serviceCIDR</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceCIDR is the service CIDR EKS assigned to the cluster (serviceIpv6Cidr for IPv6
+clusters, serviceIpv4Cidr otherwise).</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>observedGeneration</code><br/>
 <em>
 int64

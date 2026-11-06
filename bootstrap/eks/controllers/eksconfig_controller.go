@@ -228,17 +228,9 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		nodeInput.PauseContainerVersion = &config.Spec.PauseContainer.Version
 	}
 
-	// Check if IPv6 was provided to the user configuration first
-	// If not, we also check if the cluster is ipv6 based.
-	if config.Spec.ServiceIPV6Cidr != nil && *config.Spec.ServiceIPV6Cidr != "" {
-		nodeInput.ServiceIPV6Cidr = config.Spec.ServiceIPV6Cidr
-		nodeInput.IPFamily = ptr.To[string]("ipv6")
-	}
-
-	// we don't want to override any manually set configuration options.
-	if config.Spec.ServiceIPV6Cidr == nil && controlPlane.Spec.NetworkSpec.VPC.IsIPv6Enabled() {
+	if serviceIPv6CIDR := eksConfigServiceIPv6CIDR(config, controlPlane); serviceIPv6CIDR != nil {
 		log.Info("Adding ipv6 data to userdata....")
-		nodeInput.ServiceIPV6Cidr = ptr.To[string](controlPlane.Spec.NetworkSpec.VPC.IPv6.CidrBlock)
+		nodeInput.ServiceIPV6Cidr = serviceIPv6CIDR
 		nodeInput.IPFamily = ptr.To[string]("ipv6")
 	}
 
@@ -437,4 +429,21 @@ func (r *EKSConfigReconciler) updateBootstrapSecret(ctx context.Context, secret 
 		return true, r.Client.Update(ctx, secret)
 	}
 	return false, nil
+}
+
+// eksConfigServiceIPv6CIDR prefers the EKSConfig value, then the EKS-reported CIDR, then the VPC block.
+func eksConfigServiceIPv6CIDR(config *eksbootstrapv1.EKSConfig, controlPlane *ekscontrolplanev1.AWSManagedControlPlane) *string {
+	if config.Spec.ServiceIPV6Cidr != nil {
+		if *config.Spec.ServiceIPV6Cidr == "" {
+			return nil
+		}
+		return config.Spec.ServiceIPV6Cidr
+	}
+	if !controlPlane.Spec.NetworkSpec.VPC.IsIPv6Enabled() {
+		return nil
+	}
+	if cidr := ptr.Deref(controlPlane.Status.ServiceCIDR, ""); cidr != "" {
+		return ptr.To(cidr)
+	}
+	return ptr.To(controlPlane.Spec.NetworkSpec.VPC.IPv6.CidrBlock)
 }

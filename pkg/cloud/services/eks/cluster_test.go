@@ -123,6 +123,43 @@ func TestParseEKSVersion(t *testing.T) {
 	}
 }
 
+func TestClusterServiceCIDR(t *testing.T) {
+	testCases := []struct {
+		name    string
+		cluster *ekstypes.Cluster
+		expect  string
+	}{
+		{
+			name:    "no network config yet",
+			cluster: &ekstypes.Cluster{},
+			expect:  "",
+		},
+		{
+			name: "ipv4 cluster",
+			cluster: &ekstypes.Cluster{KubernetesNetworkConfig: &ekstypes.KubernetesNetworkConfigResponse{
+				IpFamily:        ekstypes.IpFamilyIpv4,
+				ServiceIpv4Cidr: aws.String("10.100.0.0/16"),
+			}},
+			expect: "10.100.0.0/16",
+		},
+		{
+			name: "ipv6 cluster prefers the ipv6 range",
+			cluster: &ekstypes.Cluster{KubernetesNetworkConfig: &ekstypes.KubernetesNetworkConfigResponse{
+				IpFamily:        ekstypes.IpFamilyIpv6,
+				ServiceIpv4Cidr: aws.String("172.20.0.0/16"),
+				ServiceIpv6Cidr: aws.String("fdbb:74f2:123e::/108"),
+			}},
+			expect: "fdbb:74f2:123e::/108",
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			g.Expect(clusterServiceCIDR(tc.cluster)).To(Equal(tc.expect))
+		})
+	}
+}
+
 func TestVersionToEKS(t *testing.T) {
 	testCases := []struct {
 		name   string
