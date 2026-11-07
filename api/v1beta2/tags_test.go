@@ -187,6 +187,13 @@ func TestTagsValidate(t *testing.T) {
 			expected: nil,
 		},
 		{
+			name: "no errors - spaces allowed in key",
+			self: Tags{
+				"Patch Group": "validValue",
+			},
+			expected: nil,
+		},
+		{
 			name: "key cannot be empty",
 			self: Tags{
 				"": "validValue",
