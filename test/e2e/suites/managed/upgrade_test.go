@@ -96,26 +96,26 @@ var _ = ginkgo.Describe("EKS Cluster upgrade test", func() {
 		// Expect(len(mp)).To(Equal(1))
 
 		ginkgo.By(fmt.Sprintf("should upgrade control plane to version %s", upgradeToVersion))
-		UpgradeControlPlaneVersionSpec(ctx, func() UpgradeControlPlaneVersionSpecInput {
-			return UpgradeControlPlaneVersionSpecInput{
+		UpdateControlPlaneVersionSpec(ctx, func() UpdateControlPlaneVersionSpecInput {
+			return UpdateControlPlaneVersionSpecInput{
 				E2EConfig:             e2eCtx.E2EConfig,
 				AWSSession:            e2eCtx.BootstrapUserAWSSession,
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
 				ClusterName:           clusterName,
 				Namespace:             namespace,
-				UpgradeVersion:        upgradeToVersion,
+				TargetVersion:         upgradeToVersion,
 			}
 		})
 
 		ginkgo.By(fmt.Sprintf("should roll back control plane to version %s", initialVersion))
-		UpgradeControlPlaneVersionSpec(ctx, func() UpgradeControlPlaneVersionSpecInput {
-			return UpgradeControlPlaneVersionSpecInput{
+		UpdateControlPlaneVersionSpec(ctx, func() UpdateControlPlaneVersionSpecInput {
+			return UpdateControlPlaneVersionSpecInput{
 				E2EConfig:             e2eCtx.E2EConfig,
 				AWSSession:            e2eCtx.BootstrapUserAWSSession,
 				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
 				ClusterName:           clusterName,
 				Namespace:             namespace,
-				UpgradeVersion:        initialVersion,
+				TargetVersion:         initialVersion,
 			}
 		})
 
