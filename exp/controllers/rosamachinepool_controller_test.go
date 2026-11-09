@@ -1186,3 +1186,102 @@ func (m replicasMatcher) String() string {
 func matchesReplicas(replicas int) gomock.Matcher {
 	return replicasMatcher{replicas: replicas}
 }
+
+func TestReconcileNodePoolTags(t *testing.T) {
+	buildNodePool := func(g *WithT, tags map[string]string) *cmv1.NodePool {
+		nodePool, err := cmv1.NewNodePool().ID("np-1").AWSNodePool(cmv1.NewAWSNodePool().Tags(tags)).Build()
+		g.Expect(err).ToNot(HaveOccurred())
+		return nodePool
+	}
+	buildScope := func(controlPlaneVersion string, tags infrav1.Tags) *scope.RosaMachinePoolScope {
+		return &scope.RosaMachinePoolScope{
+			Logger: *logger.FromContext(context.TODO()),
+			ControlPlane: &rosacontrolplanev1.ROSAControlPlane{
+				Status: rosacontrolplanev1.RosaControlPlaneStatus{ID: "cluster-123", Version: controlPlaneVersion},
+			},
+			RosaMachinePool: &expinfrav1.ROSAMachinePool{
+				Spec: expinfrav1.RosaMachinePoolSpec{AdditionalTags: tags},
+			},
+		}
+	}
+
+	t.Run("patches pool overrides without copying inherited cluster tags", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl := gomock.NewController(t)
+		ocmMock := mocks.NewMockOCMClient(mockCtrl)
+
+		nodePool := buildNodePool(g, map[string]string{"env": "prod", "team": "a"})
+		machinePoolScope := buildScope("4.20.2", infrav1.Tags{"team": "b"})
+
+		ocmMock.EXPECT().GetClusterUserTags("cluster-123").Return(map[string]string{"env": "prod"}, nil)
+		ocmMock.EXPECT().GetNodePoolUserTags("cluster-123", "np-1").Return(map[string]string{"env": "prod", "team": "a"}, nil)
+		ocmMock.EXPECT().UpdateNodePoolTags("cluster-123", "np-1", map[string]*string{
+			"team": ptr.To("b"),
+			"env":  nil, // clears a possible equal-value override; OCM keeps the inherited value.
+		}).Return(nil)
+
+		r := &ROSAMachinePoolReconciler{}
+		g.Expect(r.reconcileNodePoolTags(machinePoolScope, ocmMock, nodePool)).To(Succeed())
+	})
+
+	t.Run("does nothing when only inherited tags differ from spec", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl := gomock.NewController(t)
+		ocmMock := mocks.NewMockOCMClient(mockCtrl)
+
+		nodePool := buildNodePool(g, map[string]string{"env": "prod", "team": "a"})
+		machinePoolScope := buildScope("4.21.0", infrav1.Tags{"team": "a"})
+
+		ocmMock.EXPECT().GetClusterUserTags("cluster-123").Return(map[string]string{"env": "prod"}, nil)
+		ocmMock.EXPECT().GetNodePoolUserTags("cluster-123", "np-1").Return(map[string]string{"env": "prod", "team": "a"}, nil)
+
+		r := &ROSAMachinePoolReconciler{}
+		g.Expect(r.reconcileNodePoolTags(machinePoolScope, ocmMock, nodePool)).To(Succeed())
+	})
+
+	t.Run("marks the pool not ready when the update fails", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl := gomock.NewController(t)
+		ocmMock := mocks.NewMockOCMClient(mockCtrl)
+
+		nodePool := buildNodePool(g, nil)
+		machinePoolScope := buildScope("4.20.0", infrav1.Tags{"team": "a"})
+
+		ocmMock.EXPECT().GetClusterUserTags("cluster-123").Return(map[string]string{}, nil)
+		ocmMock.EXPECT().GetNodePoolUserTags("cluster-123", "np-1").Return(map[string]string{}, nil)
+		ocmMock.EXPECT().UpdateNodePoolTags("cluster-123", "np-1", gomock.Any()).Return(fmt.Errorf("boom"))
+
+		r := &ROSAMachinePoolReconciler{}
+		g.Expect(r.reconcileNodePoolTags(machinePoolScope, ocmMock, nodePool)).To(MatchError(ContainSubstring("boom")))
+		g.Expect(v1beta1conditions.IsFalse(machinePoolScope.RosaMachinePool, expinfrav1.RosaMachinePoolReadyCondition)).To(BeTrue())
+	})
+
+	t.Run("skips OCM calls and records a warning before 4.20", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl := gomock.NewController(t)
+		// No expectations: any OCM call fails the test.
+		ocmMock := mocks.NewMockOCMClient(mockCtrl)
+		recorder := record.NewFakeRecorder(1)
+
+		nodePool := buildNodePool(g, map[string]string{"red-hat-managed": "true", "team": "a"})
+		machinePoolScope := buildScope("4.19.3", infrav1.Tags{"team": "b"})
+
+		r := &ROSAMachinePoolReconciler{Recorder: recorder}
+		g.Expect(r.reconcileNodePoolTags(machinePoolScope, ocmMock, nodePool)).To(Succeed())
+		g.Expect(recorder.Events).To(Receive(ContainSubstring("AWSTagsUpdateUnsupported")))
+	})
+
+	t.Run("doesn't warn before 4.20 when tags already match", func(t *testing.T) {
+		g := NewWithT(t)
+		mockCtrl := gomock.NewController(t)
+		ocmMock := mocks.NewMockOCMClient(mockCtrl)
+		recorder := record.NewFakeRecorder(1)
+
+		nodePool := buildNodePool(g, map[string]string{"red-hat-managed": "true", "team": "a"})
+		machinePoolScope := buildScope("4.19.3", infrav1.Tags{"team": "a"})
+
+		r := &ROSAMachinePoolReconciler{Recorder: recorder}
+		g.Expect(r.reconcileNodePoolTags(machinePoolScope, ocmMock, nodePool)).To(Succeed())
+		g.Expect(recorder.Events).ToNot(Receive())
+	})
+}

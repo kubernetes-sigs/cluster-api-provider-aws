@@ -11919,7 +11919,9 @@ Tags
 </td>
 <td>
 <em>(Optional)</em>
-<p>AdditionalTags are user-defined tags to be added on the AWS resources associated with the control plane.</p>
+<p>AdditionalTags are user-defined tags to be added on the AWS resources associated with the control plane.
+Changes after creation are applied in place and require version 4.20.0 or greater;
+on older versions they are ignored until the control plane is upgraded.</p>
 </td>
 </tr>
 <tr>
@@ -12675,7 +12677,9 @@ Tags
 </td>
 <td>
 <em>(Optional)</em>
-<p>AdditionalTags are user-defined tags to be added on the AWS resources associated with the control plane.</p>
+<p>AdditionalTags are user-defined tags to be added on the AWS resources associated with the control plane.
+Changes after creation are applied in place and require version 4.20.0 or greater;
+on older versions they are ignored until the control plane is upgraded.</p>
 </td>
 </tr>
 <tr>
@@ -33131,7 +33135,10 @@ Tags
 </td>
 <td>
 <em>(Optional)</em>
-<p>AdditionalTags are user-defined tags to be added on the underlying EC2 instances associated with this machine pool.</p>
+<p>AdditionalTags are user-defined tags to be added on the underlying EC2 instances associated with this machine pool.
+Tags inherited from the ROSAControlPlane additionalTags don&rsquo;t need to be repeated here.
+Changes after creation are applied in place and require a control plane version of 4.20.0 or greater;
+on older versions they are ignored until the control plane is upgraded.</p>
 </td>
 </tr>
 <tr>
@@ -34584,7 +34591,10 @@ Tags
 </td>
 <td>
 <em>(Optional)</em>
-<p>AdditionalTags are user-defined tags to be added on the underlying EC2 instances associated with this machine pool.</p>
+<p>AdditionalTags are user-defined tags to be added on the underlying EC2 instances associated with this machine pool.
+Tags inherited from the ROSAControlPlane additionalTags don&rsquo;t need to be repeated here.
+Changes after creation are applied in place and require a control plane version of 4.20.0 or greater;
+on older versions they are ignored until the control plane is upgraded.</p>
 </td>
 </tr>
 <tr>

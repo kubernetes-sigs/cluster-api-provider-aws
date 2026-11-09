@@ -310,6 +310,10 @@ func (r *ROSAMachinePoolReconciler) reconcileNormal(ctx context.Context,
 			v1beta1conditions.MarkTrue(rosaMachinePool, expinfrav1.RosaMachinePoolReadyCondition)
 			rosaMachinePool.Status.Ready = true
 
+			if err := r.reconcileNodePoolTags(machinePoolScope, ocmClient, nodePool); err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to reconcile AWS tags: %w", err)
+			}
+
 			if err := r.reconcileMachinePoolVersion(machinePoolScope, ocmClient, nodePool); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -419,6 +423,49 @@ func (r *ROSAMachinePoolReconciler) reconcileMachinePoolVersion(machinePoolScope
 	return nil
 }
 
+// reconcileNodePoolTags syncs spec.additionalTags to the node pool's own AWS tags.
+// Day-2 tag edits require a 4.20+ control plane; on older versions drift is only reported.
+func (r *ROSAMachinePoolReconciler) reconcileNodePoolTags(machinePoolScope *scope.RosaMachinePoolScope, ocmClient rosa.OCMClient, nodePool *cmv1.NodePool) error {
+	desired := machinePoolScope.RosaMachinePool.Spec.AdditionalTags
+	version := machinePoolScope.ControlPlane.Status.Version
+	if !rosa.SupportsDayTwoTags(version) {
+		// nodePool.AWSNodePool().Tags() includes OCM system tags, so only additions and changes are detectable.
+		if rosa.TagsDrifted(nodePool.AWSNodePool().Tags(), desired) {
+			machinePoolScope.Info("Skipping AWS tag update: editing AWS tags requires OpenShift 4.20.0 or greater", "controlPlaneVersion", version)
+			if r.Recorder != nil {
+				r.Recorder.Eventf(machinePoolScope.RosaMachinePool, corev1.EventTypeWarning, "AWSTagsUpdateUnsupported",
+					"spec.additionalTags differs from the node pool's AWS tags, but editing AWS tags requires OpenShift 4.20.0 or greater (current control plane version %q)", version)
+			}
+		}
+		return nil
+	}
+
+	clusterID := machinePoolScope.ControlPlane.Status.ID
+	clusterTags, err := ocmClient.GetClusterUserTags(clusterID)
+	if err != nil {
+		return fmt.Errorf("failed to read cluster AWS tags: %w", err)
+	}
+	poolTags, err := ocmClient.GetNodePoolUserTags(clusterID, nodePool.ID())
+	if err != nil {
+		return fmt.Errorf("failed to read node pool AWS tags: %w", err)
+	}
+	changes := rosa.NodePoolTagChanges(clusterTags, poolTags, desired)
+	if len(changes) == 0 {
+		return nil
+	}
+
+	machinePoolScope.Info("Updating node pool AWS tags")
+	if err := ocmClient.UpdateNodePoolTags(clusterID, nodePool.ID(), changes); err != nil {
+		v1beta1conditions.MarkFalse(machinePoolScope.RosaMachinePool,
+			expinfrav1.RosaMachinePoolReadyCondition,
+			expinfrav1.RosaMachinePoolReconciliationFailedReason,
+			clusterv1beta1.ConditionSeverityError,
+			"failed to update ROSAMachinePool AWS tags: %s", err.Error())
+		return err
+	}
+	return nil
+}
+
 func (r *ROSAMachinePoolReconciler) shouldUpdateRosaReplicas(machinePoolScope *scope.RosaMachinePoolScope, nodePool *cmv1.NodePool) bool {
 	if machinePoolScope.MachinePool.Spec.Replicas == nil || machinePoolScope.RosaMachinePool.Spec.Autoscaling != nil || annotations.ReplicasManagedByExternalAutoscaler(machinePoolScope.MachinePool) {
 		return false
@@ -473,7 +520,7 @@ func computeSpecDiff(desiredSpec expinfrav1.RosaMachinePoolSpec, nodePool *cmv1.
 	ignoredFields := []string{
 		"ProviderIDList",           // providerIDList is set by the controller.
 		"Version",                  // Version changes are reconciled separately.
-		"AdditionalTags",           // AdditionalTags day2 changes not supported.
+		"AdditionalTags",           // AdditionalTags changes are reconciled separately.
 		"AdditionalSecurityGroups", // AdditionalSecurityGroups day2 changes not supported.
 		"VolumeSize",               // VolumeSize is immutable after creation.
 		"Ec2MetadataHTTPTokens",    // Ec2MetadataHTTPTokens is immutable after creation.

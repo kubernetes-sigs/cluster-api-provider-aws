@@ -55,8 +55,10 @@ spec:
               additionalTags:
                 additionalProperties:
                   type: string
-                description: AdditionalTags are user-defined tags to be added on the
-                  AWS resources associated with the control plane.
+                description: |-
+                  AdditionalTags are user-defined tags to be added on the AWS resources associated with the control plane.
+                  Changes after creation are applied in place and require version 4.20.0 or greater;
+                  on older versions they are ignored until the control plane is upgraded.
                 type: object
               auditLogRoleARN:
                 description: |-
