@@ -609,6 +609,132 @@ func TestRosaMachinePoolReconcile(t *testing.T) {
 					"verbose details must appear in message, not reason")
 			},
 		},
+		{
+			// Regression: a spot node pool with no maxPrice ("cap at the on-demand
+			// price") must not carry spot_market_options in the update call. OCM
+			// rejects any update whose spot_market_options has no max_price -- verified
+			// against the live API, which returns CLUSTERS-MGMT-400 "Attribute
+			// 'aws_node_pool.spot_market_options.max_price' is required and cannot be
+			// cleared" even for a node pool that has no stored price. That wedges every
+			// day-2 change to the pool, not just spot ones.
+			name: "Update nodepool, spot options without maxPrice are omitted from the update call",
+			machinePool: func() *clusterv1.MachinePool {
+				mp := ownerMachinePool(7)
+				mp.Spec.Replicas = ptr.To[int32](2)
+				return mp
+			}(),
+			oldROSAMachinePool: func() *expinfrav1.ROSAMachinePool {
+				mp := rosaMachinePool(7)
+				mp.Spec.SpotMarketOptions = &expinfrav1.RosaSpotMarketOptions{
+					MaxPrice: ptr.To(expinfrav1.RosaSpotMarketOptionsOnDemandPrice),
+				}
+				return mp
+			}(),
+			newROSAMachinePool: &expinfrav1.ROSAMachinePool{
+				Status: expinfrav1.RosaMachinePoolStatus{
+					Ready:    true,
+					Replicas: 2,
+				},
+			},
+			result: ctrl.Result{},
+			expect: func(m *mocks.MockOCMClientMockRecorder) {
+				m.GetNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (*cmv1.NodePool, bool, error) {
+					rosaSpec := rosaMachinePool(7).Spec
+					rosaSpec.SpotMarketOptions = &expinfrav1.RosaSpotMarketOptions{
+						MaxPrice: ptr.To(expinfrav1.RosaSpotMarketOptionsOnDemandPrice),
+					}
+					rosaSpec.UpdateConfig = &expinfrav1.RosaUpdateConfig{
+						RollingUpdate: &expinfrav1.RollingUpdate{
+							MaxSurge:       ptr.To(intstr.FromInt32(1)),
+							MaxUnavailable: ptr.To(intstr.FromInt32(0)),
+						},
+					}
+					statusBuilder := (&cmv1.NodePoolStatusBuilder{}).CurrentReplicas(1)
+					nodeGrace := (&cmv1.ValueBuilder{}).Unit("s").Value(0)
+					nodePool, err := nodePoolBuilder(rosaSpec, ownerMachinePool(7).Spec, rosacontrolplanev1.Stable, "").
+						ID("test-nodepool").Replicas(1).Status(statusBuilder).AutoRepair(true).NodeDrainGracePeriod(nodeGrace).Build()
+					g.Expect(err).NotTo(HaveOccurred())
+
+					// Precondition: the node pool really is a spot pool with no bid,
+					// matching what OCM stores as `"spot_market_options": {}`.
+					g.Expect(nodePool.AWSNodePool().SpotMarketOptions()).ToNot(BeNil())
+					_, ok := nodePool.AWSNodePool().SpotMarketOptions().GetMaxPrice()
+					g.Expect(ok).To(BeFalse())
+
+					return nodePool, true, nil
+				}).Times(1)
+				m.UpdateNodePool(gomock.Any(), matchesReplicas(2)).DoAndReturn(func(clusterID string, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
+					g.Expect(nodePool.AWSNodePool().SpotMarketOptions()).To(BeNil(),
+						"spot_market_options must be omitted entirely from the update call when maxPrice is unset")
+
+					statusBuilder := (&cmv1.NodePoolStatusBuilder{}).CurrentReplicas(2)
+					version := (&cmv1.VersionBuilder{}).RawID("4.14.5")
+					updatedNodePool, err := (&cmv1.NodePoolBuilder{}).Copy(nodePool).Status(statusBuilder).Version(version).Build()
+					g.Expect(err).NotTo(HaveOccurred())
+
+					return updatedNodePool, nil
+				}).Times(1)
+				m.CreateNodePool(gomock.Any(), gomock.Any()).Times(0)
+			},
+		},
+		{
+			// The counterpart to the case above: raising or lowering an existing bid is
+			// supported by OCM (verified day-2 against the live API), so a set maxPrice
+			// must stay in the update call.
+			name: "Update nodepool, spot options with maxPrice are kept in the update call",
+			machinePool: func() *clusterv1.MachinePool {
+				mp := ownerMachinePool(8)
+				mp.Spec.Replicas = ptr.To[int32](2)
+				return mp
+			}(),
+			oldROSAMachinePool: func() *expinfrav1.ROSAMachinePool {
+				mp := rosaMachinePool(8)
+				mp.Spec.SpotMarketOptions = &expinfrav1.RosaSpotMarketOptions{MaxPrice: ptr.To("9.0")}
+				return mp
+			}(),
+			newROSAMachinePool: &expinfrav1.ROSAMachinePool{
+				Status: expinfrav1.RosaMachinePoolStatus{
+					Ready:    true,
+					Replicas: 2,
+				},
+			},
+			result: ctrl.Result{},
+			expect: func(m *mocks.MockOCMClientMockRecorder) {
+				m.GetNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (*cmv1.NodePool, bool, error) {
+					rosaSpec := rosaMachinePool(8).Spec
+					// The pool was created at 10.0; the spec now asks for 9.0.
+					rosaSpec.SpotMarketOptions = &expinfrav1.RosaSpotMarketOptions{MaxPrice: ptr.To("10.0")}
+					rosaSpec.UpdateConfig = &expinfrav1.RosaUpdateConfig{
+						RollingUpdate: &expinfrav1.RollingUpdate{
+							MaxSurge:       ptr.To(intstr.FromInt32(1)),
+							MaxUnavailable: ptr.To(intstr.FromInt32(0)),
+						},
+					}
+					statusBuilder := (&cmv1.NodePoolStatusBuilder{}).CurrentReplicas(1)
+					nodeGrace := (&cmv1.ValueBuilder{}).Unit("s").Value(0)
+					nodePool, err := nodePoolBuilder(rosaSpec, ownerMachinePool(8).Spec, rosacontrolplanev1.Stable, "").
+						ID("test-nodepool").Replicas(1).Status(statusBuilder).AutoRepair(true).NodeDrainGracePeriod(nodeGrace).Build()
+					g.Expect(err).NotTo(HaveOccurred())
+
+					return nodePool, true, nil
+				}).Times(1)
+				m.UpdateNodePool(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterID string, nodePool *cmv1.NodePool) (*cmv1.NodePool, error) {
+					spotOpts := nodePool.AWSNodePool().SpotMarketOptions()
+					g.Expect(spotOpts).ToNot(BeNil(), "a set maxPrice must still be sent so the bid can be changed")
+					maxPrice, ok := spotOpts.GetMaxPrice()
+					g.Expect(ok).To(BeTrue())
+					g.Expect(maxPrice).To(Equal("9.0"))
+
+					statusBuilder := (&cmv1.NodePoolStatusBuilder{}).CurrentReplicas(2)
+					version := (&cmv1.VersionBuilder{}).RawID("4.14.5")
+					updatedNodePool, err := (&cmv1.NodePoolBuilder{}).Copy(nodePool).Status(statusBuilder).Version(version).Build()
+					g.Expect(err).NotTo(HaveOccurred())
+
+					return updatedNodePool, nil
+				}).Times(1)
+				m.CreateNodePool(gomock.Any(), gomock.Any()).Times(0)
+			},
+		},
 	}
 
 	createObject(g, secret, ns.Name)
@@ -1149,6 +1275,144 @@ func TestROSAMachinePoolUpdatePredicate(t *testing.T) {
 			})
 			g.Expect(got).To(Equal(tc.wantProcess),
 				"predicate.Update() = %v, want %v", got, tc.wantProcess)
+		})
+	}
+}
+
+func TestNodePoolBuilderSpotMarketOptions(t *testing.T) {
+	machinePoolSpec := clusterv1.MachinePoolSpec{
+		Replicas: ptr.To[int32](1),
+	}
+
+	spec := func() expinfrav1.RosaMachinePoolSpec {
+		return expinfrav1.RosaMachinePoolSpec{
+			NodePoolName: "test-nodepool",
+			Subnet:       "subnet-id",
+			AutoRepair:   true,
+			InstanceType: "m5.large",
+		}
+	}
+
+	t.Run("on-demand maxPrice requests Spot with no max price", func(t *testing.T) {
+		g := NewWithT(t)
+
+		rosaMachinePoolSpec := spec()
+		rosaMachinePoolSpec.SpotMarketOptions = &expinfrav1.RosaSpotMarketOptions{
+			MaxPrice: ptr.To(expinfrav1.RosaSpotMarketOptionsOnDemandPrice),
+		}
+
+		nodePool, err := nodePoolBuilder(rosaMachinePoolSpec, machinePoolSpec, rosacontrolplanev1.Stable, "").Build()
+		g.Expect(err).ToNot(HaveOccurred())
+
+		// The sentinel must never be sent to ROSA verbatim -- it is expressed by
+		// omitting max_price, which is what ROSA stores as `"spot_market_options": {}`.
+		spotOpts := nodePool.AWSNodePool().SpotMarketOptions()
+		g.Expect(spotOpts).ToNot(BeNil())
+		_, ok := spotOpts.GetMaxPrice()
+		g.Expect(ok).To(BeFalse())
+	})
+
+	t.Run("nil maxPrice is treated as on-demand", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// Objects written before the default existed have no maxPrice at all.
+		rosaMachinePoolSpec := spec()
+		rosaMachinePoolSpec.SpotMarketOptions = &expinfrav1.RosaSpotMarketOptions{}
+
+		nodePool, err := nodePoolBuilder(rosaMachinePoolSpec, machinePoolSpec, rosacontrolplanev1.Stable, "").Build()
+		g.Expect(err).ToNot(HaveOccurred())
+
+		spotOpts := nodePool.AWSNodePool().SpotMarketOptions()
+		g.Expect(spotOpts).ToNot(BeNil())
+		_, ok := spotOpts.GetMaxPrice()
+		g.Expect(ok).To(BeFalse())
+	})
+
+	t.Run("spotMarketOptions with maxPrice sets the bid", func(t *testing.T) {
+		g := NewWithT(t)
+
+		rosaMachinePoolSpec := spec()
+		rosaMachinePoolSpec.SpotMarketOptions = &expinfrav1.RosaSpotMarketOptions{MaxPrice: ptr.To("10")}
+
+		nodePool, err := nodePoolBuilder(rosaMachinePoolSpec, machinePoolSpec, rosacontrolplanev1.Stable, "").Build()
+		g.Expect(err).ToNot(HaveOccurred())
+
+		spotOpts := nodePool.AWSNodePool().SpotMarketOptions()
+		g.Expect(spotOpts).ToNot(BeNil())
+		maxPrice, ok := spotOpts.GetMaxPrice()
+		g.Expect(ok).To(BeTrue())
+		g.Expect(maxPrice).To(Equal("10"))
+	})
+}
+
+// TestROSAMachinePoolMaxPriceSchema exercises the generated CRD rather than Go structs:
+// the "on-demand" default and the maxPrice pattern are enforced by the API server, so
+// they can only be verified by round-tripping a real object through envtest.
+func TestROSAMachinePoolMaxPriceSchema(t *testing.T) {
+	g := NewWithT(t)
+
+	ns, err := testEnv.CreateNamespace(ctx, "test-maxprice-schema")
+	g.Expect(err).ToNot(HaveOccurred())
+
+	poolWith := func(name string, spot *expinfrav1.RosaSpotMarketOptions) *expinfrav1.ROSAMachinePool {
+		return &expinfrav1.ROSAMachinePool{
+			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns.Name},
+			Spec: expinfrav1.RosaMachinePoolSpec{
+				NodePoolName:      "test-nodepool",
+				Subnet:            "subnet-id",
+				InstanceType:      "m5.large",
+				SpotMarketOptions: spot,
+			},
+		}
+	}
+
+	// Create writes straight through to the API server and unmarshals the response back
+	// into the object, so these assertions see server-applied defaults. Reading them back
+	// with Get would race the envtest informer cache instead.
+	t.Run("maxPrice defaults to on-demand when spotMarketOptions is set", func(t *testing.T) {
+		g := NewWithT(t)
+
+		pool := poolWith("defaulted", &expinfrav1.RosaSpotMarketOptions{})
+		g.Expect(testEnv.Create(ctx, pool)).To(Succeed())
+		defer func() { g.Expect(testEnv.Delete(ctx, pool)).To(Succeed()) }()
+
+		g.Expect(pool.Spec.SpotMarketOptions).ToNot(BeNil())
+		g.Expect(pool.Spec.SpotMarketOptions.MaxPrice).To(HaveValue(Equal(expinfrav1.RosaSpotMarketOptionsOnDemandPrice)))
+	})
+
+	t.Run("no defaulting happens for a non-spot pool", func(t *testing.T) {
+		g := NewWithT(t)
+
+		pool := poolWith("no-spot", nil)
+		g.Expect(testEnv.Create(ctx, pool)).To(Succeed())
+		defer func() { g.Expect(testEnv.Delete(ctx, pool)).To(Succeed()) }()
+
+		g.Expect(pool.Spec.SpotMarketOptions).To(BeNil())
+	})
+
+	// A zero bid would be accepted by AWS as a permanent no-win and the node pool would
+	// never get capacity, so the pattern has to reject it along with its decimal forms.
+	accepted := []string{"on-demand", "9", "10.0", "0.5", "0.05", "0.001", "100"}
+	rejected := []string{"0", "0.0", "0.00", "00", "-1", "1.", ".5", "On-Demand", "abc", ""}
+
+	for i, price := range accepted {
+		t.Run("accepts maxPrice "+price, func(t *testing.T) {
+			g := NewWithT(t)
+
+			pool := poolWith(fmt.Sprintf("accept-%d", i), &expinfrav1.RosaSpotMarketOptions{MaxPrice: ptr.To(price)})
+			g.Expect(testEnv.Create(ctx, pool)).To(Succeed())
+			defer func() { g.Expect(testEnv.Delete(ctx, pool)).To(Succeed()) }()
+
+			g.Expect(pool.Spec.SpotMarketOptions.MaxPrice).To(HaveValue(Equal(price)))
+		})
+	}
+
+	for i, price := range rejected {
+		t.Run("rejects maxPrice "+price, func(t *testing.T) {
+			g := NewWithT(t)
+
+			pool := poolWith(fmt.Sprintf("reject-%d", i), &expinfrav1.RosaSpotMarketOptions{MaxPrice: ptr.To(price)})
+			g.Expect(testEnv.Create(ctx, pool)).ToNot(Succeed(), "maxPrice %q must be rejected by the CRD pattern", price)
 		})
 	}
 }

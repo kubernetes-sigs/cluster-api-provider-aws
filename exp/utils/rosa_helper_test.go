@@ -48,7 +48,8 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 			cmv1.NewAWSNodePool().
 				InstanceType("m5.large").
 				AdditionalSecurityGroupIds("sg-123", "sg-456").
-				RootVolume(cmv1.NewAWSVolume().Size(120)),
+				RootVolume(cmv1.NewAWSVolume().Size(120)).
+				SpotMarketOptions(cmv1.NewAwsNodePoolSpotMarketOptions().MaxPrice("10")),
 		).
 		Autoscaling(
 			cmv1.NewNodePoolAutoscaling().
@@ -100,9 +101,54 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 				MaxUnavailable: ptr.To(intstr.FromInt32(2)),
 			},
 		},
+		SpotMarketOptions: &expinfrav1.RosaSpotMarketOptions{
+			MaxPrice: ptr.To("10"),
+		},
 	}
 
 	g.Expect(expectedSpec).To(Equal(actualSpec))
+}
+
+func TestNodePoolToRosaMachinePoolSpec_SpotMarketOptions(t *testing.T) {
+	nodePoolWith := func(spot *cmv1.AwsNodePoolSpotMarketOptionsBuilder) *cmv1.NodePool {
+		awsNodePool := cmv1.NewAWSNodePool().InstanceType("m5.large")
+		if spot != nil {
+			awsNodePool = awsNodePool.SpotMarketOptions(spot)
+		}
+		nodePool, err := cmv1.NewNodePool().ID("test-nodepool").AWSNodePool(awsNodePool).Build()
+		if err != nil {
+			t.Fatalf("failed to build nodePool: %v", err)
+		}
+		return nodePool
+	}
+
+	t.Run("a stored max_price is reported as-is", func(t *testing.T) {
+		g := NewWithT(t)
+
+		spec := NodePoolToRosaMachinePoolSpec(nodePoolWith(cmv1.NewAwsNodePoolSpotMarketOptions().MaxPrice("9.0")))
+		g.Expect(spec.SpotMarketOptions).ToNot(BeNil())
+		g.Expect(spec.SpotMarketOptions.MaxPrice).To(HaveValue(Equal("9.0")))
+		g.Expect(spec.SpotMarketOptions.IsOnDemandPrice()).To(BeFalse())
+	})
+
+	t.Run("an absent max_price is reported as the on-demand sentinel", func(t *testing.T) {
+		g := NewWithT(t)
+
+		// ROSA stores `"spot_market_options": {}` for an on-demand-priced spot pool. It
+		// has to round-trip to the sentinel, otherwise it never equals a defaulted
+		// desired spec and computeSpecDiff reports a diff on every single reconcile.
+		spec := NodePoolToRosaMachinePoolSpec(nodePoolWith(cmv1.NewAwsNodePoolSpotMarketOptions()))
+		g.Expect(spec.SpotMarketOptions).ToNot(BeNil())
+		g.Expect(spec.SpotMarketOptions.MaxPrice).To(HaveValue(Equal(expinfrav1.RosaSpotMarketOptionsOnDemandPrice)))
+		g.Expect(spec.SpotMarketOptions.IsOnDemandPrice()).To(BeTrue())
+	})
+
+	t.Run("a non-spot node pool reports no spotMarketOptions", func(t *testing.T) {
+		g := NewWithT(t)
+
+		spec := NodePoolToRosaMachinePoolSpec(nodePoolWith(nil))
+		g.Expect(spec.SpotMarketOptions).To(BeNil())
+	})
 }
 
 func TestNodePoolToRosaMachinePoolSpec_Ec2MetadataHTTPTokens(t *testing.T) {

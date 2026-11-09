@@ -53,6 +53,8 @@ func (w *ROSAMachinePool) ValidateCreate(_ context.Context, obj runtime.Object) 
 
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 
+	allErrs = append(allErrs, w.validateSpotMarketOptions(r)...)
+
 	if len(allErrs) == 0 {
 		return nil, nil
 	}
@@ -90,6 +92,27 @@ func (w *ROSAMachinePool) ValidateUpdate(_ context.Context, oldObj, newObj runti
 	allErrs = append(allErrs, validateImmutable(oldPool.Spec.AdditionalSecurityGroups, r.Spec.AdditionalSecurityGroups, "additionalSecurityGroups")...)
 	allErrs = append(allErrs, validateImmutable(oldPool.Spec.AdditionalTags, r.Spec.AdditionalTags, "additionalTags")...)
 	allErrs = append(allErrs, validateImmutable(oldPool.Spec.Ec2MetadataHTTPTokens, r.Spec.Ec2MetadataHTTPTokens, "ec2MetadataHttpTokens")...)
+
+	// Validate SpotMarketOptions immutability
+	if (oldPool.Spec.SpotMarketOptions == nil && r.Spec.SpotMarketOptions != nil) ||
+		(oldPool.Spec.SpotMarketOptions != nil && r.Spec.SpotMarketOptions == nil) {
+		allErrs = append(allErrs, field.Forbidden(
+			field.NewPath("spec", "spotMarketOptions"),
+			"spotMarketOptions cannot be added/removed after the MachinePool is created",
+		))
+	}
+
+	// A numeric bid can be raised or lowered day-2, but it cannot set back to "on-demand":
+	if oldPool.Spec.SpotMarketOptions != nil && r.Spec.SpotMarketOptions != nil &&
+		!oldPool.Spec.SpotMarketOptions.IsOnDemandPrice() &&
+		r.Spec.SpotMarketOptions.IsOnDemandPrice() {
+		allErrs = append(allErrs, field.Forbidden(
+			field.NewPath("spec", "spotMarketOptions", "maxPrice"),
+			`maxPrice cannot be changed back to "on-demand" after a price has been set`,
+		))
+	}
+
+	allErrs = append(allErrs, w.validateSpotMarketOptions(r)...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -142,6 +165,18 @@ func validateImmutable(old, updated interface{}, name string) field.ErrorList {
 		)
 	}
 
+	return allErrs
+}
+
+func (w *ROSAMachinePool) validateSpotMarketOptions(r *expinfrav1.ROSAMachinePool) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.SpotMarketOptions != nil && r.Spec.CapacityReservationID != "" {
+		allErrs = append(allErrs, field.Forbidden(
+			field.NewPath("spec", "spotMarketOptions"),
+			"setting both spotMarketOptions and capacityReservationID is not allowed.",
+		))
+	}
 	return allErrs
 }
 

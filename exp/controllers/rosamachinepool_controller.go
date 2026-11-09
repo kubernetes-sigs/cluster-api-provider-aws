@@ -448,6 +448,13 @@ func (r *ROSAMachinePoolReconciler) updateNodePool(machinePoolScope *scope.RosaM
 	desiredSpec.VolumeSize = 0
 	desiredSpec.Ec2MetadataHTTPTokens = ""
 
+	// OCM rejects any update whose aws_node_pool.spot_market_options is present without a max_price.
+	// "on-demand" is expressible only at creation time, so drop the whole object from the update
+	// call. A numeric bid is still sent, because raising or lowering it day-2 is supported.
+	if desiredSpec.SpotMarketOptions != nil && desiredSpec.SpotMarketOptions.IsOnDemandPrice() {
+		desiredSpec.SpotMarketOptions = nil
+	}
+
 	npBuilder := nodePoolBuilder(desiredSpec, machinePoolScope.MachinePool.Spec, machinePoolScope.ControlPlane.Spec.ChannelGroup, machinePoolScope.ControlPlane.Spec.Channel)
 	nodePoolSpec, err := npBuilder.Build()
 	if err != nil {
@@ -562,9 +569,21 @@ func nodePoolBuilder(rosaMachinePoolSpec expinfrav1.RosaMachinePoolSpec, machine
 		capacityReservation := cmv1.NewAWSCapacityReservation().Id(rosaMachinePoolSpec.CapacityReservationID)
 		awsNodePool = awsNodePool.CapacityReservation(capacityReservation)
 	}
+
 	if rosaMachinePoolSpec.Ec2MetadataHTTPTokens != "" {
 		awsNodePool = awsNodePool.Ec2MetadataHttpTokens(cmv1.Ec2MetadataHttpTokens(rosaMachinePoolSpec.Ec2MetadataHTTPTokens))
 	}
+
+	if rosaMachinePoolSpec.SpotMarketOptions != nil {
+		spotMarketOptions := cmv1.NewAwsNodePoolSpotMarketOptions()
+		// "on-demand" is expressed to the ROSA API by omitting max_price entirely.
+		if !rosaMachinePoolSpec.SpotMarketOptions.IsOnDemandPrice() {
+			spotMarketOptions = spotMarketOptions.MaxPrice(*rosaMachinePoolSpec.SpotMarketOptions.MaxPrice)
+		}
+
+		awsNodePool = awsNodePool.SpotMarketOptions(spotMarketOptions)
+	}
+
 	npBuilder.AWSNodePool(awsNodePool)
 
 	if rosaMachinePoolSpec.Version != "" {
