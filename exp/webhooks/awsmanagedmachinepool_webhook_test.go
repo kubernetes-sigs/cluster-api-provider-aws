@@ -708,3 +708,43 @@ func TestAWSManagedMachinePoolValidateUpdate(t *testing.T) {
 		})
 	}
 }
+
+func TestAWSManagedMachinePoolValidateCreateAMITypeWarning(t *testing.T) {
+	al2 := expinfrav1.Al2x86_64
+	custom := expinfrav1.Custom
+
+	tests := []struct {
+		name     string
+		spec     expinfrav1.AWSManagedMachinePoolSpec
+		wantWarn bool
+	}{
+		{
+			name:     "amiType without launch template",
+			spec:     expinfrav1.AWSManagedMachinePoolSpec{AMIType: &al2},
+			wantWarn: false,
+		},
+		{
+			name:     "non-CUSTOM amiType with launch template",
+			spec:     expinfrav1.AWSManagedMachinePoolSpec{AMIType: &al2, AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{}},
+			wantWarn: true,
+		},
+		{
+			name:     "CUSTOM amiType with launch template",
+			spec:     expinfrav1.AWSManagedMachinePoolSpec{AMIType: &custom, AWSLaunchTemplate: &expinfrav1.AWSLaunchTemplate{}},
+			wantWarn: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			tt.spec.EKSNodegroupName = "eks-node-group"
+			warn, err := (&AWSManagedMachinePool{}).ValidateCreate(context.Background(), &expinfrav1.AWSManagedMachinePool{Spec: tt.spec})
+			g.Expect(err).To(Succeed())
+			if tt.wantWarn {
+				g.Expect(warn).To(ConsistOf(ContainSubstring("CUSTOM")))
+			} else {
+				g.Expect(warn).To(BeEmpty())
+			}
+		})
+	}
+}

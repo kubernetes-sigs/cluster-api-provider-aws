@@ -225,9 +225,7 @@ func (s *NodegroupService) createNodegroup(ctx context.Context) (*ekstypes.Nodeg
 		RemoteAccess:  remoteAccess,
 		UpdateConfig:  updatedConfig,
 	}
-	if managedPool.AMIType != nil && (managedPool.AWSLaunchTemplate == nil || managedPool.AWSLaunchTemplate.AMI.ID == nil) {
-		input.AmiType = converters.AMITypeToSDK(*managedPool.AMIType)
-	}
+	input.AmiType = nodegroupAMIType(&managedPool)
 	if managedPool.DiskSize != nil {
 		input.DiskSize = managedPool.DiskSize
 	}
@@ -666,4 +664,12 @@ func (k *EKSClient) WaitUntilNodegroupActive(ctx context.Context, input *eks.Des
 	})
 
 	return waiter.Wait(ctx, input, maxWait)
+}
+
+// nodegroupAMIType omits the AMI type for launch template pools, which always carry an image ID.
+func nodegroupAMIType(managedPool *expinfrav1.AWSManagedMachinePoolSpec) ekstypes.AMITypes {
+	if managedPool.AMIType == nil || managedPool.AWSLaunchTemplate != nil {
+		return ""
+	}
+	return converters.AMITypeToSDK(*managedPool.AMIType)
 }
