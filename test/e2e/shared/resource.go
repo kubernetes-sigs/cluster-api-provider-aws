@@ -41,7 +41,6 @@ type TestResource struct {
 	IGW              int `json:"igw"`
 	NGW              int `json:"ngw"`
 	ClassicLB        int `json:"classiclb"`
-	EC2GPU           int `json:"ec2-GPU"`
 	VolumeGP2        int `json:"volume-GP2"`
 	EventBridgeRules int `json:"eventBridge-rules"`
 }
@@ -59,7 +58,6 @@ func WriteResourceQuotesToFile(logPath string, serviceQuotas map[string]*Service
 		IGW:              serviceQuotas["igw"].Value,
 		NGW:              serviceQuotas["ngw"].Value,
 		ClassicLB:        serviceQuotas["classiclb"].Value,
-		EC2GPU:           serviceQuotas["ec2-GPU"].Value,
 		VolumeGP2:        serviceQuotas["volume-GP2"].Value,
 		EventBridgeRules: serviceQuotas["eventBridge-rules"].Value,
 	}
@@ -84,7 +82,7 @@ func WriteAWSResourceQuotesToFile(logPath string, serviceQuotas map[string]*serv
 }
 
 func (r *TestResource) String() string {
-	return fmt.Sprintf("{ec2-normal:%v, vpc:%v, eip:%v, ngw:%v, igw:%v, classiclb:%v, ec2-GPU:%v, volume-gp2:%v, eventBridge-rules:%v}", r.EC2Normal, r.VPC, r.EIP, r.NGW, r.IGW, r.ClassicLB, r.EC2GPU, r.VolumeGP2, r.EventBridgeRules)
+	return fmt.Sprintf("{ec2-normal:%v, vpc:%v, eip:%v, ngw:%v, igw:%v, classiclb:%v, volume-gp2:%v, eventBridge-rules:%v}", r.EC2Normal, r.VPC, r.EIP, r.NGW, r.IGW, r.ClassicLB, r.VolumeGP2, r.EventBridgeRules)
 }
 
 func (r *TestResource) WriteRequestedResources(e2eCtx *E2EContext, testName string) {
@@ -145,9 +143,6 @@ func (r *TestResource) doesSatisfy(request *TestResource) bool {
 	if request.EIP != 0 && r.EIP < request.EIP {
 		return false
 	}
-	if request.EC2GPU != 0 && r.EC2GPU < request.EC2GPU {
-		return false
-	}
 	if request.VolumeGP2 != 0 && r.VolumeGP2 < request.VolumeGP2 {
 		return false
 	}
@@ -164,7 +159,6 @@ func (r *TestResource) acquire(request *TestResource) {
 	r.NGW -= request.NGW
 	r.IGW -= request.IGW
 	r.ClassicLB -= request.ClassicLB
-	r.EC2GPU -= request.EC2GPU
 	r.VolumeGP2 -= request.VolumeGP2
 	r.EventBridgeRules -= request.EventBridgeRules
 }
@@ -176,7 +170,6 @@ func (r *TestResource) release(request *TestResource) {
 	r.NGW += request.NGW
 	r.IGW += request.IGW
 	r.ClassicLB += request.ClassicLB
-	r.EC2GPU += request.EC2GPU
 	r.VolumeGP2 += request.VolumeGP2
 	r.EventBridgeRules += request.EventBridgeRules
 }
