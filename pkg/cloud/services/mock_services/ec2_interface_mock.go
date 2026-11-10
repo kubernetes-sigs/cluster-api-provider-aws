@@ -340,6 +340,20 @@ func (mr *MockEC2InterfaceMockRecorder) ModifyInstanceMetadataOptions(arg0, arg1
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifyInstanceMetadataOptions", reflect.TypeOf((*MockEC2Interface)(nil).ModifyInstanceMetadataOptions), arg0, arg1)
 }
 
+// ModifySourceDestCheck mocks base method.
+func (m *MockEC2Interface) ModifySourceDestCheck(arg0 context.Context, arg1 string, arg2 v1beta2.SourceDestCheck) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ModifySourceDestCheck", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ModifySourceDestCheck indicates an expected call of ModifySourceDestCheck.
+func (mr *MockEC2InterfaceMockRecorder) ModifySourceDestCheck(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ModifySourceDestCheck", reflect.TypeOf((*MockEC2Interface)(nil).ModifySourceDestCheck), arg0, arg1, arg2)
+}
+
 // PruneLaunchTemplateVersions mocks base method.
 func (m *MockEC2Interface) PruneLaunchTemplateVersions(arg0 string) (*types.LaunchTemplateVersion, error) {
 	m.ctrl.T.Helper()
