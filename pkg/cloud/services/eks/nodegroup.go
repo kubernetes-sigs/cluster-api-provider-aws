@@ -225,7 +225,7 @@ func (s *NodegroupService) createNodegroup(ctx context.Context) (*ekstypes.Nodeg
 		RemoteAccess:  remoteAccess,
 		UpdateConfig:  updatedConfig,
 	}
-	if managedPool.AMIType != nil && (managedPool.AWSLaunchTemplate == nil || managedPool.AWSLaunchTemplate.AMI.ID == nil) {
+	if managedPool.AMIType != nil && (managedPool.AWSLaunchTemplate == nil || (managedPool.AWSLaunchTemplate.AMI.ID == nil && len(managedPool.AWSLaunchTemplate.AMI.Filters) == 0)) {
 		input.AmiType = converters.AMITypeToSDK(*managedPool.AMIType)
 	}
 	if managedPool.DiskSize != nil {
