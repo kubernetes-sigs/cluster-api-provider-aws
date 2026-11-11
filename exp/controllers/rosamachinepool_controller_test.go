@@ -86,6 +86,36 @@ func TestNodePoolToRosaMachinePoolSpec(t *testing.T) {
 	g.Expect(computeSpecDiff(rosaMachinePoolSpec, nodePoolSpec)).To(BeEmpty())
 }
 
+func TestComputeSpecDiffIgnoresSubnetWhenUnset(t *testing.T) {
+	g := NewWithT(t)
+
+	spec := expinfrav1.RosaMachinePoolSpec{
+		NodePoolName: "test-nodepool",
+		Subnet:       "",
+		// These are always set when converting a node pool to a spec.
+		NodeDrainGracePeriod: &metav1.Duration{},
+		UpdateConfig: &expinfrav1.RosaUpdateConfig{
+			RollingUpdate: &expinfrav1.RollingUpdate{
+				MaxSurge:       ptr.To(intstr.FromInt32(1)),
+				MaxUnavailable: ptr.To(intstr.FromInt32(0)),
+			},
+		},
+	}
+	machinePoolSpec := clusterv1.MachinePoolSpec{Replicas: ptr.To[int32](2)}
+
+	// OCM fills in a subnet that the user did not set.
+	withSubnetSpec := spec
+	withSubnetSpec.Subnet = "subnet-from-ocm"
+	nodePool, err := nodePoolBuilder(withSubnetSpec, machinePoolSpec, rosacontrolplanev1.Stable, "").Build()
+	g.Expect(err).ToNot(HaveOccurred())
+
+	g.Expect(computeSpecDiff(spec, nodePool)).To(BeEmpty())
+
+	// A subnet set by the user is still compared.
+	spec.Subnet = "subnet-other"
+	g.Expect(computeSpecDiff(spec, nodePool)).ToNot(BeEmpty())
+}
+
 func TestRosaMachinePoolReconcile(t *testing.T) {
 	g := NewWithT(t)
 	ns, err := testEnv.CreateNamespace(ctx, "test-namespace")
