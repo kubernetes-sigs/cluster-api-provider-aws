@@ -490,5 +490,5 @@ func (r *AWSManagedControlPlane) SetV1Beta2Conditions(conditions []metav1.Condit
 }
 
 func init() {
-	SchemeBuilder.Register(&AWSManagedControlPlane{}, &AWSManagedControlPlaneList{})
+	objectTypes = append(objectTypes, &AWSManagedControlPlane{}, &AWSManagedControlPlaneList{})
 }

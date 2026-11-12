@@ -145,5 +145,5 @@ func (r *ROSANetwork) SetConditions(conditions clusterv1beta1.Conditions) {
 }
 
 func init() {
-	SchemeBuilder.Register(&ROSANetwork{}, &ROSANetworkList{})
+	objectTypes = append(objectTypes, &ROSANetwork{}, &ROSANetworkList{})
 }

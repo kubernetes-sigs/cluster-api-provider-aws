@@ -57,5 +57,5 @@ type NodeadmConfigTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&NodeadmConfigTemplate{}, &NodeadmConfigTemplateList{})
+	objectTypes = append(objectTypes, &NodeadmConfigTemplate{}, &NodeadmConfigTemplateList{})
 }

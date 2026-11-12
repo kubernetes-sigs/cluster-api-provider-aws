@@ -160,5 +160,5 @@ func (r *AWSMachineTemplate) SetV1Beta2Conditions(conditions []metav1.Condition)
 }
 
 func init() {
-	SchemeBuilder.Register(&AWSMachineTemplate{}, &AWSMachineTemplateList{})
+	objectTypes = append(objectTypes, &AWSMachineTemplate{}, &AWSMachineTemplateList{})
 }

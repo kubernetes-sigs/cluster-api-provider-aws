@@ -573,5 +573,5 @@ type AWSMachineList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&AWSMachine{}, &AWSMachineList{})
+	objectTypes = append(objectTypes, &AWSMachine{}, &AWSMachineList{})
 }

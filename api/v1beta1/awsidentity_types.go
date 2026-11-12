@@ -179,7 +179,7 @@ type AWSClusterControllerIdentitySpec struct {
 }
 
 func init() {
-	SchemeBuilder.Register(
+	objectTypes = append(objectTypes,
 		&AWSClusterStaticIdentity{},
 		&AWSClusterStaticIdentityList{},
 		&AWSClusterRoleIdentity{},

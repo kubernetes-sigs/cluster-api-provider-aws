@@ -47,7 +47,7 @@ type AWSManagedClusterTemplateList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&AWSManagedClusterTemplate{}, &AWSManagedClusterTemplateList{})
+	objectTypes = append(objectTypes, &AWSManagedClusterTemplate{}, &AWSManagedClusterTemplateList{})
 }
 
 // AWSManagedClusterTemplateResource describes the data needed to create an AWSManagedCluster from a template.
