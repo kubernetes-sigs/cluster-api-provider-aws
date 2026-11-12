@@ -954,18 +954,19 @@ func (r *AWSMachineReconciler) generateIgnitionWithRemoteStorage(ctx context.Con
 			},
 		}
 
-		if scope.AWSMachine.Spec.Ignition.Proxy != nil {
+		ignition := scope.AWSMachine.Spec.Ignition
+		if ignition != nil && ignition.Proxy != nil {
 			ignData.Ignition.Proxy = ignV3Types.Proxy{
-				HTTPProxy:  scope.AWSMachine.Spec.Ignition.Proxy.HTTPProxy,
-				HTTPSProxy: scope.AWSMachine.Spec.Ignition.Proxy.HTTPSProxy,
+				HTTPProxy:  ignition.Proxy.HTTPProxy,
+				HTTPSProxy: ignition.Proxy.HTTPSProxy,
 			}
-			for _, noProxy := range scope.AWSMachine.Spec.Ignition.Proxy.NoProxy {
+			for _, noProxy := range ignition.Proxy.NoProxy {
 				ignData.Ignition.Proxy.NoProxy = append(ignData.Ignition.Proxy.NoProxy, ignV3Types.NoProxyItem(noProxy))
 			}
 		}
 
-		if scope.AWSMachine.Spec.Ignition.TLS != nil {
-			for _, cert := range scope.AWSMachine.Spec.Ignition.TLS.CASources {
+		if ignition != nil && ignition.TLS != nil {
+			for _, cert := range ignition.TLS.CASources {
 				ignData.Ignition.Security.TLS.CertificateAuthorities = append(
 					ignData.Ignition.Security.TLS.CertificateAuthorities,
 					ignV3Types.Resource{Source: aws.String(string(cert))},
@@ -979,12 +980,13 @@ func (r *AWSMachineReconciler) generateIgnitionWithRemoteStorage(ctx context.Con
 	}
 }
 
+// getIgnitionVersion returns the Ignition version set on the AWSMachine, or the default one.
+// It must not default the field on the AWSMachine itself: spec.ignition can't be changed after
+// creation, so the webhook would reject every patch of the AWSMachine in this reconcile,
+// including the one persisting the ID of the instance that was just created.
 func getIgnitionVersion(scope *scope.MachineScope) string {
-	if scope.AWSMachine.Spec.Ignition == nil {
-		scope.AWSMachine.Spec.Ignition = &infrav1.Ignition{}
-	}
-	if scope.AWSMachine.Spec.Ignition.Version == "" {
-		scope.AWSMachine.Spec.Ignition.Version = infrav1.DefaultIgnitionVersion
+	if scope.AWSMachine.Spec.Ignition == nil || scope.AWSMachine.Spec.Ignition.Version == "" {
+		return infrav1.DefaultIgnitionVersion
 	}
 	return scope.AWSMachine.Spec.Ignition.Version
 }

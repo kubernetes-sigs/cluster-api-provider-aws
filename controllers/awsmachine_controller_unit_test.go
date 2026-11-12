@@ -1430,6 +1430,44 @@ func TestAWSMachineReconciler(t *testing.T) {
 					g.Expect(err).To(BeNil())
 				})
 
+				t.Run("should not default spec.ignition on the AWSMachine when it is unset", func(t *testing.T) {
+					g := NewWithT(t)
+					awsMachine := getAWSMachine()
+					setup(t, g, awsMachine)
+					defer teardown(t, g)
+					getInstances(t, g)
+					useIgnitionWithClusterObjectStore(t, g)
+					// Ignition bootstrap data with spec.ignition unset, which the defaulting webhook leaves nil.
+					ms.AWSMachine.Spec.Ignition = nil
+
+					instance = &infrav1.Instance{
+						ID:    "myMachine",
+						State: infrav1.InstanceStatePending,
+					}
+					fakeS3URL := "s3://foo"
+
+					var userData []byte
+					objectStoreSvc.EXPECT().Create(gomock.Any(), gomock.Any(), gomock.Any()).Return(fakeS3URL, nil).Times(1)
+					ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+						DoAndReturn(func(_ context.Context, _ *scope.MachineScope, ud []byte, _ string) (*infrav1.Instance, error) {
+							userData = ud
+							return instance, nil
+						}).Times(1)
+					ec2Svc.EXPECT().GetInstanceSecurityGroups(gomock.Any()).Return(map[string][]string{"eid": {}}, nil).Times(1)
+					ec2Svc.EXPECT().GetCoreSecurityGroups(gomock.Any()).Return([]string{}, nil).Times(1)
+					ec2Svc.EXPECT().GetAdditionalSecurityGroupsIDs(gomock.Any()).Return(nil, nil)
+
+					ms.AWSMachine.ObjectMeta.Labels = map[string]string{
+						clusterv1.MachineControlPlaneLabel: "",
+					}
+
+					_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+					g.Expect(err).To(BeNil())
+					g.Expect(ms.AWSMachine.Spec.Ignition).To(BeNil())
+					g.Expect(string(userData)).To(ContainSubstring(`"version":"` + infrav1.DefaultIgnitionVersion + `.0"`))
+					g.Expect(string(userData)).To(ContainSubstring(fakeS3URL))
+				})
+
 				t.Run("should leverage a Cluster Object Store with presigned urls", func(t *testing.T) {
 					g := NewWithT(t)
 					awsMachine := getAWSMachine()
