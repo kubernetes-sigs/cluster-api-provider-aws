@@ -435,7 +435,21 @@ func TestValidateControlPlaneSpec(t *testing.T) {
 	})
 }
 
-func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
+// controlPlaneReconcileOptions configures reconcileTestControlPlane.
+type controlPlaneReconcileOptions struct {
+	// clusterAutoscaler is set as spec.clusterAutoscaler.
+	clusterAutoscaler *rosacontrolplanev1.ClusterAutoscaler
+	// clusterState is the state of the OCM cluster returned by GetCluster.
+	clusterState v1.ClusterState
+	// autoscalerClient returns the cluster autoscaler client mock, with its expectations set.
+	autoscalerClient func(mockCtrl *gomock.Controller) rosa.ClusterAutoscalerClient
+}
+
+// reconcileTestControlPlane creates a ROSAControlPlane and the objects it depends on, runs one Reconcile against
+// mocked OCM clients and returns the stored ROSAControlPlane and the Reconcile error. When the OCM cluster is ready,
+// the OCM mock expects every call of the ready branch, including the kubeconfig reconciliation.
+func reconcileTestControlPlane(t *testing.T, opts controlPlaneReconcileOptions) (*rosacontrolplanev1.ROSAControlPlane, error) {
+	t.Helper()
 	g := NewWithT(t)
 	ns, err := testEnv.CreateNamespace(ctx, "test-namespace")
 	g.Expect(err).ToNot(HaveOccurred())
@@ -572,7 +586,7 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 			sts := (&v1.STSBuilder{}).OIDCEndpointURL("oidc.com/oidc1")
 			aws := v1.NewAWS().AuditLog(v1.NewAuditLog().RoleArn("arn:aws:iam::123456789012:role/AuditLogRole")).STS(sts)
 			console := (&v1.ClusterConsoleBuilder{}).URL("https://console.redhat.com/cluster-123")
-			status := (&v1.ClusterStatusBuilder{}).State(v1.ClusterStateReady)
+			status := (&v1.ClusterStatusBuilder{}).State(opts.clusterState)
 			api := (&v1.ClusterAPIBuilder{}).URL("https://url.com:5000")
 			version := (&v1.VersionBuilder{}).RawID(rosaControlPlane.Spec.Version)
 			mockCluster, _ := v1.NewCluster().AWS(aws).ID("cluster-1").Version(version).Status(status).Console(console).API(api).
@@ -585,6 +599,9 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 				Build()
 			return mockCluster, nil
 		}).Times(1)
+		if opts.clusterState != v1.ClusterStateReady {
+			return
+		}
 		m.GetLogForwarders(gomock.Any()).DoAndReturn(func(clusterID string) ([]*v1.LogForwarder, error) {
 			logs := []*v1.LogForwarder{}
 			return logs, nil
@@ -614,6 +631,8 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 
 	expect(ocmMock.EXPECT())
 
+	autoscalerMock := opts.autoscalerClient(mockCtrl)
+
 	// We need to mock http GET on this url
 	redirectURL := "https://url.com/oauth/authorize?response_type=token&client_id=openshift-challenging-client#access_token=mocktoken&expires_in=1234"
 	mockServer := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -640,6 +659,7 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 		Transport: customTransport,
 	}
 
+	rosaControlPlane.Spec.ClusterAutoscaler = opts.clusterAutoscaler
 	objects := []client.Object{ownerCluster, rosaControlPlane, secret, identity, kubeconfigSecret}
 	for _, obj := range objects {
 		createObject(g, obj, ns.Name)
@@ -679,23 +699,46 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 		NewOCMClient: func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error) {
 			return ocmMock, nil
 		},
+		NewClusterAutoscalerClient: func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.ClusterAutoscalerClient, error) {
+			return autoscalerMock, nil
+		},
 	}
 
 	req := ctrl.Request{}
 	req.NamespacedName = types.NamespacedName{Name: rosaControlPlane.Name, Namespace: rosaControlPlane.Namespace}
 	_, errReconcile := r.Reconcile(ctx, req)
-	g.Expect(errReconcile).ToNot(HaveOccurred())
 	time.Sleep(50 * time.Millisecond)
 
 	errGet2 := testEnv.Get(ctx, key, cp)
 	g.Expect(errGet2).NotTo(HaveOccurred())
-	g.Expect(cp.Status.Version).To(Equal(rosaControlPlane.Spec.Version))
-	g.Expect(cp.Status.Ready).To(BeTrue())
 
-	// cleanup
 	for _, obj := range objects {
 		cleanupObject(g, obj)
 	}
+	return cp, errReconcile
+}
+
+func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
+	g := NewWithT(t)
+
+	// spec.clusterAutoscaler is not set, so the autoscaler is only read to populate status.
+	cp, err := reconcileTestControlPlane(t, controlPlaneReconcileOptions{
+		clusterState: v1.ClusterStateReady,
+		autoscalerClient: func(mockCtrl *gomock.Controller) rosa.ClusterAutoscalerClient {
+			autoscalerMock := mocks.NewMockClusterAutoscalerClient(mockCtrl)
+			autoscalerMock.EXPECT().GetClusterAutoscaler(gomock.Any(), "cluster-1").Return(newTestOCMAutoscaler(g, 50), nil).Times(1)
+			autoscalerMock.EXPECT().UpdateClusterAutoscaler(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			autoscalerMock.EXPECT().Close().Return(nil).Times(1)
+			return autoscalerMock
+		},
+	})
+	g.Expect(err).ToNot(HaveOccurred())
+	g.Expect(cp.Status.Version).To(Equal("4.15.20"))
+	g.Expect(cp.Status.Ready).To(BeTrue())
+	g.Expect(cp.Status.ClusterAutoscaler).NotTo(BeNil())
+	g.Expect(cp.Status.ClusterAutoscaler.ResourceLimits.MaxNodesTotal).To(HaveValue(Equal(int32(50))))
+	g.Expect(cp.Status.ClusterAutoscaler.MaxNodeProvisionTime.Duration).To(Equal(15 * time.Minute))
+	g.Expect(v1beta1conditions.Get(cp, rosacontrolplanev1.ClusterAutoscalerConfiguredCondition)).To(BeNil())
 }
 
 func TestBuildLogForwarders(t *testing.T) {
