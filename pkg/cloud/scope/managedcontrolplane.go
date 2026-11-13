@@ -459,6 +459,11 @@ func (s *ManagedControlPlaneScope) OIDCIdentityProviderConfig() *ekscontrolplane
 	return s.ControlPlane.Spec.OIDCIdentityProviderConfig
 }
 
+// EffectiveOIDCIdentityProviderConfigs returns OIDC identity provider configs to reconcile.
+func (s *ManagedControlPlaneScope) EffectiveOIDCIdentityProviderConfigs() []ekscontrolplanev1.OIDCIdentityProviderConfig {
+	return s.ControlPlane.Spec.EffectiveOIDCIdentityProviderConfigs()
+}
+
 // ServiceCidrs returns the CIDR blocks used for services.
 func (s *ManagedControlPlaneScope) ServiceCidrs() *clusterv1.NetworkRanges {
 	if len(s.Cluster.Spec.ClusterNetwork.Services.CIDRBlocks) > 0 {

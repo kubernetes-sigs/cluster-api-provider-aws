@@ -113,6 +113,15 @@ func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 		}
 	}
 
+	if len(r.Spec.OIDCIdentityProviderConfigs) > 0 {
+		dst.Spec.OIDCIdentityProviderConfigs = make([]ekscontrolplanev1.OIDCIdentityProviderConfig, len(r.Spec.OIDCIdentityProviderConfigs))
+		for i := range r.Spec.OIDCIdentityProviderConfigs {
+			if err := Convert_v1beta1_OIDCIdentityProviderConfig_To_v1beta2_OIDCIdentityProviderConfig(&r.Spec.OIDCIdentityProviderConfigs[i], &dst.Spec.OIDCIdentityProviderConfigs[i], nil); err != nil {
+				return err
+			}
+		}
+	}
+
 	dst.Spec.Partition = restored.Spec.Partition
 	dst.Spec.RestrictPrivateSubnets = restored.Spec.RestrictPrivateSubnets
 	dst.Spec.AccessConfig = restored.Spec.AccessConfig
@@ -125,6 +134,15 @@ func (r *AWSManagedControlPlane) ConvertTo(dstRaw conversion.Hub) error {
 	dst.Spec.ControlPlaneScalingConfig = restored.Spec.ControlPlaneScalingConfig
 	dst.Spec.PodIdentityAssociations = restored.Spec.PodIdentityAssociations
 	dst.Status.V1Beta2 = restored.Status.V1Beta2
+
+	if len(r.Status.IdentityProviderStatuses) > 0 {
+		dst.Status.IdentityProviderStatuses = make([]ekscontrolplanev1.IdentityProviderStatus, len(r.Status.IdentityProviderStatuses))
+		for i := range r.Status.IdentityProviderStatuses {
+			if err := Convert_v1beta1_IdentityProviderStatus_To_v1beta2_IdentityProviderStatus(&r.Status.IdentityProviderStatuses[i], &dst.Status.IdentityProviderStatuses[i], nil); err != nil {
+				return err
+			}
+		}
+	}
 
 	return nil
 }
@@ -209,6 +227,24 @@ func (r *AWSManagedControlPlane) ConvertFrom(srcRaw conversion.Hub) error {
 		r.Spec.OIDCIdentityProviderConfig = &OIDCIdentityProviderConfig{}
 		if err := Convert_v1beta2_OIDCIdentityProviderConfig_To_v1beta1_OIDCIdentityProviderConfig(src.Spec.OIDCIdentityProviderConfig, r.Spec.OIDCIdentityProviderConfig, nil); err != nil {
 			return err
+		}
+	}
+
+	if len(src.Spec.OIDCIdentityProviderConfigs) > 0 {
+		r.Spec.OIDCIdentityProviderConfigs = make([]OIDCIdentityProviderConfig, len(src.Spec.OIDCIdentityProviderConfigs))
+		for i := range src.Spec.OIDCIdentityProviderConfigs {
+			if err := Convert_v1beta2_OIDCIdentityProviderConfig_To_v1beta1_OIDCIdentityProviderConfig(&src.Spec.OIDCIdentityProviderConfigs[i], &r.Spec.OIDCIdentityProviderConfigs[i], nil); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(src.Status.IdentityProviderStatuses) > 0 {
+		r.Status.IdentityProviderStatuses = make([]IdentityProviderStatus, len(src.Status.IdentityProviderStatuses))
+		for i := range src.Status.IdentityProviderStatuses {
+			if err := Convert_v1beta2_IdentityProviderStatus_To_v1beta1_IdentityProviderStatus(&src.Status.IdentityProviderStatuses[i], &r.Status.IdentityProviderStatuses[i], nil); err != nil {
+				return err
+			}
 		}
 	}
 
