@@ -66,7 +66,6 @@ const (
 	KCPScaleInFlavor                     = "kcp-scale-in"
 	IgnitionFlavor                       = "ignition"
 	StorageClassOutTreeZoneLabel         = "topology.ebs.csi.aws.com/zone"
-	GPUFlavor                            = "gpu"
 	NitroEnclaveFlavor                   = "nitro-enclave"
 	InstanceVcpu                         = "AWS_MACHINE_TYPE_VCPU_USAGE"
 	EFSSupport                           = "efs-support"
@@ -199,13 +198,6 @@ func getLimitedResources() map[string]*ServiceQuota {
 		QuotaName:           "Classic Load Balancers per Region",
 		QuotaCode:           "L-E9E9831D",
 		DesiredMinimumValue: 20,
-	}
-
-	serviceQuotas["ec2-GPU"] = &ServiceQuota{
-		ServiceCode:         serviceCodeEC2,
-		QuotaName:           "Running On-Demand G and VT instances",
-		QuotaCode:           "L-DB2E81BA",
-		DesiredMinimumValue: 8,
 	}
 
 	serviceQuotas["volume-GP2"] = &ServiceQuota{
