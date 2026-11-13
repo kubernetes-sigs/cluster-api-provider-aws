@@ -280,8 +280,8 @@ func (w *AWSManagedControlPlane) validateEKSAddons(r *ekscontrolplanev1.AWSManag
 func validateEKSAddons(eksVersion *string, networkSpec infrav1.NetworkSpec, addons *[]ekscontrolplanev1.Addon, path *field.Path) field.ErrorList {
 	var allErrs field.ErrorList
 
-	// If not using IPv6 and no addons are specified, return no errors
-	if !networkSpec.VPC.IsIPv6Enabled() && (addons == nil || len(*addons) == 0) {
+	// If no addons are specified, return no errors
+	if addons == nil || len(*addons) == 0 {
 		return allErrs
 	}
 
@@ -305,15 +305,8 @@ func validateEKSAddons(eksVersion *string, networkSpec infrav1.NetworkSpec, addo
 		allErrs = append(allErrs, field.Invalid(addonsPath, *eksVersion, message))
 	}
 
-	// validations for IPv6:
-	// - addons have to be defined in case IPv6 is enabled
-	// - minimum version requirement for VPC-CNI using IPv6 ipFamily is 1.10.2
+	// minimum version requirement for VPC-CNI using IPv6 ipFamily is 1.10.2
 	if networkSpec.VPC.IsIPv6Enabled() {
-		if addons == nil || len(*addons) == 0 {
-			allErrs = append(allErrs, field.Invalid(addonsPath, "", "addons are required to be set explicitly if IPv6 is enabled"))
-			return allErrs
-		}
-
 		for _, addon := range *addons {
 			if addon.Name == vpcCniAddon {
 				v, err := version.ParseGeneric(addon.Version)

@@ -150,7 +150,7 @@ EKS currently only supports IPv6-only clusters (not dualstack). You can't define
 
 </aside>
 
-**Notes**: All addons **must** be enabled. A working IPv6 cluster configuration defines `spec.network.vpc.ipv6` and all addons as follows:
+**Notes**: Addons are optional. With `bootstrapSelfManagedAddons: true` (the default), EKS installs `vpc-cni`, `kube-proxy` and `coredns` configured for IPv6. To manage them as EKS addons, list them; `vpc-cni` must be 1.10.2 or later:
 
 ```yaml
 kind: AWSManagedControlPlane
