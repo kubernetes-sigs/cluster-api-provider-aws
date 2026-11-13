@@ -18,6 +18,12 @@ package identity
 
 import (
 	"context"
+	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -64,24 +70,6 @@ func TestAWSStaticPrincipalTypeProvider(t *testing.T) {
 		Principal:      roleIdentity,
 		region:         "us-west-2",
 		sourceProvider: staticProvider,
-		stsClient:      stsMock,
-	}
-
-	roleIdentity2 := &infrav1.AWSClusterRoleIdentity{
-		Spec: infrav1.AWSClusterRoleIdentitySpec{
-			AWSRoleSpec: infrav1.AWSRoleSpec{
-				RoleArn:         "arn:*:iam::*:role/aws-role/secondroleprovider",
-				SessionName:     "second-role-provider-session",
-				DurationSeconds: 900,
-			},
-		},
-	}
-
-	roleProvider2 := &AWSRolePrincipalTypeProvider{
-		credentials:    nil,
-		Principal:      roleIdentity2,
-		region:         "us-west-2",
-		sourceProvider: roleProvider,
 		stsClient:      stsMock,
 	}
 
@@ -132,46 +120,6 @@ func TestAWSStaticPrincipalTypeProvider(t *testing.T) {
 				Expires:         expiresAt,
 			},
 		},
-		{
-			name:     "Role provider with role provider source successfully retrieves",
-			provider: roleProvider2,
-			expect: func(m *mock_stsiface.MockSTSClientMockRecorder) {
-				m.AssumeRole(gomock.Any(), &sts.AssumeRoleInput{
-					RoleArn:         aws.String(roleIdentity.Spec.RoleArn),
-					RoleSessionName: aws.String(roleIdentity.Spec.SessionName),
-					DurationSeconds: aws.Int32(roleIdentity.Spec.DurationSeconds),
-				}).Return(&sts.AssumeRoleOutput{
-					Credentials: &ststypes.Credentials{
-						AccessKeyId:     aws.String("assumedAccessKeyId"),
-						SecretAccessKey: aws.String("assumedSecretAccessKey"),
-						SessionToken:    aws.String("assumedSessionToken"),
-						Expiration:      aws.Time(time.Now().AddDate(+1, 0, 0)),
-					},
-				}, nil)
-
-				m.AssumeRole(gomock.Any(), &sts.AssumeRoleInput{
-					RoleArn:         aws.String(roleIdentity2.Spec.RoleArn),
-					RoleSessionName: aws.String(roleIdentity2.Spec.SessionName),
-					DurationSeconds: aws.Int32(roleIdentity2.Spec.DurationSeconds),
-				}).Return(&sts.AssumeRoleOutput{
-					Credentials: &ststypes.Credentials{
-						AccessKeyId:     aws.String("assumedAccessKeyId2"),
-						SecretAccessKey: aws.String("assumedSecretAccessKey2"),
-						SessionToken:    aws.String("assumedSessionToken2"),
-						Expiration:      aws.Time(expiresAt),
-					},
-				}, nil)
-			},
-			expectErr: false,
-			value: aws.Credentials{
-				AccessKeyID:     "assumedAccessKeyId2",
-				SecretAccessKey: "assumedSecretAccessKey2",
-				SessionToken:    "assumedSessionToken2",
-				Source:          "AssumeRoleProvider",
-				CanExpire:       true,
-				Expires:         expiresAt,
-			},
-		},
 	}
 
 	for _, tc := range testCases {
@@ -191,5 +139,151 @@ func TestAWSStaticPrincipalTypeProvider(t *testing.T) {
 				t.Fatal("Did not get expected result")
 			}
 		})
+	}
+}
+
+type rotatingCredentialsProvider struct {
+	calls int
+}
+
+func (p *rotatingCredentialsProvider) Retrieve(context.Context) (aws.Credentials, error) {
+	p.calls++
+	if p.calls == 1 {
+		return aws.Credentials{
+			AccessKeyID:     "root-old",
+			SecretAccessKey: "root-secret-old",
+			SessionToken:    "root-token-old",
+			Source:          "RotatingCredentialsProvider",
+			CanExpire:       true,
+			Expires:         time.Now().Add(-time.Minute),
+		}, nil
+	}
+
+	return aws.Credentials{
+		AccessKeyID:     "root-new",
+		SecretAccessKey: "root-secret-new",
+		SessionToken:    "root-token-new",
+		Source:          "RotatingCredentialsProvider",
+		CanExpire:       true,
+		Expires:         time.Now().Add(time.Hour),
+	}, nil
+}
+
+func (*rotatingCredentialsProvider) Hash() (string, error) {
+	return "rotating-root", nil
+}
+
+func (*rotatingCredentialsProvider) Name() string {
+	return "rotating-root"
+}
+
+func TestAWSRolePrincipalTypeProviderRefreshesNestedSourceProviders(t *testing.T) {
+	rootProvider := &rotatingCredentialsProvider{}
+	requests := make([]string, 0, 4)
+
+	stsServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		params, err := url.ParseQuery(string(body))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		authorization := r.Header.Get("Authorization")
+		credentialStart := strings.Index(authorization, "Credential=")
+		if credentialStart < 0 {
+			http.Error(w, "missing access key", http.StatusBadRequest)
+			return
+		}
+		credentialStart += len("Credential=")
+		credentialEnd := strings.Index(authorization[credentialStart:], "/")
+		if credentialEnd < 0 {
+			http.Error(w, "missing access key", http.StatusBadRequest)
+			return
+		}
+		accessKeyID := authorization[credentialStart : credentialStart+credentialEnd]
+		roleARN := params.Get("RoleArn")
+		requests = append(requests, roleARN+"="+accessKeyID)
+
+		call := len(requests)
+		accessKeySuffix := "old"
+		expiration := time.Now().Add(-time.Minute).UTC().Format(time.RFC3339)
+		if call > 2 {
+			accessKeySuffix = "new"
+			expiration = time.Now().Add(time.Hour).UTC().Format(time.RFC3339)
+		}
+		roleName := params.Get("RoleArn")
+		if separator := strings.LastIndex(roleName, "/"); separator >= 0 {
+			roleName = roleName[separator+1:]
+		}
+
+		w.Header().Set("Content-Type", "text/xml")
+		fmt.Fprintf(w, `<AssumeRoleResponse xmlns="https://sts.amazonaws.com/doc/2011-06-15/">
+  <AssumeRoleResult>
+    <Credentials>
+      <AccessKeyId>%s-%s</AccessKeyId>
+      <SecretAccessKey>secret-%s</SecretAccessKey>
+      <SessionToken>token-%s</SessionToken>
+      <Expiration>%s</Expiration>
+    </Credentials>
+  </AssumeRoleResult>
+</AssumeRoleResponse>`, roleName, accessKeySuffix, accessKeySuffix, accessKeySuffix, expiration)
+	}))
+	defer stsServer.Close()
+
+	t.Setenv("AWS_ENDPOINT_URL_STS", stsServer.URL)
+	t.Setenv("AWS_REGION", "us-east-1")
+
+	innerProvider := &AWSRolePrincipalTypeProvider{
+		Principal: &infrav1.AWSClusterRoleIdentity{Spec: infrav1.AWSClusterRoleIdentitySpec{AWSRoleSpec: infrav1.AWSRoleSpec{
+			RoleArn:         "arn:aws:iam::123456789012:role/inner",
+			SessionName:     "inner-session",
+			DurationSeconds: 900,
+		}}},
+		region:         "us-east-1",
+		sourceProvider: rootProvider,
+	}
+	outerProvider := &AWSRolePrincipalTypeProvider{
+		Principal: &infrav1.AWSClusterRoleIdentity{Spec: infrav1.AWSClusterRoleIdentitySpec{AWSRoleSpec: infrav1.AWSRoleSpec{
+			RoleArn:         "arn:aws:iam::123456789012:role/outer",
+			SessionName:     "outer-session",
+			DurationSeconds: 900,
+		}}},
+		region:         "us-east-1",
+		sourceProvider: innerProvider,
+	}
+
+	first, err := outerProvider.Retrieve(context.Background())
+	if err != nil {
+		t.Fatalf("first retrieve failed: %v", err)
+	}
+	if first.AccessKeyID != "outer-old" {
+		t.Fatalf("unexpected first credentials: %#v", first)
+	}
+
+	second, err := outerProvider.Retrieve(context.Background())
+	if err != nil {
+		t.Fatalf("second retrieve failed: %v", err)
+	}
+	if second.AccessKeyID != "outer-new" {
+		t.Fatalf("unexpected refreshed credentials: %#v", second)
+	}
+	if rootProvider.calls != 2 {
+		t.Fatalf("expected root provider to be called twice, got %d", rootProvider.calls)
+	}
+
+	expectedRequests := []string{
+		"arn:aws:iam::123456789012:role/inner=root-old",
+		"arn:aws:iam::123456789012:role/outer=inner-old",
+		"arn:aws:iam::123456789012:role/inner=root-new",
+		"arn:aws:iam::123456789012:role/outer=inner-new",
+	}
+	if diff := cmp.Diff(expectedRequests, requests); diff != "" {
+		t.Fatalf("unexpected AssumeRole requests (-want +got):\n%s", diff)
 	}
 }
