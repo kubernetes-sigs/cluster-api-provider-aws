@@ -19,13 +19,11 @@ package eks
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/smithy-go"
 	"github.com/pkg/errors"
 
-	"sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/bootstrap/v1beta1"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	eksiam "sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/eks/iam"
@@ -38,35 +36,41 @@ const (
 	maxIAMRoleNameLength = 64
 )
 
-// NodegroupRolePolicies gives the policies required for a nodegroup role.
+// NodegroupRolePolicies gives the policies required for a nodegroup role in the aws partition.
 func NodegroupRolePolicies() []string {
-	return []string{
-		"arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-		"arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy", //TODO: Can remove when CAPA supports provisioning of OIDC web identity federation with service account token volume projection
-		"arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
-	}
+	return NodegroupRolePoliciesForPartition("aws")
 }
 
-// FargateRolePolicies gives the policies required for a fargate role.
+// FargateRolePolicies gives the policies required for a fargate role in the aws partition.
 func FargateRolePolicies() []string {
-	return []string{
-		"arn:aws:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy",
-	}
+	return FargateRolePoliciesForPartition("aws")
 }
 
-// NodegroupRolePoliciesUSGov gives the policies required for a nodegroup role.
+// NodegroupRolePoliciesUSGov gives the policies required for a nodegroup role in the aws-us-gov partition.
 func NodegroupRolePoliciesUSGov() []string {
+	return NodegroupRolePoliciesForPartition("aws-us-gov")
+}
+
+// FargateRolePoliciesUSGov gives the policies required for a fargate role in the aws-us-gov partition.
+func FargateRolePoliciesUSGov() []string {
+	return FargateRolePoliciesForPartition("aws-us-gov")
+}
+
+// NodegroupRolePoliciesForPartition gives the policies required for a nodegroup role in the given partition,
+// for example aws, aws-us-gov or aws-cn.
+func NodegroupRolePoliciesForPartition(partition string) []string {
 	return []string{
-		"arn:aws-us-gov:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-		"arn:aws-us-gov:iam::aws:policy/AmazonEKS_CNI_Policy", //TODO: Can remove when CAPA supports provisioning of OIDC web identity federation with service account token volume projection
-		"arn:aws-us-gov:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+		fmt.Sprintf("arn:%s:iam::aws:policy/AmazonEKSWorkerNodePolicy", partition),
+		fmt.Sprintf("arn:%s:iam::aws:policy/AmazonEKS_CNI_Policy", partition), //TODO: Can remove when CAPA supports provisioning of OIDC web identity federation with service account token volume projection
+		fmt.Sprintf("arn:%s:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly", partition),
 	}
 }
 
-// FargateRolePoliciesUSGov gives the policies required for a fargate role.
-func FargateRolePoliciesUSGov() []string {
+// FargateRolePoliciesForPartition gives the policies required for a fargate role in the given partition,
+// for example aws, aws-us-gov or aws-cn.
+func FargateRolePoliciesForPartition(partition string) []string {
 	return []string{
-		"arn:aws-us-gov:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy",
+		fmt.Sprintf("arn:%s:iam::aws:policy/AmazonEKSFargatePodExecutionRolePolicy", partition),
 	}
 }
 
@@ -222,10 +226,7 @@ func (s *NodegroupService) reconcileNodegroupIAMRole(ctx context.Context) error 
 		return errors.Wrapf(err, "error ensuring tags and policy document are set on node role")
 	}
 
-	policies := NodegroupRolePolicies()
-	if strings.Contains(s.scope.Partition(), v1beta1.PartitionNameUSGov) {
-		policies = NodegroupRolePoliciesUSGov()
-	}
+	policies := NodegroupRolePoliciesForPartition(s.scope.Partition())
 
 	if len(s.scope.ManagedMachinePool.Spec.RoleAdditionalPolicies) > 0 {
 		if !s.scope.AllowAdditionalRoles() {
@@ -342,10 +343,7 @@ func (s *FargateService) reconcileFargateIAMRole(ctx context.Context) (requeue b
 		return updatedRole, errors.Wrapf(err, "error ensuring tags and policy document are set on fargate role")
 	}
 
-	policies := FargateRolePolicies()
-	if strings.Contains(s.scope.Partition(), v1beta1.PartitionNameUSGov) {
-		policies = FargateRolePoliciesUSGov()
-	}
+	policies := FargateRolePoliciesForPartition(s.scope.Partition())
 
 	updatedPolicies, err := s.EnsurePoliciesAttached(ctx, role, policies)
 	if err != nil {
