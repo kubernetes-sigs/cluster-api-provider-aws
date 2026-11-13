@@ -418,3 +418,23 @@ func verifyPodIdentityAssociations(ctx context.Context, eksClusterName string, e
 		return nil
 	}, clientRequestTimeout, clientRequestCheckInterval).Should(Succeed(), "eventually failed verifying pod identity associations")
 }
+
+// verifyBootstrapServiceCIDR checks status.serviceCIDR and the bootstrap data match the EKS service CIDR.
+func verifyBootstrapServiceCIDR(ctx context.Context, k8sClient crclient.Client, namespace, controlPlaneName, bootstrapSecretName, eksClusterName string, sess *aws.Config) {
+	eksCluster, err := getEKSCluster(ctx, eksClusterName, sess)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(eksCluster.KubernetesNetworkConfig).NotTo(BeNil())
+	expected := aws.ToString(eksCluster.KubernetesNetworkConfig.ServiceIpv6Cidr)
+	if expected == "" {
+		expected = aws.ToString(eksCluster.KubernetesNetworkConfig.ServiceIpv4Cidr)
+	}
+	Expect(expected).NotTo(BeEmpty(), "EKS cluster %s reports no service CIDR", eksClusterName)
+
+	controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
+	Expect(k8sClient.Get(ctx, crclient.ObjectKey{Namespace: namespace, Name: controlPlaneName}, controlPlane)).To(Succeed())
+	Expect(aws.ToString(controlPlane.Status.ServiceCIDR)).To(Equal(expected), "control plane status.serviceCIDR doesn't match EKS")
+
+	secret := &corev1.Secret{}
+	Expect(k8sClient.Get(ctx, crclient.ObjectKey{Namespace: namespace, Name: bootstrapSecretName}, secret)).To(Succeed())
+	Expect(string(secret.Data["value"])).To(ContainSubstring("cidr: "+expected), "bootstrap data doesn't render the EKS service CIDR")
+}
