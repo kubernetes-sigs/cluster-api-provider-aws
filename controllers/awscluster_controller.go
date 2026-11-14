@@ -24,6 +24,7 @@ import (
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/client-go/tools/record"
@@ -57,6 +58,7 @@ import (
 	"sigs.k8s.io/cluster-api/util"
 	capiannotations "sigs.k8s.io/cluster-api/util/annotations"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -324,11 +326,22 @@ func (r *AWSClusterReconciler) reconcileLoadBalancer(ctx context.Context, cluste
 	if err := elbService.ReconcileLoadbalancers(ctx); err != nil {
 		clusterScope.Error(err, "failed to reconcile load balancer")
 		v1beta1conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.LoadBalancerFailedReason, infrautilconditions.ErrorConditionAfterInit(clusterScope.ClusterObj()), "%s", err.Error())
+		conditions.Set(awsCluster, metav1.Condition{
+			Type:    infrav1.AWSClusterLoadBalancerReadyV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  infrav1.AWSClusterLoadBalancerFailedV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return nil, err
 	}
 
 	if awsCluster.Status.Network.APIServerELB.DNSName == "" {
 		v1beta1conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.WaitForDNSNameReason, clusterv1beta1.ConditionSeverityInfo, "")
+		conditions.Set(awsCluster, metav1.Condition{
+			Type:   infrav1.AWSClusterLoadBalancerReadyV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: infrav1.AWSClusterWaitForDNSNameV1Beta2Reason,
+		})
 		clusterScope.Info("Waiting on API server ELB DNS name")
 		return &retryAfterDuration, nil
 	}
@@ -339,12 +352,22 @@ func (r *AWSClusterReconciler) reconcileLoadBalancer(ctx context.Context, cluste
 		if _, err := net.DefaultResolver.LookupIPAddr(ctx, awsCluster.Status.Network.APIServerELB.DNSName); err != nil {
 			clusterScope.Error(err, "failed to get IP address for dns name", "dns", awsCluster.Status.Network.APIServerELB.DNSName)
 			v1beta1conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.WaitForDNSNameResolveReason, clusterv1beta1.ConditionSeverityInfo, "")
+			conditions.Set(awsCluster, metav1.Condition{
+				Type:   infrav1.AWSClusterLoadBalancerReadyV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: infrav1.AWSClusterWaitForDNSNameResolveV1Beta2Reason,
+			})
 			clusterScope.Info("Waiting on API server ELB DNS name to resolve")
 			return &retryAfterDuration, nil
 		}
 	}
 
 	v1beta1conditions.MarkTrue(awsCluster, infrav1.LoadBalancerReadyCondition)
+	conditions.Set(awsCluster, metav1.Condition{
+		Type:   infrav1.AWSClusterLoadBalancerReadyV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 
 	awsCluster.Spec.ControlPlaneEndpoint = clusterv1beta1.APIEndpoint{
 		Host: awsCluster.Status.Network.APIServerELB.DNSName,
@@ -387,11 +410,23 @@ func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 	if err := sgService.ReconcileSecurityGroups(); err != nil {
 		clusterScope.Error(err, "failed to reconcile security groups")
 		v1beta1conditions.MarkFalse(awsCluster, infrav1.ClusterSecurityGroupsReadyCondition, infrav1.ClusterSecurityGroupReconciliationFailedReason, infrautilconditions.ErrorConditionAfterInit(clusterScope.ClusterObj()), "%s", err.Error())
+		conditions.Set(awsCluster, metav1.Condition{
+			Type:    infrav1.AWSClusterSecurityGroupsReadyV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  infrav1.AWSClusterSecurityGroupReconciliationFailedV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return reconcile.Result{}, err
 	}
 
 	if err := ec2Service.ReconcileBastion(); err != nil {
 		v1beta1conditions.MarkFalse(awsCluster, infrav1.BastionHostReadyCondition, infrav1.BastionHostFailedReason, infrautilconditions.ErrorConditionAfterInit(clusterScope.ClusterObj()), "%s", err.Error())
+		conditions.Set(awsCluster, metav1.Condition{
+			Type:    infrav1.AWSClusterBastionHostReadyV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  infrav1.AWSClusterBastionHostFailedV1Beta2Reason,
+			Message: err.Error(),
+		})
 		clusterScope.Error(err, "failed to reconcile bastion host")
 		return reconcile.Result{}, err
 	}
@@ -412,9 +447,20 @@ func (r *AWSClusterReconciler) reconcileNormal(ctx context.Context, clusterScope
 
 	if err := s3Service.ReconcileBucket(ctx); err != nil {
 		v1beta1conditions.MarkFalse(awsCluster, infrav1.S3BucketReadyCondition, infrav1.S3BucketFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		conditions.Set(awsCluster, metav1.Condition{
+			Type:    infrav1.AWSClusterS3BucketReadyV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  infrav1.AWSClusterS3BucketFailedV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return reconcile.Result{}, errors.Wrapf(err, "failed to reconcile S3 Bucket for AWSCluster %s/%s", awsCluster.Namespace, awsCluster.Name)
 	}
 	v1beta1conditions.MarkTrue(awsCluster, infrav1.S3BucketReadyCondition)
+	conditions.Set(awsCluster, metav1.Condition{
+		Type:   infrav1.AWSClusterS3BucketReadyV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 
 	for _, subnet := range clusterScope.Subnets().FilterPrivate() {
 		found := false
@@ -508,20 +554,40 @@ func (r *AWSClusterReconciler) checkForExternalControlPlaneLoadBalancer(clusterS
 	case len(awsCluster.Spec.ControlPlaneEndpoint.Host) == 0 && awsCluster.Spec.ControlPlaneEndpoint.Port == 0:
 		clusterScope.Info("AWSCluster control plane endpoint is still non-populated")
 		v1beta1conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.WaitForExternalControlPlaneEndpointReason, clusterv1beta1.ConditionSeverityInfo, "")
+		conditions.Set(awsCluster, metav1.Condition{
+			Type:   infrav1.AWSClusterLoadBalancerReadyV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: infrav1.AWSClusterWaitForExternalControlPlaneEndpointV1Beta2Reason,
+		})
 
 		return &requeueAfterPeriod
 	case len(awsCluster.Spec.ControlPlaneEndpoint.Host) == 0:
 		clusterScope.Info("AWSCluster control plane endpoint host is still non-populated")
 		v1beta1conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.WaitForExternalControlPlaneEndpointReason, clusterv1beta1.ConditionSeverityInfo, "")
+		conditions.Set(awsCluster, metav1.Condition{
+			Type:   infrav1.AWSClusterLoadBalancerReadyV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: infrav1.AWSClusterWaitForExternalControlPlaneEndpointV1Beta2Reason,
+		})
 
 		return &requeueAfterPeriod
 	case awsCluster.Spec.ControlPlaneEndpoint.Port == 0:
 		clusterScope.Info("AWSCluster control plane endpoint port is still non-populated")
 		v1beta1conditions.MarkFalse(awsCluster, infrav1.LoadBalancerReadyCondition, infrav1.WaitForExternalControlPlaneEndpointReason, clusterv1beta1.ConditionSeverityInfo, "")
+		conditions.Set(awsCluster, metav1.Condition{
+			Type:   infrav1.AWSClusterLoadBalancerReadyV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: infrav1.AWSClusterWaitForExternalControlPlaneEndpointV1Beta2Reason,
+		})
 
 		return &requeueAfterPeriod
 	default:
 		v1beta1conditions.MarkTrue(awsCluster, infrav1.LoadBalancerReadyCondition)
+		conditions.Set(awsCluster, metav1.Condition{
+			Type:   infrav1.AWSClusterLoadBalancerReadyV1Beta2Condition,
+			Status: metav1.ConditionTrue,
+			Reason: clusterv1.ReadyReason,
+		})
 
 		return nil
 	}

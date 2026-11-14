@@ -38,10 +38,12 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
@@ -58,7 +60,10 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/sts/mock_stsiface"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -171,6 +176,7 @@ func TestAWSManagedControlPlaneReconcilerIntegrationTests(t *testing.T) {
 			},
 		}
 
+		conditions.Set(&awsManagedControlPlane, metav1.Condition{Type: clusterv1.PausedCondition, Status: metav1.ConditionFalse, Reason: clusterv1.NotPausedReason})
 		g.Expect(awsManagedControlPlanePatcher.Patch(ctx, &awsManagedControlPlane)).To(Succeed())
 		g.Expect(err).ShouldNot(HaveOccurred())
 
@@ -985,4 +991,58 @@ func mockedEKSCluster(ctx context.Context, g *WithT, eksRec *mock_eksiface.MockE
 	awsNodeRec.ReconcileCNI(gomock.Any()).Return(nil)
 	kubeProxyRec.ReconcileKubeProxy(gomock.Any()).Return(nil)
 	iamAuthenticatorRec.ReconcileIAMAuthenticator(gomock.Any()).Return(nil)
+}
+
+func TestManagedControlPlaneStandardReadyBastionDependency(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		private bool
+		want    metav1.ConditionStatus
+	}{
+		{name: "bastion skipped without private subnets", want: metav1.ConditionTrue},
+		{name: "bastion required with private subnets", private: true, want: metav1.ConditionUnknown},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ctx := context.Background()
+			scheme := runtime.NewScheme()
+			g.Expect(infrav1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(ekscontrolplanev1.AddToScheme(scheme)).To(Succeed())
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			cluster := &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "cluster", Namespace: "default"}}
+			obj := &ekscontrolplanev1.AWSManagedControlPlane{
+				ObjectMeta: metav1.ObjectMeta{Name: "control-plane", Namespace: "default", Generation: 2, OwnerReferences: []metav1.OwnerReference{{APIVersion: clusterv1.GroupVersion.String(), Kind: "Cluster", Name: cluster.Name}}},
+				Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+					Region:      "us-east-1",
+					Bastion:     infrav1.Bastion{Enabled: true},
+					NetworkSpec: infrav1.NetworkSpec{Subnets: infrav1.Subnets{{ID: "subnet", IsPublic: !tt.private}}},
+				},
+			}
+			v1beta1conditions.MarkFalse(obj, clusterv1beta1.PausedV1Beta2Condition, clusterv1.NotPausedReason, "", "")
+			conditions.Set(obj, metav1.Condition{Type: clusterv1.PausedCondition, Status: metav1.ConditionFalse, Reason: clusterv1.NotPausedReason})
+			for _, conditionType := range []clusterv1beta1.ConditionType{
+				ekscontrolplanev1.EKSControlPlaneReadyCondition,
+				ekscontrolplanev1.IAMControlPlaneRolesReadyCondition,
+				ekscontrolplanev1.IAMAuthenticatorConfiguredCondition,
+				ekscontrolplanev1.EKSAddonsConfiguredCondition,
+				infrav1.VpcReadyCondition, infrav1.SubnetsReadyCondition, infrav1.ClusterSecurityGroupsReadyCondition,
+				infrav1.InternetGatewayReadyCondition, infrav1.NatGatewaysReadyCondition, infrav1.RouteTablesReadyCondition,
+			} {
+				v1beta1conditions.MarkTrue(obj, conditionType)
+				conditions.Set(obj, metav1.Condition{Type: string(conditionType), Status: metav1.ConditionTrue, Reason: clusterv1.ReadyReason})
+			}
+			v1beta1conditions.MarkTrue(obj, infrav1.VpcEndpointsReadyCondition)
+			conditions.Set(obj, metav1.Condition{Type: infrav1.AWSClusterVpcEndpointsReadyV1Beta2Condition, Status: metav1.ConditionTrue, Reason: clusterv1.ReadyReason})
+			c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(obj).WithObjects(cluster, obj).Build()
+			r := &AWSManagedControlPlaneReconciler{Client: c}
+			// No infrastructure reference: reconciliation returns before invoking AWS services,
+			// while the deferred summary still evaluates the existing dependency conditions.
+			_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKeyFromObject(obj)})
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(obj), obj)).To(Succeed())
+			g.Expect(v1beta1conditions.IsTrue(obj, clusterv1beta1.ReadyCondition)).To(BeTrue())
+			g.Expect(conditions.Get(obj, clusterv1.ReadyCondition).Status).To(Equal(tt.want))
+			g.Expect(conditions.Get(obj, infrav1.AWSClusterBastionHostReadyV1Beta2Condition)).To(BeNil())
+		})
+	}
 }

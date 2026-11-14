@@ -41,6 +41,11 @@ var (
 	ErrNotPlaced = errors.New("placement not determined")
 )
 
+// BastionRequired reports whether bastion reconciliation requires a host.
+func BastionRequired(bastion *infrav1.Bastion, subnets infrav1.Subnets) bool {
+	return bastion != nil && bastion.Enabled && len(subnets.FilterPrivate()) > 0
+}
+
 type placementInput struct {
 	SpecSubnetIDs           []string
 	SpecAvailabilityZones   []string

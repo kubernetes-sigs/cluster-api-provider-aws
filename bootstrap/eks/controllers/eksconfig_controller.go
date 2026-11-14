@@ -39,6 +39,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/internal/userdata"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/v2/util/conditions"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -46,12 +47,14 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
 const (
 	eksConfigKind              = "EKSConfig"
+	bootstrapDataKey           = "value"
 	kindMachine                = "Machine"
 	kindAWSManagedControlPlane = "AWSManagedControlPlane"
 )
@@ -135,8 +138,13 @@ func (r *EKSConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			),
 			v1beta1conditions.WithStepCounter(),
 		)
+		if err := infrautilconditions.SetV1Beta2Summary(config, eksbootstrapv1.DataSecretAvailableCondition); err != nil && rerr == nil {
+			rerr = err
+		}
 
-		patchOpts := []v1beta1patch.Option{}
+		patchOpts := []v1beta1patch.Option{
+			v1beta1patch.WithOwnedV1Beta2Conditions{Conditions: []string{eksbootstrapv1.EKSConfigReadyV1Beta2Condition, eksbootstrapv1.EKSConfigDataSecretAvailableV1Beta2Condition}},
+		}
 		if rerr == nil {
 			patchOpts = append(patchOpts, v1beta1patch.WithStatusObservedGeneration{})
 		}
@@ -165,6 +173,11 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 		err := r.Client.Get(ctx, secretKey, existingSecret)
 		switch {
 		case err == nil:
+			conditions.Set(config, metav1.Condition{
+				Type:   eksbootstrapv1.EKSConfigDataSecretAvailableV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.ReadyReason,
+			})
 			return nil
 		case !apierrors.IsNotFound(err):
 			log.Error(err, "unable to check for existing bootstrap secret")
@@ -182,12 +195,22 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 			eksbootstrapv1.DataSecretAvailableCondition,
 			eksbootstrapv1.WaitingForClusterInfrastructureReason,
 			clusterv1beta1.ConditionSeverityInfo, "")
+		conditions.Set(config, metav1.Condition{
+			Type:   eksbootstrapv1.EKSConfigDataSecretAvailableV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: eksbootstrapv1.EKSConfigWaitingForClusterInfrastructureV1Beta2Reason,
+		})
 		return nil
 	}
 
 	if !ptr.Deref(cluster.Status.Initialization.ControlPlaneInitialized, false) {
 		log.Info("Control Plane has not yet been initialized")
 		v1beta1conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.WaitingForControlPlaneInitializationReason, clusterv1beta1.ConditionSeverityInfo, "")
+		conditions.Set(config, metav1.Condition{
+			Type:   eksbootstrapv1.EKSConfigDataSecretAvailableV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: eksbootstrapv1.EKSConfigWaitingForControlPlaneInitializationV1Beta2Reason,
+		})
 		return nil
 	}
 
@@ -202,6 +225,12 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 	if err != nil {
 		log.Info("Failed to resolve files for user data")
 		v1beta1conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+		conditions.Set(config, metav1.Condition{
+			Type:    eksbootstrapv1.EKSConfigDataSecretAvailableV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  eksbootstrapv1.EKSConfigDataSecretGenerationFailedV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return err
 	}
 
@@ -247,6 +276,11 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 	if err != nil {
 		log.Error(err, "Failed to create a worker join configuration")
 		v1beta1conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1beta1.ConditionSeverityWarning, "")
+		conditions.Set(config, metav1.Condition{
+			Type:   eksbootstrapv1.EKSConfigDataSecretAvailableV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: eksbootstrapv1.EKSConfigDataSecretGenerationFailedV1Beta2Reason,
+		})
 		return err
 	}
 
@@ -254,6 +288,11 @@ func (r *EKSConfigReconciler) joinWorker(ctx context.Context, cluster *clusterv1
 	if err := r.storeBootstrapData(ctx, cluster, config, userDataScript); err != nil {
 		log.Error(err, "Failed to store bootstrap data")
 		v1beta1conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1beta1.ConditionSeverityWarning, "")
+		conditions.Set(config, metav1.Condition{
+			Type:   eksbootstrapv1.EKSConfigDataSecretAvailableV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: eksbootstrapv1.EKSConfigDataSecretGenerationFailedV1Beta2Reason,
+		})
 		return err
 	}
 
@@ -329,6 +368,11 @@ func (r *EKSConfigReconciler) storeBootstrapData(ctx context.Context, cluster *c
 	config.Status.DataSecretName = ptr.To[string](secret.Name)
 	config.Status.Ready = true
 	v1beta1conditions.MarkTrue(config, eksbootstrapv1.DataSecretAvailableCondition)
+	conditions.Set(config, metav1.Condition{
+		Type:   eksbootstrapv1.EKSConfigDataSecretAvailableV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 	return nil
 }
 
@@ -420,7 +464,7 @@ func (r *EKSConfigReconciler) createBootstrapSecret(ctx context.Context, cluster
 			},
 		},
 		Data: map[string][]byte{
-			"value": data,
+			bootstrapDataKey: data,
 		},
 		Type: clusterv1.ClusterSecretType,
 	}
@@ -432,8 +476,8 @@ func (r *EKSConfigReconciler) updateBootstrapSecret(ctx context.Context, secret 
 	if secret.Data == nil {
 		secret.Data = make(map[string][]byte)
 	}
-	if !bytes.Equal(secret.Data["value"], data) {
-		secret.Data["value"] = data
+	if !bytes.Equal(secret.Data[bootstrapDataKey], data) {
+		secret.Data[bootstrapDataKey] = data
 		return true, r.Client.Update(ctx, secret)
 	}
 	return false, nil

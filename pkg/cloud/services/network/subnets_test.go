@@ -5016,7 +5016,7 @@ func (b *ClusterScopeBuilder) WithTagUnmanagedNetworkResources(value bool) *Clus
 func (b *ClusterScopeBuilder) Build() (scope.NetworkScope, error) {
 	scheme := runtime.NewScheme()
 	_ = infrav1.AddToScheme(scheme)
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
+	client := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(&infrav1.AWSCluster{}).Build()
 
 	param := &scope.ClusterScopeParams{
 		Client: client,
@@ -5033,6 +5033,9 @@ func (b *ClusterScopeBuilder) Build() (scope.NetworkScope, error) {
 		customizer(param)
 	}
 
+	if err := client.Create(context.TODO(), param.AWSCluster); err != nil {
+		return nil, err
+	}
 	return scope.NewClusterScope(*param)
 }
 

@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
 
@@ -189,6 +190,7 @@ func TestRosaClusterReconcile(t *testing.T) {
 				LastTransitionTime: metav1.NewTime(time.Now()),
 			},
 		}
+		conditions.Set(rosaCluster, metav1.Condition{Type: clusterv1.PausedCondition, Status: metav1.ConditionFalse, Reason: clusterv1.NotPausedReason})
 		g.Expect(rosaClsPatch.Patch(ctx, rosaCluster)).To(Succeed())
 		g.Expect(err).ShouldNot(HaveOccurred())
 

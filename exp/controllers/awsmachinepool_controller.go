@@ -54,11 +54,13 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ec2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/s3"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/v2/util/conditions"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/annotations"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
 
@@ -196,6 +198,10 @@ func (r *AWSMachinePoolReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 				expinfrav1.LaunchTemplateReadyCondition,
 			),
 		)
+		if err := infrautilconditions.SetV1Beta2Summary(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition,
+			expinfrav1.LaunchTemplateReadyCondition); err != nil && reterr == nil {
+			reterr = err
+		}
 
 		if err := machinePoolScope.Close(); err != nil && reterr == nil {
 			reterr = err
@@ -296,6 +302,11 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	if !ptr.Deref(machinePoolScope.Cluster.Status.Initialization.InfrastructureProvisioned, false) {
 		machinePoolScope.Info("Cluster infrastructure is not ready yet")
 		v1beta1conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, infrav1.WaitingForClusterInfrastructureReason, clusterv1beta1.ConditionSeverityInfo, "")
+		conditions.Set(machinePoolScope.AWSMachinePool, metav1.Condition{
+			Type:   expinfrav1.AWSMachinePoolASGReadyV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: infrav1.AWSMachineWaitingForClusterInfrastructureV1Beta2Reason,
+		})
 		return ctrl.Result{}, nil
 	}
 
@@ -303,12 +314,23 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	if machinePoolScope.MachinePool.Spec.Template.Spec.Bootstrap.DataSecretName == nil {
 		machinePoolScope.Info("Bootstrap data secret reference is not yet available")
 		v1beta1conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, infrav1.WaitingForBootstrapDataReason, clusterv1beta1.ConditionSeverityInfo, "")
+		conditions.Set(machinePoolScope.AWSMachinePool, metav1.Condition{
+			Type:   expinfrav1.AWSMachinePoolASGReadyV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: infrav1.AWSMachineWaitingForBootstrapDataV1Beta2Reason,
+		})
 		return ctrl.Result{}, nil
 	}
 
 	// AWS does not support Nitro Enclaves in Local Zones or Wavelength Zones. Check for that.
 	if err := validateEnclaveOptionsForEdgeZones(machinePoolScope); err != nil {
 		v1beta1conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.LaunchTemplateReadyCondition, expinfrav1.LaunchTemplateNitroEnclaveEdgeZoneReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+		conditions.Set(machinePoolScope.AWSMachinePool, metav1.Condition{
+			Type:    expinfrav1.AWSMachinePoolLaunchTemplateReadyV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  expinfrav1.AWSMachinePoolLaunchTemplateNitroEnclaveEdgeZoneV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return ctrl.Result{}, err
 	}
 
@@ -321,6 +343,12 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	asg, err := r.findASG(machinePoolScope, asgsvc)
 	if err != nil {
 		v1beta1conditions.MarkUnknown(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGNotFoundReason, "%s", err.Error())
+		conditions.Set(machinePoolScope.AWSMachinePool, metav1.Condition{
+			Type:    expinfrav1.AWSMachinePoolASGReadyV1Beta2Condition,
+			Status:  metav1.ConditionUnknown,
+			Reason:  expinfrav1.AWSMachinePoolASGNotFoundV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return ctrl.Result{}, err
 	}
 
@@ -374,11 +402,22 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 
 	// set the LaunchTemplateReady condition
 	v1beta1conditions.MarkTrue(machinePoolScope.AWSMachinePool, expinfrav1.LaunchTemplateReadyCondition)
+	conditions.Set(machinePoolScope.AWSMachinePool, metav1.Condition{
+		Type:   expinfrav1.AWSMachinePoolLaunchTemplateReadyV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 
 	if asg == nil {
 		// Create new ASG
 		if err := r.createPool(machinePoolScope, clusterScope); err != nil {
 			v1beta1conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGProvisionFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+			conditions.Set(machinePoolScope.AWSMachinePool, metav1.Condition{
+				Type:    expinfrav1.AWSMachinePoolASGReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  expinfrav1.AWSMachinePoolASGProvisionFailedV1Beta2Reason,
+				Message: err.Error(),
+			})
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{
@@ -395,12 +434,24 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 		if err := createAWSMachinesIfNotExists(ctx, awsMachineList, machinePoolScope.MachinePool, &machinePoolScope.AWSMachinePool.ObjectMeta, &machinePoolScope.AWSMachinePool.TypeMeta, asg, machinePoolScope.GetLogger(), r.Client, ec2Svc); err != nil {
 			machinePoolScope.SetNotReady()
 			v1beta1conditions.MarkFalse(machinePoolScope.AWSMachinePool, clusterv1beta1.ReadyCondition, expinfrav1.AWSMachineCreationFailed, clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+			conditions.Set(machinePoolScope.AWSMachinePool, metav1.Condition{
+				Type:    clusterv1.ReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  expinfrav1.AWSMachinePoolMachineCreationFailedV1Beta2Reason,
+				Message: err.Error(),
+			})
 			return ctrl.Result{}, fmt.Errorf("failed to create awsmachines: %w", err)
 		}
 
 		if err := deleteOrphanedAWSMachines(ctx, awsMachineList, asg, machinePoolScope.GetLogger(), r.Client); err != nil {
 			machinePoolScope.SetNotReady()
 			v1beta1conditions.MarkFalse(machinePoolScope.AWSMachinePool, clusterv1beta1.ReadyCondition, expinfrav1.AWSMachineDeletionFailed, clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+			conditions.Set(machinePoolScope.AWSMachinePool, metav1.Condition{
+				Type:    clusterv1.ReadyCondition,
+				Status:  metav1.ConditionFalse,
+				Reason:  expinfrav1.AWSMachinePoolMachineDeletionFailedV1Beta2Reason,
+				Message: err.Error(),
+			})
 			return ctrl.Result{}, fmt.Errorf("failed to clean up awsmachines: %w", err)
 		}
 	}
@@ -459,6 +510,11 @@ func (r *AWSMachinePoolReconciler) reconcileNormal(ctx context.Context, machineP
 	machinePoolScope.AWSMachinePool.Status.Replicas = int32(len(providerIDList)) //#nosec G115
 	machinePoolScope.AWSMachinePool.Status.Ready = true
 	v1beta1conditions.MarkTrue(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition)
+	conditions.Set(machinePoolScope.AWSMachinePool, metav1.Condition{
+		Type:   expinfrav1.AWSMachinePoolASGReadyV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 
 	err = machinePoolScope.UpdateInstanceStatuses(ctx, asg.Instances)
 	if err != nil {
@@ -526,6 +582,11 @@ func (r *AWSMachinePoolReconciler) reconcileDelete(ctx context.Context, machineP
 			// ASG is already deleting
 			machinePoolScope.SetNotReady()
 			v1beta1conditions.MarkFalse(machinePoolScope.AWSMachinePool, expinfrav1.ASGReadyCondition, expinfrav1.ASGDeletionInProgress, clusterv1beta1.ConditionSeverityWarning, "")
+			conditions.Set(machinePoolScope.AWSMachinePool, metav1.Condition{
+				Type:   expinfrav1.AWSMachinePoolASGReadyV1Beta2Condition,
+				Status: metav1.ConditionFalse,
+				Reason: expinfrav1.AWSMachinePoolASGDeletionInProgressV1Beta2Reason,
+			})
 			r.Recorder.Eventf(machinePoolScope.AWSMachinePool, corev1.EventTypeWarning, "DeletionInProgress", "ASG deletion in progress: %q", asg.Name)
 			machinePoolScope.Info("ASG is already deleting", "name", asg.Name)
 		default:

@@ -28,7 +28,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/test/builder"
 )
 
@@ -113,6 +117,81 @@ func TestEnsurePausedCondition(t *testing.T) {
 			g.Expect(err).ToNot(HaveOccurred())
 			g.Expect(gotConditionChanged).To(BeFalse(), "The second reconcile should not change the Paused condition")
 			g.Expect(gotIsPaused).To(Equal(tt.wantIsPaused))
+		})
+	}
+}
+
+func TestEnsurePausedConditionDualWrite(t *testing.T) {
+	for _, initiallyPaused := range []bool{false, true} {
+		name := "unpaused"
+		if initiallyPaused {
+			name = "paused"
+		}
+		t.Run(name, func(t *testing.T) {
+			g := NewWithT(t)
+			ctx := context.Background()
+			scheme := runtime.NewScheme()
+			g.Expect(infrav1.AddToScheme(scheme)).To(Succeed())
+			cluster := &clusterv1.Cluster{Spec: clusterv1.ClusterSpec{Paused: ptr.To(initiallyPaused)}}
+			obj := &infrav1.AWSCluster{ObjectMeta: metav1.ObjectMeta{Name: "cluster", Namespace: "default", Generation: 4}}
+			// A matching legacy condition must not prevent backfilling standard conditions.
+			legacy := pausedCondition(scheme, cluster, obj, clusterv1.PausedCondition)
+			v1beta1conditions.Set(obj, &legacy)
+			unrelated := metav1.Condition{Type: "OtherController", Status: metav1.ConditionTrue, Reason: "Observed"}
+			conditions.Set(obj, unrelated)
+			c := fake.NewClientBuilder().WithScheme(scheme).WithStatusSubresource(obj).WithObjects(obj).Build()
+
+			paused, changed, err := EnsurePausedCondition(ctx, c, cluster, obj)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(paused).To(Equal(initiallyPaused))
+			g.Expect(changed).To(BeTrue())
+			stored := &infrav1.AWSCluster{}
+			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(obj), stored)).To(Succeed())
+			actual := conditions.Get(stored, clusterv1.PausedCondition)
+			g.Expect(actual).ToNot(BeNil())
+			g.Expect(actual.Status).To(Equal(metav1.ConditionStatus(legacy.Status)))
+			g.Expect(actual.Reason).To(Equal(legacy.Reason))
+			g.Expect(actual.ObservedGeneration).To(Equal(int64(4)))
+			g.Expect(conditions.Get(stored, unrelated.Type)).ToNot(BeNil())
+			transition := actual.LastTransitionTime
+
+			_, changed, err = EnsurePausedCondition(ctx, c, cluster, obj)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(changed).To(BeFalse())
+			g.Expect(conditions.Get(obj, clusterv1.PausedCondition).LastTransitionTime).To(Equal(transition))
+
+			// A spec update refreshes observedGeneration without stopping unpaused reconciliation.
+			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(obj), obj)).To(Succeed())
+			obj.Generation++
+			g.Expect(c.Update(ctx, obj)).To(Succeed())
+			resourceVersion := obj.ResourceVersion
+			paused, changed, err = EnsurePausedCondition(ctx, c, cluster, obj)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(paused).To(Equal(initiallyPaused))
+			g.Expect(changed).To(BeFalse())
+			g.Expect(conditions.Get(obj, clusterv1.PausedCondition).ObservedGeneration).To(Equal(int64(5)))
+			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(obj), stored)).To(Succeed())
+			g.Expect(stored.ResourceVersion).ToNot(Equal(resourceVersion))
+			g.Expect(conditions.Get(stored, clusterv1.PausedCondition).ObservedGeneration).To(Equal(int64(5)))
+			g.Expect(conditions.Get(stored, clusterv1.PausedCondition).LastTransitionTime).To(Equal(transition))
+			g.Expect(conditions.Get(stored, unrelated.Type)).To(Equal(conditions.Get(obj, unrelated.Type)))
+			g.Expect(v1beta1conditions.HasSameState(v1beta1conditions.Get(stored, clusterv1beta1.PausedV1Beta2Condition), &legacy)).To(BeTrue())
+
+			// Once the new generation is saved, reconciliation must not patch again.
+			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(obj), obj)).To(Succeed())
+			resourceVersion = obj.ResourceVersion
+			_, changed, err = EnsurePausedCondition(ctx, c, cluster, obj)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(changed).To(BeFalse())
+			g.Expect(c.Get(ctx, client.ObjectKeyFromObject(obj), stored)).To(Succeed())
+			g.Expect(stored.ResourceVersion).To(Equal(resourceVersion))
+
+			cluster.Spec.Paused = ptr.To(!initiallyPaused)
+			paused, changed, err = EnsurePausedCondition(ctx, c, cluster, obj)
+			g.Expect(err).ToNot(HaveOccurred())
+			g.Expect(changed).To(BeTrue())
+			g.Expect(paused).To(Equal(!initiallyPaused))
+			g.Expect(conditions.Get(obj, clusterv1.PausedCondition).Status).To(Equal(metav1.ConditionStatus(v1beta1conditions.Get(obj, clusterv1beta1.PausedV1Beta2Condition).Status)))
 		})
 	}
 }

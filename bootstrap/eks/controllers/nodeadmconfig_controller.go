@@ -41,6 +41,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/bootstrap/eks/internal/userdata"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/v2/util/conditions"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/util/paused"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
@@ -48,10 +49,13 @@ import (
 	"sigs.k8s.io/cluster-api/feature"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
+	"sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	kubeconfigutil "sigs.k8s.io/cluster-api/util/kubeconfig"
-	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/predicates"
 )
+
+const nodeadmConfigKind = "NodeadmConfig"
 
 // NodeadmConfigReconciler reconciles a NodeadmConfig object.
 type NodeadmConfigReconciler struct {
@@ -79,7 +83,7 @@ func (r *NodeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		log.Error(err, "Failed to get config")
 		return ctrl.Result{}, err
 	}
-	log = log.WithValues("NodeadmConfig", config.GetName())
+	log = log.WithValues(nodeadmConfigKind, config.GetName())
 
 	// check owner references and look up owning Machine object
 	configOwner, err := bsutil.GetTypedConfigOwner(ctx, r.Client, config)
@@ -132,8 +136,13 @@ func (r *NodeadmConfigReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 			),
 			v1beta1conditions.WithStepCounter(),
 		)
+		if err := infrautilconditions.SetV1Beta2Summary(config, eksbootstrapv1.DataSecretAvailableCondition); err != nil && rerr == nil {
+			rerr = err
+		}
 
-		patchOpts := []patch.Option{}
+		patchOpts := []patch.Option{
+			patch.WithOwnedV1Beta2Conditions{Conditions: []string{eksbootstrapv1.NodeadmConfigReadyV1Beta2Condition, eksbootstrapv1.NodeadmConfigDataSecretAvailableV1Beta2Condition}},
+		}
 		if rerr == nil {
 			patchOpts = append(patchOpts, patch.WithStatusObservedGeneration{})
 		}
@@ -164,6 +173,11 @@ func (r *NodeadmConfigReconciler) joinWorker(ctx context.Context, cluster *clust
 		}
 		if err == nil {
 			// We already have a secret that we don't need to regenerate
+			conditions.Set(config, metav1.Condition{
+				Type:   eksbootstrapv1.NodeadmConfigDataSecretAvailableV1Beta2Condition,
+				Status: metav1.ConditionTrue,
+				Reason: clusterv1.ReadyReason,
+			})
 			return ctrl.Result{}, nil
 		}
 	}
@@ -178,12 +192,22 @@ func (r *NodeadmConfigReconciler) joinWorker(ctx context.Context, cluster *clust
 			eksbootstrapv1.DataSecretAvailableCondition,
 			eksbootstrapv1.WaitingForClusterInfrastructureReason,
 			clusterv1beta1.ConditionSeverityInfo, "")
+		conditions.Set(config, metav1.Condition{
+			Type:   eksbootstrapv1.NodeadmConfigDataSecretAvailableV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: eksbootstrapv1.NodeadmConfigWaitingForClusterInfrastructureV1Beta2Reason,
+		})
 		return ctrl.Result{}, nil
 	}
 
 	if !ptr.Deref(cluster.Status.Initialization.ControlPlaneInitialized, false) {
 		log.Info("Control Plane has not yet been initialized")
 		v1beta1conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.WaitingForControlPlaneInitializationReason, clusterv1beta1.ConditionSeverityInfo, "")
+		conditions.Set(config, metav1.Condition{
+			Type:   eksbootstrapv1.NodeadmConfigDataSecretAvailableV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: eksbootstrapv1.NodeadmConfigWaitingForControlPlaneInitializationV1Beta2Reason,
+		})
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 
@@ -201,6 +225,12 @@ func (r *NodeadmConfigReconciler) joinWorker(ctx context.Context, cluster *clust
 			clusterv1beta1.ConditionSeverityInfo,
 			"Control plane is not initialized yet",
 		)
+		conditions.Set(config, metav1.Condition{
+			Type:    eksbootstrapv1.NodeadmConfigDataSecretAvailableV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  eksbootstrapv1.NodeadmConfigDataSecretGenerationFailedV1Beta2Reason,
+			Message: "Control plane is not initialized yet",
+		})
 		return ctrl.Result{RequeueAfter: 30 * time.Second}, nil
 	}
 	log.Info("Control plane is ready, proceeding with userdata generation")
@@ -211,6 +241,12 @@ func (r *NodeadmConfigReconciler) joinWorker(ctx context.Context, cluster *clust
 	if err != nil {
 		log.Info("Failed to resolve files for user data")
 		v1beta1conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+		conditions.Set(config, metav1.Condition{
+			Type:    eksbootstrapv1.NodeadmConfigDataSecretAvailableV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  eksbootstrapv1.NodeadmConfigDataSecretGenerationFailedV1Beta2Reason,
+			Message: err.Error(),
+		})
 		return ctrl.Result{}, err
 	}
 
@@ -258,6 +294,12 @@ func (r *NodeadmConfigReconciler) joinWorker(ctx context.Context, cluster *clust
 			eksbootstrapv1.DataSecretGenerationFailedReason,
 			clusterv1beta1.ConditionSeverityWarning,
 			"Failed to extract CA from kubeconfig secret: %v", err)
+		conditions.Set(config, metav1.Condition{
+			Type:    eksbootstrapv1.NodeadmConfigDataSecretAvailableV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  eksbootstrapv1.NodeadmConfigDataSecretGenerationFailedV1Beta2Reason,
+			Message: fmt.Sprintf("Failed to extract CA from kubeconfig secret: %v", err),
+		})
 		return ctrl.Result{}, err
 	}
 	nodeInput.CACert = ca
@@ -270,6 +312,11 @@ func (r *NodeadmConfigReconciler) joinWorker(ctx context.Context, cluster *clust
 	if err != nil {
 		log.Error(err, "Failed to create a worker join configuration")
 		v1beta1conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1beta1.ConditionSeverityWarning, "")
+		conditions.Set(config, metav1.Condition{
+			Type:   eksbootstrapv1.NodeadmConfigDataSecretAvailableV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: eksbootstrapv1.NodeadmConfigDataSecretGenerationFailedV1Beta2Reason,
+		})
 		return ctrl.Result{}, err
 	}
 
@@ -277,10 +324,20 @@ func (r *NodeadmConfigReconciler) joinWorker(ctx context.Context, cluster *clust
 	if err := r.storeBootstrapData(ctx, cluster, config, userDataScript); err != nil {
 		log.Error(err, "Failed to store bootstrap data")
 		v1beta1conditions.MarkFalse(config, eksbootstrapv1.DataSecretAvailableCondition, eksbootstrapv1.DataSecretGenerationFailedReason, clusterv1beta1.ConditionSeverityWarning, "")
+		conditions.Set(config, metav1.Condition{
+			Type:   eksbootstrapv1.NodeadmConfigDataSecretAvailableV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: eksbootstrapv1.NodeadmConfigDataSecretGenerationFailedV1Beta2Reason,
+		})
 		return ctrl.Result{}, err
 	}
 
 	v1beta1conditions.MarkTrue(config, eksbootstrapv1.DataSecretAvailableCondition)
+	conditions.Set(config, metav1.Condition{
+		Type:   eksbootstrapv1.NodeadmConfigDataSecretAvailableV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 	return ctrl.Result{}, nil
 }
 
@@ -321,6 +378,11 @@ func (r *NodeadmConfigReconciler) storeBootstrapData(ctx context.Context, cluste
 	//nolint:staticcheck // we will support this implementation until CAPA is v1beta2 compliant
 	config.Status.Ready = true
 	v1beta1conditions.MarkTrue(config, eksbootstrapv1.DataSecretAvailableCondition)
+	conditions.Set(config, metav1.Condition{
+		Type:   eksbootstrapv1.NodeadmConfigDataSecretAvailableV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 	return nil
 }
 
@@ -335,7 +397,7 @@ func (r *NodeadmConfigReconciler) createBootstrapSecret(ctx context.Context, clu
 			OwnerReferences: []metav1.OwnerReference{
 				{
 					APIVersion: eksbootstrapv1.GroupVersion.String(),
-					Kind:       "NodeadmConfig",
+					Kind:       nodeadmConfigKind,
 					Name:       config.Name,
 					UID:        config.UID,
 					Controller: ptr.To[bool](true),
@@ -343,7 +405,7 @@ func (r *NodeadmConfigReconciler) createBootstrapSecret(ctx context.Context, clu
 			},
 		},
 		Data: map[string][]byte{
-			"value": data,
+			bootstrapDataKey: data,
 		},
 		Type: clusterv1.ClusterSecretType,
 	}
@@ -355,8 +417,8 @@ func (r *NodeadmConfigReconciler) updateBootstrapSecret(ctx context.Context, sec
 	if secret.Data == nil {
 		secret.Data = make(map[string][]byte)
 	}
-	if !bytes.Equal(secret.Data["value"], data) {
-		secret.Data["value"] = data
+	if !bytes.Equal(secret.Data[bootstrapDataKey], data) {
+		secret.Data[bootstrapDataKey] = data
 		return true, r.Client.Update(ctx, secret)
 	}
 	return false, nil

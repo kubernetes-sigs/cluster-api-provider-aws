@@ -208,6 +208,13 @@ func (s *ROSAControlPlaneScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.ControlPlane,
+		v1beta1patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			rosacontrolplanev1.ROSAControlPlaneReadyV1Beta2Condition,
+			rosacontrolplanev1.ROSAControlPlaneValidV1Beta2Condition,
+			rosacontrolplanev1.ROSAControlPlaneUpgradingV1Beta2Condition,
+			rosacontrolplanev1.ROSAControlPlaneExternalAuthConfiguredV1Beta2Condition,
+			rosacontrolplanev1.ROSAControlPlaneRoleConfigReadyV1Beta2Condition,
+		}},
 		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 			rosacontrolplanev1.ROSAControlPlaneReadyCondition,
 			rosacontrolplanev1.ROSAControlPlaneValidCondition,

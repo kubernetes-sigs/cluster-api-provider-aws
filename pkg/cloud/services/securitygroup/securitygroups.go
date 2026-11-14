@@ -25,6 +25,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	"github.com/aws/aws-sdk-go-v2/service/ec2/types"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/sets"
 
@@ -38,7 +39,9 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/tags"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/utils"
+	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/v2/util/conditions"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 )
 
@@ -198,6 +201,11 @@ func (s *Service) ReconcileSecurityGroups() error {
 		}
 	}
 	v1beta1conditions.MarkTrue(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition)
+	infrautilconditions.SetV1Beta2(s.scope.InfraCluster(), metav1.Condition{
+		Type:   infrav1.AWSClusterSecurityGroupsReadyV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 	return nil
 }
 
@@ -309,6 +317,11 @@ func (s *Service) DeleteSecurityGroups() error {
 	if s.scope.VPC().ID == "" {
 		s.scope.Debug("Skipping security group deletion, vpc-id is nil", "vpc-id", s.scope.VPC().ID)
 		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
+		infrautilconditions.SetV1Beta2(s.scope.InfraCluster(), metav1.Condition{
+			Type:   infrav1.AWSClusterSecurityGroupsReadyV1Beta2Condition,
+			Status: metav1.ConditionFalse,
+			Reason: clusterv1beta1.DeletedReason,
+		})
 		return nil
 	}
 
@@ -323,6 +336,11 @@ func (s *Service) DeleteSecurityGroups() error {
 	}
 
 	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1beta1.DeletingReason, clusterv1beta1.ConditionSeverityInfo, "")
+	infrautilconditions.SetV1Beta2(s.scope.InfraCluster(), metav1.Condition{
+		Type:   infrav1.AWSClusterSecurityGroupsReadyV1Beta2Condition,
+		Status: metav1.ConditionFalse,
+		Reason: clusterv1.DeletingReason,
+	})
 	if err := s.scope.PatchObject(); err != nil {
 		return err
 	}
@@ -332,6 +350,12 @@ func (s *Service) DeleteSecurityGroups() error {
 		current := sg.IngressRules
 		if err := s.revokeAllSecurityGroupIngressRules(sg.ID); awserrors.IsIgnorableSecurityGroupError(err) != nil { //nolint:gocritic
 			v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+			infrautilconditions.SetV1Beta2(s.scope.InfraCluster(), metav1.Condition{
+				Type:    infrav1.AWSClusterSecurityGroupsReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  "DeletingFailed",
+				Message: err.Error(),
+			})
 			return err
 		}
 
@@ -344,9 +368,20 @@ func (s *Service) DeleteSecurityGroups() error {
 
 	if err != nil {
 		v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, "DeletingFailed", clusterv1beta1.ConditionSeverityWarning, "%s", err.Error())
+		infrautilconditions.SetV1Beta2(s.scope.InfraCluster(), metav1.Condition{
+			Type:    infrav1.AWSClusterSecurityGroupsReadyV1Beta2Condition,
+			Status:  metav1.ConditionFalse,
+			Reason:  "DeletingFailed",
+			Message: err.Error(),
+		})
 		return err
 	}
 	v1beta1conditions.MarkFalse(s.scope.InfraCluster(), infrav1.ClusterSecurityGroupsReadyCondition, clusterv1beta1.DeletedReason, clusterv1beta1.ConditionSeverityInfo, "")
+	infrautilconditions.SetV1Beta2(s.scope.InfraCluster(), metav1.Condition{
+		Type:   infrav1.AWSClusterSecurityGroupsReadyV1Beta2Condition,
+		Status: metav1.ConditionFalse,
+		Reason: clusterv1beta1.DeletedReason,
+	})
 
 	return nil
 }

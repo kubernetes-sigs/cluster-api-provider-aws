@@ -272,6 +272,30 @@ func (s *ManagedControlPlaneScope) PatchObject() error {
 // with additional patch options.
 func (s *ManagedControlPlaneScope) PatchObjectWithOptions(opts ...v1beta1patch.Option) error {
 	allOpts := append([]v1beta1patch.Option{
+		v1beta1patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			ekscontrolplanev1.AWSManagedControlPlaneReadyV1Beta2Condition,
+			ekscontrolplanev1.AWSManagedControlPlaneEKSControlPlaneReadyV1Beta2Condition,
+			ekscontrolplanev1.AWSManagedControlPlaneEKSControlPlaneCreatingV1Beta2Condition,
+			ekscontrolplanev1.AWSManagedControlPlaneEKSControlPlaneUpdatingV1Beta2Condition,
+			ekscontrolplanev1.AWSManagedControlPlaneIAMControlPlaneRolesReadyV1Beta2Condition,
+			ekscontrolplanev1.AWSManagedControlPlaneIAMAuthenticatorConfiguredV1Beta2Condition,
+			ekscontrolplanev1.AWSManagedControlPlaneEKSAddonsConfiguredV1Beta2Condition,
+			ekscontrolplanev1.AWSManagedControlPlaneEKSIdentityProviderConfiguredV1Beta2Condition,
+			ekscontrolplanev1.AWSManagedControlPlaneEKSPodIdentityAssociationConfiguredV1Beta2Condition,
+			infrav1.AWSClusterVpcReadyV1Beta2Condition,
+			infrav1.AWSClusterSubnetsReadyV1Beta2Condition,
+			infrav1.AWSClusterInternetGatewayReadyV1Beta2Condition,
+			infrav1.AWSClusterEgressOnlyInternetGatewayReadyV1Beta2Condition,
+			infrav1.AWSClusterCarrierGatewayReadyV1Beta2Condition,
+			infrav1.AWSClusterNatGatewaysReadyV1Beta2Condition,
+			infrav1.AWSClusterRouteTablesReadyV1Beta2Condition,
+			infrav1.AWSClusterVpcEndpointsReadyV1Beta2Condition,
+			infrav1.AWSClusterSecondaryCidrsReadyV1Beta2Condition,
+			infrav1.AWSClusterSecurityGroupsReadyV1Beta2Condition,
+			infrav1.AWSClusterBastionHostReadyV1Beta2Condition,
+			infrav1.AWSClusterPrincipalCredentialRetrievedV1Beta2Condition,
+			infrav1.AWSClusterPrincipalUsageAllowedV1Beta2Condition,
+		}},
 		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 			infrav1.PrincipalUsageAllowedCondition,
 			infrav1.PrincipalCredentialRetrievedCondition,

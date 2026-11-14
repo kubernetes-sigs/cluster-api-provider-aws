@@ -21,6 +21,7 @@ import (
 
 	awsv2 "github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -33,6 +34,7 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -202,6 +204,16 @@ func (s *RosaMachinePoolScope) RosaMachinePoolReadyFalse(reason string, err stri
 		"%s",
 		err,
 	)
+	standardReason := reason
+	if reason == expinfrav1.WaitingForRosaControlPlaneReason {
+		standardReason = expinfrav1.ROSAMachinePoolWaitingForROSAControlPlaneV1Beta2Reason
+	}
+	conditions.Set(s.RosaMachinePool, metav1.Condition{
+		Type:    expinfrav1.ROSAMachinePoolReadyV1Beta2Condition,
+		Status:  metav1.ConditionFalse,
+		Reason:  standardReason,
+		Message: err,
+	})
 	if err := s.PatchObject(); err != nil {
 		return errors.Wrap(err, "failed to mark rosa machinepool not ready")
 	}
@@ -213,6 +225,10 @@ func (s *RosaMachinePoolScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.RosaMachinePool,
+		v1beta1patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			expinfrav1.ROSAMachinePoolReadyV1Beta2Condition,
+			expinfrav1.ROSAMachinePoolUpgradingV1Beta2Condition,
+		}},
 		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 			expinfrav1.RosaMachinePoolReadyCondition,
 		}})

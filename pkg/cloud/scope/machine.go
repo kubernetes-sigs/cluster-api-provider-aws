@@ -31,6 +31,7 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/v2/util/conditions"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
@@ -317,10 +318,20 @@ func (m *MachineScope) PatchObject() error {
 		v1beta1conditions.WithStepCounterIf(m.AWSMachine.ObjectMeta.DeletionTimestamp.IsZero()),
 		v1beta1conditions.WithStepCounter(),
 	)
+	if err := infrautilconditions.SetV1Beta2Summary(m.AWSMachine, applicableConditions...); err != nil {
+		return err
+	}
 
 	return m.patchHelper.Patch(
 		context.TODO(),
 		m.AWSMachine,
+		v1beta1patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			infrav1.AWSMachineReadyV1Beta2Condition,
+			infrav1.AWSMachineInstanceReadyV1Beta2Condition,
+			infrav1.AWSMachineSecurityGroupsReadyV1Beta2Condition,
+			infrav1.AWSMachineELBAttachedV1Beta2Condition,
+			infrav1.AWSMachineDedicatedHostReleaseV1Beta2Condition,
+		}},
 		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 			clusterv1beta1.ReadyCondition,
 			infrav1.InstanceReadyCondition,

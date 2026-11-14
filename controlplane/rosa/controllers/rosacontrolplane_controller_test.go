@@ -20,6 +20,7 @@ package controllers
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -41,10 +42,12 @@ import (
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	restclient "k8s.io/client-go/rest"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
@@ -58,6 +61,7 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	"sigs.k8s.io/cluster-api/util/kubeconfig"
 	"sigs.k8s.io/cluster-api/util/patch"
 	"sigs.k8s.io/cluster-api/util/secret"
@@ -564,15 +568,16 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 		userID:  "user-id",
 	}
 
+	clusterState := v1.ClusterStateInstalling
 	expect := func(m *mocks.MockOCMClientMockRecorder) {
 		m.ValidateHypershiftVersion(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterId string, nodePoolID string) (bool, error) {
 			return true, nil
-		}).Times(1)
+		}).Times(3)
 		m.GetCluster(gomock.Any(), gomock.Any()).DoAndReturn(func(clusterKey string, creator *rosaaws.Creator) (*v1.Cluster, error) {
 			sts := (&v1.STSBuilder{}).OIDCEndpointURL("oidc.com/oidc1")
 			aws := v1.NewAWS().AuditLog(v1.NewAuditLog().RoleArn("arn:aws:iam::123456789012:role/AuditLogRole")).STS(sts)
 			console := (&v1.ClusterConsoleBuilder{}).URL("https://console.redhat.com/cluster-123")
-			status := (&v1.ClusterStatusBuilder{}).State(v1.ClusterStateReady)
+			status := (&v1.ClusterStatusBuilder{}).State(clusterState).Description("installing cluster").ProvisionErrorCode("ProvisioningFailed")
 			api := (&v1.ClusterAPIBuilder{}).URL("https://url.com:5000")
 			version := (&v1.VersionBuilder{}).RawID(rosaControlPlane.Spec.Version)
 			mockCluster, _ := v1.NewCluster().AWS(aws).ID("cluster-1").Version(version).Status(status).Console(console).API(api).
@@ -584,7 +589,7 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 						Insecure(false))).
 				Build()
 			return mockCluster, nil
-		}).Times(1)
+		}).Times(3)
 		m.GetLogForwarders(gomock.Any()).DoAndReturn(func(clusterID string) ([]*v1.LogForwarder, error) {
 			logs := []*v1.LogForwarder{}
 			return logs, nil
@@ -660,6 +665,7 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 		}},
 	}
 
+	conditions.Set(rosaControlPlane, metav1.Condition{Type: clusterv1.PausedCondition, Status: metav1.ConditionFalse, Reason: clusterv1.NotPausedReason})
 	g.Expect(cpPh.Patch(ctx, rosaControlPlane)).To(Succeed())
 
 	time.Sleep(50 * time.Millisecond)
@@ -683,6 +689,26 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 
 	req := ctrl.Request{}
 	req.NamespacedName = types.NamespacedName{Name: rosaControlPlane.Name, Namespace: rosaControlPlane.Namespace}
+	for _, observed := range []struct {
+		state   v1.ClusterState
+		reason  string
+		message string
+	}{
+		{state: v1.ClusterStateInstalling, reason: rosacontrolplanev1.ROSAControlPlaneNotReadyV1Beta2Reason, message: "installing cluster"},
+		{state: v1.ClusterStateError, reason: rosacontrolplanev1.ROSAControlPlaneReconciliationFailedV1Beta2Reason, message: "ProvisioningFailed"},
+	} {
+		clusterState = observed.state
+		_, errReconcile := r.Reconcile(ctx, req)
+		g.Expect(errReconcile).ToNot(HaveOccurred())
+		g.Expect(testEnv.Get(ctx, key, cp)).To(Succeed())
+		g.Expect(v1beta1conditions.IsFalse(cp, rosacontrolplanev1.ROSAControlPlaneReadyCondition)).To(BeTrue())
+		ready := conditions.Get(cp, rosacontrolplanev1.ROSAControlPlaneReadyV1Beta2Condition)
+		g.Expect(ready).ToNot(BeNil())
+		g.Expect(ready.Status).To(Equal(metav1.ConditionFalse))
+		g.Expect(ready.Reason).To(Equal(observed.reason))
+		g.Expect(ready.Message).To(Equal(observed.message))
+	}
+	clusterState = v1.ClusterStateReady
 	_, errReconcile := r.Reconcile(ctx, req)
 	g.Expect(errReconcile).ToNot(HaveOccurred())
 	time.Sleep(50 * time.Millisecond)
@@ -691,6 +717,12 @@ func TestRosaControlPlaneReconcileStatusVersion(t *testing.T) {
 	g.Expect(errGet2).NotTo(HaveOccurred())
 	g.Expect(cp.Status.Version).To(Equal(rosaControlPlane.Spec.Version))
 	g.Expect(cp.Status.Ready).To(BeTrue())
+	g.Expect(v1beta1conditions.IsTrue(cp, rosacontrolplanev1.ROSAControlPlaneReadyCondition)).To(BeTrue())
+	ready := conditions.Get(cp, rosacontrolplanev1.ROSAControlPlaneReadyV1Beta2Condition)
+	g.Expect(ready).ToNot(BeNil())
+	g.Expect(ready.Status).To(Equal(metav1.ConditionTrue))
+	g.Expect(ready.Reason).To(Equal(clusterv1.ReadyReason))
+	g.Expect(ready.Message).To(BeEmpty())
 
 	// cleanup
 	for _, obj := range objects {
@@ -2370,6 +2402,55 @@ func TestComponentRoutesEqual(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			g := NewWithT(t)
 			g.Expect(componentRoutesEqual(tt.current, tt.desired)).To(Equal(tt.want))
+		})
+	}
+}
+
+func TestROSAControlPlaneDeletionConditions(t *testing.T) {
+	for _, tt := range []struct {
+		name        string
+		state       v1.ClusterState
+		deleteError error
+		reason      string
+	}{
+		{name: "deletion requested", state: v1.ClusterStateReady, reason: rosacontrolplanev1.ROSAControlPlaneDeletingV1Beta2Reason},
+		{name: "already deleting", state: v1.ClusterStateUninstalling, reason: rosacontrolplanev1.ROSAControlPlaneDeletingV1Beta2Reason},
+		{name: "deletion failed", state: v1.ClusterStateReady, deleteError: errors.New("deletion denied"), reason: rosacontrolplanev1.ROSAControlPlaneDeletionFailedV1Beta2Reason},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			g := NewWithT(t)
+			ctx := context.Background()
+			scheme := runtime.NewScheme()
+			g.Expect(clusterv1.AddToScheme(scheme)).To(Succeed())
+			obj := &rosacontrolplanev1.ROSAControlPlane{ObjectMeta: metav1.ObjectMeta{Name: "control-plane", Namespace: "default", Generation: 2}, Spec: rosacontrolplanev1.RosaControlPlaneSpec{RosaClusterName: "rosa-cluster"}}
+			v1beta1conditions.MarkTrue(obj, rosacontrolplanev1.ROSAControlPlaneReadyCondition)
+			conditions.Set(obj, metav1.Condition{Type: rosacontrolplanev1.ROSAControlPlaneReadyV1Beta2Condition, Status: metav1.ConditionTrue, Reason: clusterv1.ReadyReason})
+			c := fake.NewClientBuilder().WithScheme(scheme).Build()
+			s := &scope.ROSAControlPlaneScope{Client: c, ControlPlane: obj, Cluster: &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "cluster", Namespace: "default"}}, Logger: *logger.FromContext(ctx)}
+			cluster, err := v1.NewCluster().ID("cluster-id").Status(v1.NewClusterStatus().State(tt.state)).DeleteProtection(v1.NewDeleteProtection().Enabled(false)).Build()
+			g.Expect(err).ToNot(HaveOccurred())
+			creator := &rosaaws.Creator{}
+			ocmClient := mocks.NewMockOCMClient(gomock.NewController(t))
+			ocmClient.EXPECT().GetCluster(obj.Spec.RosaClusterName, creator).Return(cluster, nil)
+			if tt.state != v1.ClusterStateUninstalling {
+				ocmClient.EXPECT().DeleteCluster(cluster.ID(), false, creator).Return(nil, tt.deleteError)
+			}
+			r := &ROSAControlPlaneReconciler{Client: c, NewOCMClient: func(context.Context, *scope.ROSAControlPlaneScope) (rosa.OCMClient, error) { return ocmClient, nil }}
+			result, err := r.reconcileDelete(ctx, s, creator)
+			if tt.deleteError != nil {
+				g.Expect(err).To(MatchError(tt.deleteError))
+			} else {
+				g.Expect(err).ToNot(HaveOccurred())
+				g.Expect(result.RequeueAfter).To(BeNumerically(">", 0))
+			}
+			legacy := v1beta1conditions.Get(obj, rosacontrolplanev1.ROSAControlPlaneReadyCondition)
+			g.Expect(v1beta1conditions.IsFalse(obj, rosacontrolplanev1.ROSAControlPlaneReadyCondition)).To(BeTrue())
+			standard := conditions.Get(obj, rosacontrolplanev1.ROSAControlPlaneReadyV1Beta2Condition)
+			g.Expect(standard).ToNot(BeNil())
+			g.Expect(standard.Status).To(Equal(metav1.ConditionFalse))
+			g.Expect(standard.Reason).To(Equal(tt.reason))
+			g.Expect(standard.Message).To(Equal(legacy.Message))
+			g.Expect(standard.ObservedGeneration).To(Equal(int64(2)))
 		})
 	}
 }

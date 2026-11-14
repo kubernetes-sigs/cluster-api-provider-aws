@@ -176,6 +176,14 @@ func (m *MachinePoolScope) PatchObject() error {
 	return m.patchHelper.Patch(
 		context.TODO(),
 		m.AWSMachinePool,
+		v1beta1patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			expinfrav1.AWSMachinePoolReadyV1Beta2Condition,
+			expinfrav1.AWSMachinePoolASGReadyV1Beta2Condition,
+			expinfrav1.AWSMachinePoolLaunchTemplateReadyV1Beta2Condition,
+			expinfrav1.AWSMachinePoolPreLaunchTemplateUpdateCheckV1Beta2Condition,
+			expinfrav1.AWSMachinePoolPostLaunchTemplateUpdateOperationV1Beta2Condition,
+			expinfrav1.AWSMachinePoolInstanceRefreshStartedV1Beta2Condition,
+		}},
 		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 			expinfrav1.ASGReadyCondition,
 			expinfrav1.LaunchTemplateReadyCondition,
@@ -187,6 +195,7 @@ func (m *MachinePoolScope) PatchCAPIMachinePoolObject(ctx context.Context) error
 	return m.capiMachinePoolPatchHelper.Patch(
 		ctx,
 		m.MachinePool,
+		patch.WithOwnedConditions{Conditions: []string{expinfrav1.AWSMachinePoolLifecycleHookReadyV1Beta2Condition}},
 	)
 }
 
