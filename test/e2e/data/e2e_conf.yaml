@@ -185,9 +185,9 @@ providers:
 variables:
   # Default variables for the e2e test; those values could be overridden via env variables, thus
   # allowing the same e2e config file to be re-used in different Prow jobs e.g. each one with a K8s version permutation.
-  # The following Kubernetes versions should be the latest versions with already published kindest/node images.
-  # This avoids building node images in the default case which improves the test duration significantly.
-  KUBERNETES_VERSION_MANAGEMENT: "v1.35.5" # Kind bootstrap
+  # KUBERNETES_VERSION_MANAGEMENT is used for the kind bootstrap cluster. If kind has not published a node image
+  # for this version, the e2e suite builds one locally from the Kubernetes release artifacts.
+  KUBERNETES_VERSION_MANAGEMENT: "v1.35.7" # Kind bootstrap
   KUBERNETES_VERSION: "v1.35.7"
   KUBERNETES_VERSION_UPGRADE_TO: "v1.35.7"
   KUBERNETES_VERSION_UPGRADE_FROM: "v1.34.10"
@@ -215,7 +215,7 @@ variables:
   INIT_WITH_BINARY_V1BETA1: "https://github.com/kubernetes-sigs/cluster-api/releases/download/v1.2.0/clusterctl-{OS}-{ARCH}"
   # INIT_WITH_KUBERNETES_VERSION are only used by the clusterctl upgrade test to initialize
   # the management cluster to be upgraded.
-  INIT_WITH_KUBERNETES_VERSION: "v1.35.5"
+  INIT_WITH_KUBERNETES_VERSION: "v1.35.7"
   EXP_BOOTSTRAP_FORMAT_IGNITION: "true"
   EXP_KUBEADM_BOOTSTRAP_FORMAT_IGNITION: "true"
   GC_WORKLOAD: "../../data/gcworkload.yaml"
