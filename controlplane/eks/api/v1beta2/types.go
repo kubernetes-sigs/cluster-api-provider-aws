@@ -331,6 +331,116 @@ var (
 	ControlPlaneScalingTier4XL = ControlPlaneScalingTier("tier-4xl")
 )
 
+// KubeSchedulerConfig specifies the configuration for the Kubernetes scheduler of an EKS control plane.
+type KubeSchedulerConfig struct {
+	// NodeResourcesFit specifies the configuration of the NodeResourcesFit scheduler plugin.
+	// +optional
+	NodeResourcesFit *NodeResourcesFitConfig `json:"nodeResourcesFit,omitempty"`
+}
+
+// NodeResourcesFitConfig specifies the configuration of the NodeResourcesFit scheduler plugin.
+type NodeResourcesFitConfig struct {
+	// ScoringStrategy specifies how the scheduler scores nodes based on resource allocation.
+	// +optional
+	ScoringStrategy *ScoringStrategy `json:"scoringStrategy,omitempty"`
+}
+
+// ScoringStrategy specifies the scoring strategy of the NodeResourcesFit scheduler plugin.
+type ScoringStrategy struct {
+	// Type is the scoring strategy type.
+	// LeastAllocated favors nodes with lower resource allocation, MostAllocated favors nodes with higher resource allocation.
+	// +kubebuilder:validation:Enum=LeastAllocated;MostAllocated
+	Type ScoringStrategyType `json:"type"`
+
+	// Resources are the resources considered when scoring nodes, each with a relative weight.
+	// When set, only the listed resources are scored.
+	// Supported resources include cpu, memory, nvidia.com/gpu, aws.amazon.com/neuron and aws.amazon.com/neuroncore.
+	// +optional
+	// +listType=map
+	// +listMapKey=name
+	Resources []ResourceWeight `json:"resources,omitempty"`
+}
+
+// ScoringStrategyType is the scoring strategy type of the NodeResourcesFit scheduler plugin.
+type ScoringStrategyType string
+
+const (
+	// ScoringStrategyTypeLeastAllocated favors nodes with lower resource allocation.
+	ScoringStrategyTypeLeastAllocated = ScoringStrategyType("LeastAllocated")
+
+	// ScoringStrategyTypeMostAllocated favors nodes with higher resource allocation.
+	ScoringStrategyTypeMostAllocated = ScoringStrategyType("MostAllocated")
+)
+
+// ResourceWeight specifies the weight of a resource for the scheduler scoring strategy.
+type ResourceWeight struct {
+	// Name is the name of the resource, for example cpu or memory.
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+
+	// Weight is the relative weight of the resource.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=100
+	Weight int32 `json:"weight"`
+}
+
+// KubeAPIServerConfig specifies the configuration for the Kubernetes API server of an EKS control plane.
+type KubeAPIServerConfig struct {
+	// EventTTL is the duration that Kubernetes events are retained, as a single-unit duration such as 30m or 1h.
+	// EKS validates the supported range for the Kubernetes version of the cluster.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(s|m|h)$`
+	// +optional
+	EventTTL string `json:"eventTTL,omitempty"`
+
+	// ServiceNodePortRange is the port range for NodePort services.
+	// +optional
+	ServiceNodePortRange *ServiceNodePortRange `json:"serviceNodePortRange,omitempty"`
+}
+
+// ServiceNodePortRange specifies the port range for NodePort services.
+type ServiceNodePortRange struct {
+	// MinPort is the first port of the range.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	MinPort int32 `json:"minPort"`
+
+	// MaxPort is the last port of the range.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	MaxPort int32 `json:"maxPort"`
+}
+
+// KubeControllerManagerConfig specifies the configuration for the Kubernetes controller manager of an EKS control plane.
+type KubeControllerManagerConfig struct {
+	// HorizontalPodAutoscalerControllerConfig specifies the configuration of the horizontal pod autoscaler controller.
+	// Requires a provisioned control plane tier.
+	// +optional
+	HorizontalPodAutoscalerControllerConfig *HorizontalPodAutoscalerControllerConfig `json:"horizontalPodAutoscalerControllerConfig,omitempty"`
+
+	// PodGCControllerConfig specifies the configuration of the pod garbage collection controller.
+	// Requires a provisioned control plane tier.
+	// +optional
+	PodGCControllerConfig *PodGCControllerConfig `json:"podGCControllerConfig,omitempty"`
+}
+
+// HorizontalPodAutoscalerControllerConfig specifies the configuration of the horizontal pod autoscaler controller.
+type HorizontalPodAutoscalerControllerConfig struct {
+	// HorizontalPodAutoscalerSyncPeriod is how often the horizontal pod autoscaler evaluates metrics,
+	// as a single-unit duration such as 15s.
+	// +kubebuilder:validation:Pattern=`^[0-9]+(s|m|h)$`
+	// +optional
+	HorizontalPodAutoscalerSyncPeriod string `json:"horizontalPodAutoscalerSyncPeriod,omitempty"`
+}
+
+// PodGCControllerConfig specifies the configuration of the pod garbage collection controller.
+type PodGCControllerConfig struct {
+	// TerminatedPodGCThreshold is the number of terminated pods that can exist before the garbage collector
+	// starts deleting them.
+	// +kubebuilder:validation:Minimum=1
+	// +optional
+	TerminatedPodGCThreshold *int32 `json:"terminatedPodGCThreshold,omitempty"`
+}
+
 const (
 	// SecurityGroupCluster is the security group for communication between EKS
 	// control plane and managed node groups.

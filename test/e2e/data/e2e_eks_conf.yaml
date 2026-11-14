@@ -120,6 +120,8 @@ providers:
         targetName: "cluster-template-eks-ipv6-cluster.yaml"
       - sourcePath: "./eks/cluster-template-eks-upgrade-policy.yaml"
         targetName: "cluster-template-eks-upgrade-policy.yaml"
+      - sourcePath: "./eks/cluster-template-eks-control-plane-config.yaml"
+        targetName: "cluster-template-eks-control-plane-config.yaml"
       - sourcePath: "./eks/cluster-template-eks-control-plane-only-legacy.yaml"
         targetName: "cluster-template-eks-control-plane-only-legacy.yaml"
       - sourcePath: "./eks/cluster-template-eks-control-plane-bare-eks.yaml"

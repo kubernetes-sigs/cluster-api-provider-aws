@@ -52,6 +52,7 @@ const (
 	EKSIPv6ClusterFlavor                              = "eks-ipv6-cluster"
 	EKSUpgradePolicyFlavor                            = "eks-upgrade-policy"
 	EKSScalingConfigFlavor                            = "eks-scaling-config"
+	EKSControlPlaneConfigFlavor                       = "eks-control-plane-config"
 	EKSControlPlaneOnlyLegacyFlavor                   = "eks-control-plane-only-legacy"
 	EKSClusterClassFlavor                             = "eks-clusterclass"
 	EKSAuthAPIAndConfigMapFlavor                      = "eks-auth-api-and-config-map"

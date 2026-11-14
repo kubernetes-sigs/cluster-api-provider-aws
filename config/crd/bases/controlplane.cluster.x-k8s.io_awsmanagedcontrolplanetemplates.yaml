@@ -436,6 +436,71 @@ spec:
                           machine does not specify an AMI. When set, this will be used for all
                           cluster machines unless a machine specifies a different ImageLookupOrg.
                         type: string
+                      kubeAPIServerConfig:
+                        description: |-
+                          KubeAPIServerConfig specifies the configuration for the Kubernetes API server of the EKS control plane.
+                          When omitted, CAPA does not manage the API server configuration and EKS defaults apply.
+                        properties:
+                          eventTTL:
+                            description: |-
+                              EventTTL is the duration that Kubernetes events are retained, as a single-unit duration such as 30m or 1h.
+                              EKS validates the supported range for the Kubernetes version of the cluster.
+                            pattern: ^[0-9]+(s|m|h)$
+                            type: string
+                          serviceNodePortRange:
+                            description: ServiceNodePortRange is the port range for
+                              NodePort services.
+                            properties:
+                              maxPort:
+                                description: MaxPort is the last port of the range.
+                                format: int32
+                                maximum: 65535
+                                minimum: 1
+                                type: integer
+                              minPort:
+                                description: MinPort is the first port of the range.
+                                format: int32
+                                maximum: 65535
+                                minimum: 1
+                                type: integer
+                            required:
+                            - maxPort
+                            - minPort
+                            type: object
+                        type: object
+                      kubeControllerManagerConfig:
+                        description: |-
+                          KubeControllerManagerConfig specifies the configuration for the Kubernetes controller manager of the EKS control plane.
+                          When omitted, CAPA does not manage the controller manager configuration and EKS defaults apply.
+                          Some parameters, such as the horizontal pod autoscaler sync period, require a provisioned control plane tier
+                          (see ControlPlaneScalingConfig).
+                        properties:
+                          horizontalPodAutoscalerControllerConfig:
+                            description: |-
+                              HorizontalPodAutoscalerControllerConfig specifies the configuration of the horizontal pod autoscaler controller.
+                              Requires a provisioned control plane tier.
+                            properties:
+                              horizontalPodAutoscalerSyncPeriod:
+                                description: |-
+                                  HorizontalPodAutoscalerSyncPeriod is how often the horizontal pod autoscaler evaluates metrics,
+                                  as a single-unit duration such as 15s.
+                                pattern: ^[0-9]+(s|m|h)$
+                                type: string
+                            type: object
+                          podGCControllerConfig:
+                            description: |-
+                              PodGCControllerConfig specifies the configuration of the pod garbage collection controller.
+                              Requires a provisioned control plane tier.
+                            properties:
+                              terminatedPodGCThreshold:
+                                description: |-
+                                  TerminatedPodGCThreshold is the number of terminated pods that can exist before the garbage collector
+                                  starts deleting them.
+                                format: int32
+                                minimum: 1
+                                type: integer
+                            type: object
+                        type: object
                       kubeProxy:
                         description: KubeProxy defines managed attributes of the kube-proxy
                           daemonset
@@ -449,6 +514,62 @@ spec:
                               provides a way to specify that the kube-proxy daemonset should be deleted. You cannot
                               set this to true if you are using the Amazon kube-proxy addon.
                             type: boolean
+                        type: object
+                      kubeSchedulerConfig:
+                        description: |-
+                          KubeSchedulerConfig specifies the configuration for the Kubernetes scheduler of the EKS control plane.
+                          When omitted, CAPA does not manage the scheduler configuration and EKS defaults apply.
+                          (Official AWS docs: https://docs.aws.amazon.com/eks/latest/userguide/control-plane-configuration.html)
+                        properties:
+                          nodeResourcesFit:
+                            description: NodeResourcesFit specifies the configuration
+                              of the NodeResourcesFit scheduler plugin.
+                            properties:
+                              scoringStrategy:
+                                description: ScoringStrategy specifies how the scheduler
+                                  scores nodes based on resource allocation.
+                                properties:
+                                  resources:
+                                    description: |-
+                                      Resources are the resources considered when scoring nodes, each with a relative weight.
+                                      When set, only the listed resources are scored.
+                                      Supported resources include cpu, memory, nvidia.com/gpu, aws.amazon.com/neuron and aws.amazon.com/neuroncore.
+                                    items:
+                                      description: ResourceWeight specifies the weight
+                                        of a resource for the scheduler scoring strategy.
+                                      properties:
+                                        name:
+                                          description: Name is the name of the resource,
+                                            for example cpu or memory.
+                                          minLength: 1
+                                          type: string
+                                        weight:
+                                          description: Weight is the relative weight
+                                            of the resource.
+                                          format: int32
+                                          maximum: 100
+                                          minimum: 1
+                                          type: integer
+                                      required:
+                                      - name
+                                      - weight
+                                      type: object
+                                    type: array
+                                    x-kubernetes-list-map-keys:
+                                    - name
+                                    x-kubernetes-list-type: map
+                                  type:
+                                    description: |-
+                                      Type is the scoring strategy type.
+                                      LeastAllocated favors nodes with lower resource allocation, MostAllocated favors nodes with higher resource allocation.
+                                    enum:
+                                    - LeastAllocated
+                                    - MostAllocated
+                                    type: string
+                                required:
+                                - type
+                                type: object
+                            type: object
                         type: object
                       logging:
                         description: |-

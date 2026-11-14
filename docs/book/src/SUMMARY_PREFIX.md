@@ -22,6 +22,7 @@
     - [Using EKS Console](./topics/eks/eks-console.md)
     - [Using EKS Addons](./topics/eks/addons.md)
     - [Enabling Encryption](./topics/eks/encryption.md)
+    - [Control Plane Component Configuration](./topics/eks/control-plane-configuration.md)
     - [Cluster Upgrades](./topics/eks/cluster-upgrades.md)
   - [ROSA Support](./topics/rosa/index.md)
     - [Enabling ROSA Support](./topics/rosa/enabling.md)
