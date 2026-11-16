@@ -155,7 +155,6 @@ providers:
           - sourcePath: "./infrastructure-aws/withclusterclass/generated/cluster-template-topology.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-upgrade-to-main.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template.yaml"
-          - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-gpu.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-upgrades.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-peered-remote.yaml"
           - sourcePath: "./infrastructure-aws/withoutclusterclass/generated/cluster-template-internal-elb.yaml"

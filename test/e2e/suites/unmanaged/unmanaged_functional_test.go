@@ -117,56 +117,6 @@ var _ = ginkgo.Context("[unmanaged] [functional]", func() {
 		})
 	})
 
-	ginkgo.Describe("GPU-enabled cluster test", func() {
-		ginkgo.It("should create cluster with single worker", func() {
-			// temporary skip until the test is either updated or refactored
-			// https://github.com/kubernetes-sigs/cluster-api-provider-aws/issues/5870
-			ginkgo.Skip("Skipping GPU e2e tests")
-			specName := "functional-gpu-cluster"
-			namespace := shared.SetupSpecNamespace(ctx, specName, e2eCtx)
-			if !e2eCtx.Settings.SkipQuotas {
-				// Change the multiplier for EC2GPU if GPU type is changed. g4dn.xlarge uses 2 vCPU
-				requiredResources = &shared.TestResource{EC2GPU: 2 * 2, IGW: 1, NGW: 1, VPC: 1, ClassicLB: 1, EIP: 1, EventBridgeRules: 50}
-				requiredResources.WriteRequestedResources(e2eCtx, "gpu-test")
-
-				Expect(shared.AcquireResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))).To(Succeed())
-				defer shared.ReleaseResources(requiredResources, ginkgo.GinkgoParallelProcess(), flock.New(shared.ResourceQuotaFilePath))
-			}
-
-			ginkgo.By("Creating cluster with a single worker")
-			clusterName := fmt.Sprintf("%s-%s", specName, util.RandomString(6))
-
-			clusterctl.ApplyClusterTemplateAndWait(ctx, clusterctl.ApplyClusterTemplateAndWaitInput{
-				ClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-				ConfigCluster: clusterctl.ConfigClusterInput{
-					LogFolder:                filepath.Join(e2eCtx.Settings.ArtifactFolder, "clusters", e2eCtx.Environment.BootstrapClusterProxy.GetName()),
-					ClusterctlConfigPath:     e2eCtx.Environment.ClusterctlConfigPath,
-					KubeconfigPath:           e2eCtx.Environment.BootstrapClusterProxy.GetKubeconfigPath(),
-					InfrastructureProvider:   clusterctl.DefaultInfrastructureProvider,
-					Flavor:                   shared.GPUFlavor,
-					Namespace:                namespace.Name,
-					ClusterName:              clusterName,
-					KubernetesVersion:        e2eCtx.E2EConfig.MustGetVariable(shared.KubernetesVersion),
-					ControlPlaneMachineCount: ptr.To[int64](1),
-					WorkerMachineCount:       ptr.To[int64](1),
-				},
-				WaitForClusterIntervals:      e2eCtx.E2EConfig.GetIntervals(specName, "wait-cluster"),
-				WaitForControlPlaneIntervals: e2eCtx.E2EConfig.GetIntervals(specName, "wait-control-plane"),
-				WaitForMachineDeployments:    e2eCtx.E2EConfig.GetIntervals(specName, "wait-worker-nodes"),
-				// GPU operator components are deployed via ClusterResourceSet which handles large ConfigMaps
-				// without the kubectl annotation size limit issues that occur with client-side apply.
-			}, result)
-
-			shared.AWSGPUSpec(ctx, e2eCtx, shared.AWSGPUSpecInput{
-				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
-				NamespaceName:         namespace.Name,
-				ClusterName:           clusterName,
-				SkipCleanup:           false,
-			})
-			ginkgo.By("PASSED!")
-		})
-	})
-
 	ginkgo.Describe("Multitenancy test", func() {
 		ginkgo.It("should create cluster with nested assumed role", func() {
 			// Setup a Namespace where to host objects for this spec and create a watcher for the namespace events.
