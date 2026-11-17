@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -75,6 +76,7 @@ func (s *Service) ReconcileLaunchTemplate(
 	canStartInstanceRefresh func() (bool, *autoscalingtypes.InstanceRefreshStatus, error),
 	cancelInstanceRefresh func() error,
 	runPostLaunchTemplateUpdateOperation func() error,
+	canPruneLaunchTemplateVersions func() (bool, []string, error),
 ) (*ctrl.Result, error) {
 	bootstrapData, bootstrapDataFormat, bootstrapDataSecretKey, err := scope.GetRawBootstrapData()
 	if err != nil {
@@ -283,9 +285,19 @@ func (s *Service) ReconcileLaunchTemplate(
 
 		// There is a limit to the number of Launch Template Versions.
 		// We ensure that the number of versions does not grow without bound by following a simple rule: Before we create a new version, we delete one old version, if there is at least one old version that is not in use.
-		deletedLaunchTemplateVersion, err := ec2svc.PruneLaunchTemplateVersions(scope.GetLaunchTemplateIDStatus())
-		if err != nil {
-			return nil, err
+		// Prune only when the consumer has converged, never delete an in-use version, never block the new version.
+		var deletedLaunchTemplateVersion *types.LaunchTemplateVersion
+		canPrune, inUseVersions, err := canPruneLaunchTemplateVersions()
+		switch {
+		case err != nil:
+			scope.Error(err, "skipping launch template prune: failed to determine launch template versions in use", "launchTemplateID", scope.GetLaunchTemplateIDStatus())
+		case !canPrune:
+			scope.Info("skipping launch template prune: consumer has not converged on the latest launch template version", "launchTemplateID", scope.GetLaunchTemplateIDStatus(), "inUseVersions", inUseVersions)
+		default:
+			deletedLaunchTemplateVersion, err = ec2svc.PruneLaunchTemplateVersions(scope.GetLaunchTemplateIDStatus(), inUseVersions)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		// S3 objects should be deleted as soon as possible if they're not used
@@ -779,8 +791,9 @@ func (s *Service) DeleteLaunchTemplate(id string) error {
 // It does not delete the "latest" version, because that version may still be in use.
 // It does not delete the "default" version, because that version cannot be deleted.
 // It does not assume that versions are sequential. Versions may be deleted out of band.
+// It never deletes a version listed in inUseVersions.
 // If there was an unused version which was successfully deleted, it is returned.
-func (s *Service) PruneLaunchTemplateVersions(id string) (*types.LaunchTemplateVersion, error) {
+func (s *Service) PruneLaunchTemplateVersions(id string, inUseVersions []string) (*types.LaunchTemplateVersion, error) {
 	// When there is one version available, it is the default and the latest.
 	// When there are two versions available, one the is the default, the other is the latest.
 	// Therefore we only prune when there are at least 3 versions available.
@@ -808,6 +821,10 @@ func (s *Service) PruneLaunchTemplateVersions(id string) (*types.LaunchTemplateV
 		return nil, nil
 	}
 	versionToPrune := out.LaunchTemplateVersions[1]
+	if versionToPrune.VersionNumber != nil && slices.Contains(inUseVersions, strconv.FormatInt(*versionToPrune.VersionNumber, 10)) {
+		s.scope.Info("skipping launch template prune: version is still in use", "id", id, "version", *versionToPrune.VersionNumber)
+		return nil, nil
+	}
 	err = s.deleteLaunchTemplateVersion(id, versionToPrune.VersionNumber)
 	if err != nil {
 		return nil, err
