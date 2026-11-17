@@ -3,11 +3,13 @@
 aliases:
   sig-cluster-lifecycle-leads:
     - fabriziopandini
+    - hakman
     - justinsb
     - neolit123
-    - vincepri
+    - sbueringer
   cluster-api-aws-admins:
     - richardcase
+    - damdo
   cluster-api-aws-maintainers:
     - richardcase
     - dlipovetsky
