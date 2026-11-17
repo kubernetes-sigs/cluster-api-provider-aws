@@ -4,12 +4,10 @@ approvers:
   - sig-cluster-lifecycle-leads
   - cluster-api-aws-admins
   - cluster-api-aws-maintainers
-
 reviewers:
   - cluster-api-aws-admins
   - cluster-api-aws-maintainers
   - cluster-api-aws-reviewers
-
 emeritus_approvers:
   - Ankitasw
   - AverageMarcus
