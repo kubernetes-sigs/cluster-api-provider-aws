@@ -27,6 +27,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/ec2"
 	ec2types "github.com/aws/aws-sdk-go-v2/service/ec2/types"
+	"github.com/aws/smithy-go"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -382,6 +383,65 @@ func TestAWSMachineReconciler(t *testing.T) {
 				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
 				g.Expect(ms.AWSMachine.Finalizers).To(ContainElement(infrav1.MachineFinalizer))
 				g.Expect(errors.Cause(err)).To(MatchError(expectedErr))
+			})
+
+			t.Run("should set FailureReason and FailureMessage on insufficient resources error", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+
+				providerID(t, g)
+				insufficientErr := &smithy.GenericAPIError{Code: "InsufficientFreeAddressesInSubnet", Message: "not enough free addresses in subnet"}
+				ec2Svc.EXPECT().InstanceIfExists(gomock.Any()).Return(nil, nil)
+				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, insufficientErr)
+				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+				g.Expect(err).ToNot(BeNil())
+				g.Expect(ms.AWSMachine.Status.FailureReason).To(PointTo(Equal("InsufficientResources")))
+				g.Expect(ms.AWSMachine.Status.FailureMessage).ToNot(BeNil())
+				g.Expect(*ms.AWSMachine.Status.FailureMessage).To(ContainSubstring("InsufficientFreeAddressesInSubnet"))
+			})
+
+			t.Run("should detect insufficient resources error through error wrapping", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+
+				providerID(t, g)
+				wrappedErr := errors.Wrap(&smithy.GenericAPIError{Code: "InsufficientFreeAddressesInSubnet", Message: "not enough free addresses in subnet"}, "failed to run instance")
+				ec2Svc.EXPECT().InstanceIfExists(gomock.Any()).Return(nil, nil)
+				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, wrappedErr)
+				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+				g.Expect(err).ToNot(BeNil())
+				g.Expect(ms.AWSMachine.Status.FailureReason).To(PointTo(Equal("InsufficientResources")))
+				g.Expect(ms.AWSMachine.Status.FailureMessage).ToNot(BeNil())
+				g.Expect(*ms.AWSMachine.Status.FailureMessage).To(ContainSubstring("InsufficientFreeAddressesInSubnet"))
+			})
+
+			t.Run("should not set FailureReason or FailureMessage on non-resource-exhaustion error", func(t *testing.T) {
+				g := NewWithT(t)
+				awsMachine := getAWSMachine()
+				setup(t, g, awsMachine)
+				defer teardown(t, g)
+
+				providerID(t, g)
+				otherErr := &smithy.GenericAPIError{Code: "InvalidParameterValue", Message: "some other error"}
+				ec2Svc.EXPECT().InstanceIfExists(gomock.Any()).Return(nil, nil)
+				secretSvc.EXPECT().Create(gomock.Any(), gomock.Any()).Return("test", int32(1), nil).Times(1)
+				ec2Svc.EXPECT().CreateInstance(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, otherErr)
+				secretSvc.EXPECT().UserData(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+
+				_, err := reconciler.reconcileNormal(context.Background(), ms, cs, cs, cs, cs)
+				g.Expect(err).ToNot(BeNil())
+				g.Expect(ms.AWSMachine.Status.FailureReason).To(BeNil())
+				g.Expect(ms.AWSMachine.Status.FailureMessage).To(BeNil())
 			})
 		})
 

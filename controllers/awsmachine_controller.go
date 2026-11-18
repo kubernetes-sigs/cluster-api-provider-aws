@@ -49,6 +49,7 @@ import (
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/feature"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud"
+	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/scope"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services/ec2"
@@ -613,6 +614,10 @@ func (r *AWSMachineReconciler) reconcileNormal(ctx context.Context, machineScope
 		if err != nil {
 			machineScope.Error(err, "unable to create instance")
 			v1beta1conditions.MarkFalse(machineScope.AWSMachine, infrav1.InstanceReadyCondition, infrav1.InstanceProvisionFailedReason, clusterv1beta1.ConditionSeverityError, "%s", err.Error())
+			if awserrors.IsInsufficientResourcesError(err) {
+				machineScope.SetFailureReason("InsufficientResources")
+				machineScope.SetFailureMessage(err)
+			}
 			return ctrl.Result{}, err
 		}
 
