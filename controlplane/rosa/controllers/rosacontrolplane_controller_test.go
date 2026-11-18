@@ -1760,110 +1760,113 @@ func TestBuildOCMClusterSpec(t *testing.T) {
 }
 
 func TestReconcileExternalAuthKubeconfigSecrets(t *testing.T) {
-	g := NewWithT(t)
-	ns, err := testEnv.CreateNamespace(ctx, "test-ext-auth-kubeconfig")
-	g.Expect(err).ToNot(HaveOccurred())
+	setup := func(t *testing.T) *scope.ROSAControlPlaneScope {
+		t.Helper()
+		g := NewWithT(t)
+		ns, err := testEnv.CreateNamespace(ctx, "test-ext-auth-kubeconfig")
+		g.Expect(err).ToNot(HaveOccurred())
 
-	rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-rosa-cp",
-			Namespace: ns.Name,
-			UID:       types.UID("test-rosa-cp-uid"),
-		},
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "ROSAControlPlane",
-			APIVersion: rosacontrolplanev1.GroupVersion.String(),
-		},
-		Spec: rosacontrolplanev1.RosaControlPlaneSpec{
-			RosaClusterName:             "test-rosa-cp",
-			EnableExternalAuthProviders: true,
-			Subnets:                     []string{"subnet-1"},
-			AvailabilityZones:           []string{"us-east-1a"},
-			Region:                      "us-east-1",
-			Version:                     "4.16.0",
-			RolesRef: rosacontrolplanev1.AWSRolesRef{
-				IngressARN:              "arn1",
-				ImageRegistryARN:        "arn2",
-				StorageARN:              "arn3",
-				NetworkARN:              "arn4",
-				KubeCloudControllerARN:  "arn5",
-				NodePoolManagementARN:   "arn6",
-				ControlPlaneOperatorARN: "arn7",
-				KMSProviderARN:          "arn8",
+		rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-rosa-cp",
+				Namespace: ns.Name,
+				UID:       types.UID("test-rosa-cp-uid"),
 			},
-			OIDCID:           "oidc1",
-			InstallerRoleARN: "arn:aws:iam::123456789012:role/installer",
-			WorkerRoleARN:    "arn:aws:iam::123456789012:role/worker",
-			SupportRoleARN:   "arn:aws:iam::123456789012:role/support",
-			IdentityRef: &infrav1.AWSIdentityReference{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ROSAControlPlane",
+				APIVersion: rosacontrolplanev1.GroupVersion.String(),
+			},
+			Spec: rosacontrolplanev1.RosaControlPlaneSpec{
+				RosaClusterName:             "test-rosa-cp",
+				EnableExternalAuthProviders: true,
+				Subnets:                     []string{"subnet-1"},
+				AvailabilityZones:           []string{"us-east-1a"},
+				Region:                      "us-east-1",
+				Version:                     "4.16.0",
+				RolesRef: rosacontrolplanev1.AWSRolesRef{
+					IngressARN:              "arn1",
+					ImageRegistryARN:        "arn2",
+					StorageARN:              "arn3",
+					NetworkARN:              "arn4",
+					KubeCloudControllerARN:  "arn5",
+					NodePoolManagementARN:   "arn6",
+					ControlPlaneOperatorARN: "arn7",
+					KMSProviderARN:          "arn8",
+				},
+				OIDCID:           "oidc1",
+				InstallerRoleARN: "arn:aws:iam::123456789012:role/installer",
+				WorkerRoleARN:    "arn:aws:iam::123456789012:role/worker",
+				SupportRoleARN:   "arn:aws:iam::123456789012:role/support",
+				IdentityRef: &infrav1.AWSIdentityReference{
+					Name: "default",
+					Kind: infrav1.ControllerIdentityKind,
+				},
+				VersionGate: "Acknowledge",
+				CredentialsSecretRef: &corev1.LocalObjectReference{
+					Name: "test-ocm-secret",
+				},
+			},
+		}
+
+		ocmSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-ocm-secret",
+				Namespace: ns.Name,
+			},
+			Data: map[string][]byte{
+				"ocmToken": []byte("test-token"),
+			},
+		}
+		g.Expect(testEnv.Create(ctx, ocmSecret)).To(Succeed())
+
+		ownerCluster := &clusterv1.Cluster{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-owner-cluster",
+				Namespace: ns.Name,
+				UID:       types.UID("test-owner-cluster-uid"),
+			},
+			Spec: clusterv1.ClusterSpec{
+				ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
+					Name:     rosaControlPlane.Name,
+					Kind:     "ROSAControlPlane",
+					APIGroup: rosacontrolplanev1.GroupVersion.Group,
+				},
+			},
+		}
+
+		identity := &infrav1.AWSClusterControllerIdentity{
+			ObjectMeta: metav1.ObjectMeta{
 				Name: "default",
-				Kind: infrav1.ControllerIdentityKind,
 			},
-			VersionGate: "Acknowledge",
-			CredentialsSecretRef: &corev1.LocalObjectReference{
-				Name: "test-ocm-secret",
+			Spec: infrav1.AWSClusterControllerIdentitySpec{
+				AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
+					AllowedNamespaces: &infrav1.AllowedNamespaces{},
+				},
 			},
-		},
-	}
+		}
+		identity.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterControllerIdentity"))
 
-	ocmSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-ocm-secret",
-			Namespace: ns.Name,
-		},
-		Data: map[string][]byte{
-			"ocmToken": []byte("test-token"),
-		},
-	}
-	g.Expect(testEnv.Create(ctx, ocmSecret)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, identity)).To(Succeed())
+		g.Expect(testEnv.Create(ctx, ownerCluster)).To(Succeed())
 
-	ownerCluster := &clusterv1.Cluster{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-owner-cluster",
-			Namespace: ns.Name,
-			UID:       types.UID("test-owner-cluster-uid"),
-		},
-		Spec: clusterv1.ClusterSpec{
-			ControlPlaneRef: clusterv1.ContractVersionedObjectReference{
-				Name:     rosaControlPlane.Name,
-				Kind:     "ROSAControlPlane",
-				APIGroup: rosacontrolplanev1.GroupVersion.Group,
+		rosaControlPlane.OwnerReferences = []metav1.OwnerReference{
+			{
+				Name:       ownerCluster.Name,
+				UID:        ownerCluster.UID,
+				Kind:       "Cluster",
+				APIVersion: clusterv1.GroupVersion.String(),
 			},
-		},
-	}
+		}
+		g.Expect(testEnv.Create(ctx, rosaControlPlane)).To(Succeed())
 
-	identity := &infrav1.AWSClusterControllerIdentity{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "default",
-		},
-		Spec: infrav1.AWSClusterControllerIdentitySpec{
-			AWSClusterIdentitySpec: infrav1.AWSClusterIdentitySpec{
-				AllowedNamespaces: &infrav1.AllowedNamespaces{},
-			},
-		},
-	}
-	identity.SetGroupVersionKind(infrav1.GroupVersion.WithKind("AWSClusterControllerIdentity"))
+		t.Cleanup(func() {
+			g.Expect(testEnv.Cleanup(ctx, rosaControlPlane, ownerCluster, identity, ocmSecret)).To(Succeed())
+		})
 
-	g.Expect(testEnv.Create(ctx, identity)).To(Succeed())
-	g.Expect(testEnv.Create(ctx, ownerCluster)).To(Succeed())
-
-	rosaControlPlane.OwnerReferences = []metav1.OwnerReference{
-		{
-			Name:       ownerCluster.Name,
-			UID:        ownerCluster.UID,
-			Kind:       "Cluster",
-			APIVersion: clusterv1.GroupVersion.String(),
-		},
-	}
-	g.Expect(testEnv.Create(ctx, rosaControlPlane)).To(Succeed())
-
-	defer func() {
-		g.Expect(testEnv.Cleanup(ctx, rosaControlPlane, ownerCluster, identity, ocmSecret)).To(Succeed())
-	}()
-
-	rosaScope := &scope.ROSAControlPlaneScope{
-		Cluster:      ownerCluster,
-		ControlPlane: rosaControlPlane,
+		return &scope.ROSAControlPlaneScope{
+			Cluster:      ownerCluster,
+			ControlPlane: rosaControlPlane,
+		}
 	}
 
 	reconciler := &ROSAControlPlaneReconciler{
@@ -1878,66 +1881,95 @@ func TestReconcileExternalAuthKubeconfigSecrets(t *testing.T) {
 
 	t.Run("creates both secrets on first reconcile", func(t *testing.T) {
 		g := NewWithT(t)
+		rosaScope := setup(t)
+		ownerCluster := rosaScope.Cluster
+		rosaControlPlane := rosaScope.ControlPlane
 
 		bootstrapNewSecret := rosaScope.ExternalAuthBootstrapKubeconfigSecret()
+		t.Cleanup(func() {
+			g.Expect(testEnv.Cleanup(ctx, bootstrapNewSecret)).To(Succeed())
+		})
 		err := reconciler.reconcileKubeconfigSecret(ctx, kubeconfigData, annotations, nil, bootstrapNewSecret)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		clusterRef := client.ObjectKeyFromObject(ownerCluster)
 		controllerOwnerRef := *metav1.NewControllerRef(rosaControlPlane, rosacontrolplanev1.GroupVersion.WithKind("ROSAControlPlane"))
 		capiNewSecret := kubeconfig.GenerateSecretWithOwner(clusterRef, []byte(kubeconfigData), controllerOwnerRef)
+		t.Cleanup(func() {
+			g.Expect(testEnv.Cleanup(ctx, capiNewSecret)).To(Succeed())
+		})
 		err = reconciler.reconcileKubeconfigSecret(ctx, kubeconfigData, annotations, nil, capiNewSecret)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		// Verify bootstrap secret
-		bootstrapSecret := &corev1.Secret{}
-		err = testEnv.Get(ctx, client.ObjectKey{
-			Name:      fmt.Sprintf("%s-bootstrap-kubeconfig", ownerCluster.Name),
-			Namespace: ns.Name,
-		}, bootstrapSecret)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(bootstrapSecret.Data).To(HaveKey(secret.KubeconfigDataName))
-		g.Expect(string(bootstrapSecret.Data[secret.KubeconfigDataName])).To(Equal(kubeconfigData))
-		g.Expect(bootstrapSecret.Annotations).To(HaveKey(ROSAControlPlaneCredentialExpiryAnnotation))
+		g.Eventually(func(g Gomega) {
+			bootstrapSecret := &corev1.Secret{}
+			g.Expect(testEnv.Get(ctx, client.ObjectKey{
+				Name:      fmt.Sprintf("%s-bootstrap-kubeconfig", ownerCluster.Name),
+				Namespace: ownerCluster.Namespace,
+			}, bootstrapSecret)).To(Succeed())
+			g.Expect(bootstrapSecret.Data).To(HaveKey(secret.KubeconfigDataName))
+			g.Expect(string(bootstrapSecret.Data[secret.KubeconfigDataName])).To(Equal(kubeconfigData))
+			g.Expect(bootstrapSecret.Annotations).To(HaveKey(ROSAControlPlaneCredentialExpiryAnnotation))
+		}).Should(Succeed())
 
 		// Verify CAPI contract secret
-		capiSecret := &corev1.Secret{}
-		err = testEnv.Get(ctx, client.ObjectKey{
-			Name:      fmt.Sprintf("%s-kubeconfig", ownerCluster.Name),
-			Namespace: ns.Name,
-		}, capiSecret)
-		g.Expect(err).ToNot(HaveOccurred())
-		g.Expect(capiSecret.Data).To(HaveKey(secret.KubeconfigDataName))
-		g.Expect(string(capiSecret.Data[secret.KubeconfigDataName])).To(Equal(kubeconfigData))
-		g.Expect(capiSecret.Annotations).To(HaveKey(ROSAControlPlaneCredentialExpiryAnnotation))
-		g.Expect(capiSecret.Labels).To(HaveKeyWithValue("cluster.x-k8s.io/cluster-name", ownerCluster.Name))
+		g.Eventually(func(g Gomega) {
+			capiSecret := &corev1.Secret{}
+			g.Expect(testEnv.Get(ctx, client.ObjectKey{
+				Name:      fmt.Sprintf("%s-kubeconfig", ownerCluster.Name),
+				Namespace: ownerCluster.Namespace,
+			}, capiSecret)).To(Succeed())
+			g.Expect(capiSecret.Data).To(HaveKey(secret.KubeconfigDataName))
+			g.Expect(string(capiSecret.Data[secret.KubeconfigDataName])).To(Equal(kubeconfigData))
+			g.Expect(capiSecret.Annotations).To(HaveKey(ROSAControlPlaneCredentialExpiryAnnotation))
+			g.Expect(capiSecret.Labels).To(HaveKeyWithValue("cluster.x-k8s.io/cluster-name", ownerCluster.Name))
+		}).Should(Succeed())
 	})
 
 	t.Run("updates both secrets on refresh", func(t *testing.T) {
 		g := NewWithT(t)
+		rosaScope := setup(t)
+		ownerCluster := rosaScope.Cluster
+		rosaControlPlane := rosaScope.ControlPlane
+
+		bootstrapSecret := rosaScope.ExternalAuthBootstrapKubeconfigSecret()
+		bootstrapSecret.Data = map[string][]byte{secret.KubeconfigDataName: []byte(kubeconfigData)}
+		bootstrapSecret.Annotations = annotations
+		t.Cleanup(func() {
+			g.Expect(testEnv.Cleanup(ctx, bootstrapSecret)).To(Succeed())
+		})
+		g.Expect(testEnv.Create(ctx, bootstrapSecret)).To(Succeed())
+
+		clusterRef := client.ObjectKeyFromObject(ownerCluster)
+		controllerOwnerRef := *metav1.NewControllerRef(rosaControlPlane, rosacontrolplanev1.GroupVersion.WithKind("ROSAControlPlane"))
+		capiSecret := kubeconfig.GenerateSecretWithOwner(clusterRef, []byte(kubeconfigData), controllerOwnerRef)
+		capiSecret.Annotations = annotations
+		t.Cleanup(func() {
+			g.Expect(testEnv.Cleanup(ctx, capiSecret)).To(Succeed())
+		})
+		g.Expect(testEnv.Create(ctx, capiSecret)).To(Succeed())
 
 		newKubeconfigData := "apiVersion: v1\nkind: Config\nclusters: []\nrefreshed: true\n"
-		newExpiration := time.Now().Add(24 * time.Hour)
+		newExpiration := expiration.Add(time.Hour)
 		newAnnotations := map[string]string{
 			ROSAControlPlaneCredentialExpiryAnnotation: newExpiration.Format(time.RFC3339),
 		}
 
-		// Fetch existing secrets
+		// Wait for both fixtures to be visible through the cache before refreshing.
 		existingBootstrap := &corev1.Secret{}
-		err := testEnv.Get(ctx, client.ObjectKey{
-			Name:      fmt.Sprintf("%s-bootstrap-kubeconfig", ownerCluster.Name),
-			Namespace: ns.Name,
-		}, existingBootstrap)
-		g.Expect(err).ToNot(HaveOccurred())
+		g.Eventually(func(g Gomega) {
+			g.Expect(testEnv.Get(ctx, client.ObjectKeyFromObject(bootstrapSecret), existingBootstrap)).To(Succeed())
+			g.Expect(string(existingBootstrap.Data[secret.KubeconfigDataName])).To(Equal(kubeconfigData))
+		}).Should(Succeed())
 
 		existingCAPI := &corev1.Secret{}
-		err = testEnv.Get(ctx, client.ObjectKey{
-			Name:      fmt.Sprintf("%s-kubeconfig", ownerCluster.Name),
-			Namespace: ns.Name,
-		}, existingCAPI)
-		g.Expect(err).ToNot(HaveOccurred())
+		g.Eventually(func(g Gomega) {
+			g.Expect(testEnv.Get(ctx, client.ObjectKeyFromObject(capiSecret), existingCAPI)).To(Succeed())
+			g.Expect(string(existingCAPI.Data[secret.KubeconfigDataName])).To(Equal(kubeconfigData))
+		}).Should(Succeed())
 
-		err = reconciler.reconcileKubeconfigSecret(ctx, newKubeconfigData, newAnnotations, existingBootstrap, nil)
+		err := reconciler.reconcileKubeconfigSecret(ctx, newKubeconfigData, newAnnotations, existingBootstrap, nil)
 		g.Expect(err).ToNot(HaveOccurred())
 
 		err = reconciler.reconcileKubeconfigSecret(ctx, newKubeconfigData, newAnnotations, existingCAPI, nil)
@@ -1948,7 +1980,7 @@ func TestReconcileExternalAuthKubeconfigSecrets(t *testing.T) {
 			updated := &corev1.Secret{}
 			g.Expect(testEnv.Get(ctx, client.ObjectKey{
 				Name:      fmt.Sprintf("%s-bootstrap-kubeconfig", ownerCluster.Name),
-				Namespace: ns.Name,
+				Namespace: ownerCluster.Namespace,
 			}, updated)).To(Succeed())
 			g.Expect(string(updated.Data[secret.KubeconfigDataName])).To(Equal(newKubeconfigData))
 			g.Expect(updated.Annotations[ROSAControlPlaneCredentialExpiryAnnotation]).To(Equal(newAnnotations[ROSAControlPlaneCredentialExpiryAnnotation]))
@@ -1959,7 +1991,7 @@ func TestReconcileExternalAuthKubeconfigSecrets(t *testing.T) {
 			updatedCAPI := &corev1.Secret{}
 			g.Expect(testEnv.Get(ctx, client.ObjectKey{
 				Name:      fmt.Sprintf("%s-kubeconfig", ownerCluster.Name),
-				Namespace: ns.Name,
+				Namespace: ownerCluster.Namespace,
 			}, updatedCAPI)).To(Succeed())
 			g.Expect(string(updatedCAPI.Data[secret.KubeconfigDataName])).To(Equal(newKubeconfigData))
 			g.Expect(updatedCAPI.Annotations[ROSAControlPlaneCredentialExpiryAnnotation]).To(Equal(newAnnotations[ROSAControlPlaneCredentialExpiryAnnotation]))
