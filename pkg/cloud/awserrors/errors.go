@@ -59,6 +59,13 @@ const (
 	VPCMissingParameter                     = "MissingParameter"
 	ErrCodeRepositoryAlreadyExistsException = "RepositoryAlreadyExistsException"
 	ASGNotFound                             = "AutoScalingGroup.NotFound"
+
+	// EC2 insufficient resources error codes.
+	InsufficientFreeAddressesInSubnet = "InsufficientFreeAddressesInSubnet"
+	InsufficientInstanceCapacity      = "InsufficientInstanceCapacity"
+	InstanceLimitExceeded             = "InstanceLimitExceeded"
+	InsufficientVolumeCapacity        = "InsufficientVolumeCapacity"
+	VcpuLimitExceeded                 = "VcpuLimitExceeded"
 )
 
 var _ error = &EC2Error{}
@@ -192,6 +199,22 @@ func IsInvalidNotFoundError(err error) bool {
 func IsPermissionsError(err error) bool {
 	if code, ok := Code(err); ok {
 		return code == AuthFailure || code == UnauthorizedOperation
+	}
+
+	return false
+}
+
+// IsInsufficientResourcesError tests for AWS errors that indicate resource exhaustion.
+func IsInsufficientResourcesError(err error) bool {
+	if code, ok := Code(err); ok {
+		switch code {
+		case InsufficientFreeAddressesInSubnet,
+			InsufficientInstanceCapacity,
+			InstanceLimitExceeded,
+			InsufficientVolumeCapacity,
+			VcpuLimitExceeded:
+			return true
+		}
 	}
 
 	return false
