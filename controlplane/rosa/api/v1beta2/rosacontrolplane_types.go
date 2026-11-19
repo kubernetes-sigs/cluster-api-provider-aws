@@ -322,6 +322,8 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	EndpointAccess RosaEndpointAccessType `json:"endpointAccess,omitempty"`
 
 	// AdditionalTags are user-defined tags to be added on the AWS resources associated with the control plane.
+	// Changes after creation are applied in place and require version 4.20.0 or greater;
+	// on older versions they are ignored until the control plane is upgraded.
 	// +optional
 	AdditionalTags infrav1.Tags `json:"additionalTags,omitempty"`
 
