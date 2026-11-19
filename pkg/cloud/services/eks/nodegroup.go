@@ -28,9 +28,9 @@ import (
 	ekstypes "github.com/aws/aws-sdk-go-v2/service/eks/types"
 	iamtypes "github.com/aws/aws-sdk-go-v2/service/iam/types"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
@@ -123,6 +123,17 @@ func (s *NodegroupService) updateConfig() (*ekstypes.NodegroupUpdateConfig, erro
 func (s *NodegroupService) nodeRepairConfig() *ekstypes.NodeRepairConfig {
 	repairConfig := s.scope.ManagedMachinePool.Spec.NodeRepairConfig
 	return converters.NodeRepairConfigToSDK(repairConfig)
+}
+
+// nodeRepairConfigNeedsUpdate reports whether node auto repair has to be switched on or off.
+// EKS returns no repair config in regions without node auto repair (for example cn-north-1), which is the same
+// as repair disabled. Sending NodeRepairConfig there fails the whole UpdateNodegroupConfig call.
+// Only Enabled is compared, because it is the only repair setting the API exposes.
+func nodeRepairConfigNeedsUpdate(current, desired *ekstypes.NodeRepairConfig) bool {
+	enabled := func(c *ekstypes.NodeRepairConfig) bool {
+		return c != nil && ptr.Deref(c.Enabled, false)
+	}
+	return enabled(current) != enabled(desired)
 }
 
 func (s *NodegroupService) roleArn(ctx context.Context) (*string, error) {
@@ -491,7 +502,7 @@ func (s *NodegroupService) reconcileNodegroupConfig(ctx context.Context, ng *eks
 	}
 
 	specRepairConfig := s.nodeRepairConfig()
-	if !cmp.Equal(ng.NodeRepairConfig, specRepairConfig, cmpopts.IgnoreUnexported(ekstypes.NodeRepairConfig{})) {
+	if nodeRepairConfigNeedsUpdate(ng.NodeRepairConfig, specRepairConfig) {
 		s.Debug("Nodegroup repair configuration differs from spec, updating the nodegroup repair config", "nodegroup", ng.NodegroupName)
 		input.NodeRepairConfig = specRepairConfig
 		needsUpdate = true
