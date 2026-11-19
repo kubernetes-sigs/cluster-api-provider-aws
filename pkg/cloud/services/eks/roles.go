@@ -259,9 +259,15 @@ func (s *NodegroupService) deleteNodegroupIAMRole(ctx context.Context) (reterr e
 			reterr = err
 		}
 	}()
-	roleName := s.scope.RoleName()
 	if !s.scope.EnableIAM() {
 		s.scope.Debug("EKS IAM disabled, skipping deleting EKS Nodegroup IAM Role")
+		return nil
+	}
+
+	// An empty name fails IAM validation (not NoSuchEntity) and would block the finalizer.
+	roleName := s.scope.RoleName()
+	if roleName == "" {
+		s.scope.Debug("No EKS Nodegroup IAM Role recorded in spec, skipping deleting EKS Nodegroup IAM Role")
 		return nil
 	}
 

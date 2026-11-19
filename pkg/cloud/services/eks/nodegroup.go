@@ -272,7 +272,9 @@ func (s *NodegroupService) createNodegroup(ctx context.Context) (*ekstypes.Nodeg
 	return out.Nodegroup, nil
 }
 
-func (s *NodegroupService) deleteNodegroupAndWait(ctx context.Context) (reterr error) {
+// deleteNodegroupAndWait deletes the nodegroup and waits for it to be gone.
+// If ng is already DELETING, only the wait is performed.
+func (s *NodegroupService) deleteNodegroupAndWait(ctx context.Context, ng *ekstypes.Nodegroup) (reterr error) {
 	eksClusterName := s.scope.KubernetesClusterName()
 	nodegroupName := s.scope.NodegroupName()
 	if err := s.scope.NodegroupReadyFalse(clusterv1beta1.DeletingReason, ""); err != nil {
@@ -295,22 +297,22 @@ func (s *NodegroupService) deleteNodegroupAndWait(ctx context.Context) (reterr e
 		NodegroupName: aws.String(nodegroupName),
 	}
 
-	_, err := s.EKSClient.DeleteNodegroup(ctx, input)
-	if err != nil {
-		smithyErr := awserrors.ParseSmithyError(err)
-		notFoundErr := &ekstypes.ResourceNotFoundException{}
-		if smithyErr.ErrorCode() == notFoundErr.ErrorCode() {
-			return nil
+	if ng.Status != ekstypes.NodegroupStatusDeleting {
+		if _, err := s.EKSClient.DeleteNodegroup(ctx, input); err != nil {
+			smithyErr := awserrors.ParseSmithyError(err)
+			notFoundErr := &ekstypes.ResourceNotFoundException{}
+			if smithyErr.ErrorCode() == notFoundErr.ErrorCode() {
+				return nil
+			}
+			return errors.Wrap(err, "failed to delete nodegroup")
 		}
-		return errors.Wrap(err, "failed to delete nodegroup")
 	}
 
 	waitInput := &eks.DescribeNodegroupInput{
 		ClusterName:   aws.String(eksClusterName),
 		NodegroupName: aws.String(nodegroupName),
 	}
-	err = s.EKSClient.WaitUntilNodegroupDeleted(ctx, waitInput, s.scope.MaxWaitActiveUpdateDelete)
-	if err != nil {
+	if err := s.EKSClient.WaitUntilNodegroupDeleted(ctx, waitInput, s.scope.MaxWaitActiveUpdateDelete); err != nil {
 		return errors.Wrapf(err, "failed waiting for EKS nodegroup %s to delete", nodegroupName)
 	}
 
