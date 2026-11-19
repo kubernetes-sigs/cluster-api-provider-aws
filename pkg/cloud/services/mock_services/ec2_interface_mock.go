@@ -355,18 +355,18 @@ func (mr *MockEC2InterfaceMockRecorder) ModifySourceDestCheck(arg0, arg1, arg2 i
 }
 
 // PruneLaunchTemplateVersions mocks base method.
-func (m *MockEC2Interface) PruneLaunchTemplateVersions(arg0 string) (*types.LaunchTemplateVersion, error) {
+func (m *MockEC2Interface) PruneLaunchTemplateVersions(arg0 string, arg1 []string) (*types.LaunchTemplateVersion, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PruneLaunchTemplateVersions", arg0)
+	ret := m.ctrl.Call(m, "PruneLaunchTemplateVersions", arg0, arg1)
 	ret0, _ := ret[0].(*types.LaunchTemplateVersion)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // PruneLaunchTemplateVersions indicates an expected call of PruneLaunchTemplateVersions.
-func (mr *MockEC2InterfaceMockRecorder) PruneLaunchTemplateVersions(arg0 interface{}) *gomock.Call {
+func (mr *MockEC2InterfaceMockRecorder) PruneLaunchTemplateVersions(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PruneLaunchTemplateVersions", reflect.TypeOf((*MockEC2Interface)(nil).PruneLaunchTemplateVersions), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PruneLaunchTemplateVersions", reflect.TypeOf((*MockEC2Interface)(nil).PruneLaunchTemplateVersions), arg0, arg1)
 }
 
 // ReconcileBastion mocks base method.
