@@ -106,6 +106,8 @@ type ROSAControlPlaneReconciler struct {
 	WatchFilterValue string
 	WaitInfraPeriod  time.Duration
 	NewOCMClient     func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.OCMClient, error)
+	// NewClusterAutoscalerClient creates the client used to read and update the OCM cluster autoscaler.
+	NewClusterAutoscalerClient func(ctx context.Context, rosaScope *scope.ROSAControlPlaneScope) (rosa.ClusterAutoscalerClient, error)
 	// awsClientFactory overrides AWS client creation per reconciliation. Used in tests to inject mock clients.
 	awsClientFactory func(scope *scope.ROSAControlPlaneScope) (rosaaws.Client, error)
 	// Exposing the restClientConfig for integration test. No need to initialize.
@@ -116,6 +118,7 @@ type ROSAControlPlaneReconciler struct {
 func (r *ROSAControlPlaneReconciler) SetupWithManager(ctx context.Context, mgr ctrl.Manager, options controller.Options) error {
 	log := logger.FromContext(ctx)
 	r.NewOCMClient = rosa.NewWrappedOCMClient
+	r.NewClusterAutoscalerClient = rosa.NewClusterAutoscalerClient
 
 	rosaControlPlane := &rosacontrolplanev1.ROSAControlPlane{}
 	c, err := ctrl.NewControllerManagedBy(mgr).
@@ -340,6 +343,11 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 			}
 			rosaScope.ControlPlane.Spec.ControlPlaneEndpoint = *apiEndpoint
 
+			// Reconcile the cluster autoscaler first, so the configuration is sent before a kubeconfig
+			// exists and workloads can be deployed. A retriable error doesn't block the remaining steps;
+			// it is returned at the end so the request is requeued.
+			clusterAutoscalerErr := r.reconcileClusterAutoscaler(ctx, rosaScope, cluster)
+
 			if err := r.reconcileLogForwarders(rosaScope, ocmClient, cluster); err != nil {
 				return ctrl.Result{RequeueAfter: defaultRequeueInterval}, fmt.Errorf("failed to reconcile logForwarders: %w", err)
 			}
@@ -367,6 +375,10 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 				}
 			}
 
+			if clusterAutoscalerErr != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to reconcile cluster autoscaler: %w", clusterAutoscalerErr)
+			}
+
 			return ctrl.Result{}, nil
 		case cmv1.ClusterStateError:
 			errorMessage := cluster.Status().ProvisionErrorMessage()
@@ -388,6 +400,7 @@ func (r *ROSAControlPlaneReconciler) reconcileNormal(ctx context.Context, rosaSc
 			clusterv1beta1.ConditionSeverityInfo,
 			"%s",
 			cluster.Status().Description())
+		markClusterAutoscalerWaitingForCluster(rosaScope, cluster.Status().State())
 
 		rosaScope.Info("waiting for cluster to become ready", "state", cluster.Status().State())
 		// Requeue so that status.ready is set to true when the cluster is fully created.

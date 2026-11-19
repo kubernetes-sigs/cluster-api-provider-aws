@@ -395,6 +395,16 @@ type RosaControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	// +kubebuilder:validation:MaxItems=2
 	ComponentRoutes []ComponentRouteSpec `json:"componentRoutes,omitempty"`
+
+	// clusterAutoscaler configures the cluster-wide behaviour of the cluster autoscaler.
+	// When omitted, the controller does not manage the cluster autoscaler and leaves its current
+	// configuration in OCM unchanged. When set, the controller reconciles the whole configuration:
+	// omitted fields are set to the ROSA HCP defaults.
+	// Removing it doesn't delete or reset the cluster autoscaler in OCM: the controller stops managing it
+	// and the current values are kept.
+	// The configuration is sent to OCM once the cluster is ready.
+	// +optional
+	ClusterAutoscaler *ClusterAutoscaler `json:"clusterAutoscaler,omitempty"`
 }
 
 // CloudWatchLogForwarderConfig present the cloudWatch log forward config for applications and groupVersions.
@@ -1004,6 +1014,12 @@ type RosaControlPlaneStatus struct {
 
 	// Available channels for the ROSA hosted control plane.
 	AvailableChannels []string `json:"availableChannels,omitempty"`
+
+	// clusterAutoscaler reports the cluster autoscaler configuration currently stored in OCM,
+	// including default values and values set outside of CAPA. It is populated once the cluster is ready,
+	// whether or not spec.clusterAutoscaler is set.
+	// +optional
+	ClusterAutoscaler *ClusterAutoscalerStatus `json:"clusterAutoscaler,omitempty"`
 
 	// v1beta2 groups all the fields that will be added or modified in ROSAControlPlane's status with the V1Beta2 version.
 	// +optional
