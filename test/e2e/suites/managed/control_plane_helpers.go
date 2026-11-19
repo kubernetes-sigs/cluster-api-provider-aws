@@ -38,19 +38,19 @@ import (
 	clusterctl "sigs.k8s.io/cluster-api/test/framework/clusterctl"
 )
 
-type waitForControlPlaneToBeUpgradedInput struct {
-	ControlPlane   *ekscontrolplanev1.AWSManagedControlPlane
-	AWSSession     *aws.Config
-	UpgradeVersion string
+type waitForControlPlaneVersionInput struct {
+	ControlPlane  *ekscontrolplanev1.AWSManagedControlPlane
+	AWSSession    *aws.Config
+	TargetVersion string
 }
 
-func waitForControlPlaneToBeUpgraded(ctx context.Context, input waitForControlPlaneToBeUpgradedInput, intervals ...interface{}) {
+func waitForControlPlaneVersion(ctx context.Context, input waitForControlPlaneVersionInput, intervals ...interface{}) {
 	Expect(input.ControlPlane).ToNot(BeNil(), "Invalid argument. input.ControlPlane can't be nil")
 	Expect(input.AWSSession).ToNot(BeNil(), "Invalid argument. input.AWSSession can't be nil")
-	Expect(input.UpgradeVersion).ToNot(BeNil(), "Invalid argument. input.UpgradeVersion can't be nil")
+	Expect(input.TargetVersion).ToNot(BeNil(), "Invalid argument. input.TargetVersion can't be nil")
 
-	By(fmt.Sprintf("Ensuring EKS control-plane has been updated to kubernetes version %s", input.UpgradeVersion))
-	v, err := version.ParseGeneric(input.UpgradeVersion)
+	By(fmt.Sprintf("Ensuring EKS control-plane has been updated to kubernetes version %s", input.TargetVersion))
+	v, err := version.ParseGeneric(input.TargetVersion)
 	Expect(err).NotTo(HaveOccurred())
 	expectedVersion := fmt.Sprintf("%d.%d", v.Major(), v.Minor())
 
@@ -71,7 +71,7 @@ func waitForControlPlaneToBeUpgraded(ctx context.Context, input waitForControlPl
 		default:
 			return false, nil
 		}
-	}, intervals...).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for EKS control-plane to be updated to kubernetes version %q", input.UpgradeVersion))
+	}, intervals...).Should(BeTrue(), fmt.Sprintf("Eventually failed waiting for EKS control-plane to be updated to kubernetes version %q", input.TargetVersion))
 }
 
 type GetControlPlaneByNameInput struct {
