@@ -241,6 +241,7 @@ func buildProvidersForRef(
 	ref *infrav1.AWSIdentityReference,
 	region string,
 	log logger.Wrapper,
+	visitedRoleIdentities map[string]bool,
 ) ([]identity.AWSPrincipalTypeProvider, error) {
 	if ref == nil {
 		log.Trace("AWSCluster does not have a IdentityRef specified")
@@ -267,6 +268,11 @@ func buildProvidersForRef(
 		}
 		providers = append(providers, provider)
 	case infrav1.ClusterRoleIdentityKind:
+		if visitedRoleIdentities[identityObjectKey.Name] {
+			return providers, errors.Errorf("circular sourceIdentityRef chain detected: AWSClusterRoleIdentity %q is already part of this resolution", identityObjectKey.Name)
+		}
+		visitedRoleIdentities[identityObjectKey.Name] = true
+
 		roleIdentity := &infrav1.AWSClusterRoleIdentity{}
 		err := k8sClient.Get(ctx, identityObjectKey, roleIdentity)
 		if err != nil {
@@ -284,7 +290,7 @@ func buildProvidersForRef(
 		setPrincipalUsageAllowedCondition(clusterScoper)
 
 		if roleIdentity.Spec.SourceIdentityRef != nil {
-			providers, err = buildProvidersForRef(ctx, providers, k8sClient, clusterScoper, roleIdentity.Spec.SourceIdentityRef, region, log)
+			providers, err = buildProvidersForRef(ctx, providers, k8sClient, clusterScoper, roleIdentity.Spec.SourceIdentityRef, region, log, visitedRoleIdentities)
 			if err != nil {
 				return providers, err
 			}
@@ -391,7 +397,7 @@ func buildAWSClusterControllerIdentity(ctx context.Context, identityObjectKey cl
 
 func getProvidersForCluster(ctx context.Context, k8sClient client.Client, clusterScoper cloud.SessionMetadata, region string, log logger.Wrapper) ([]identity.AWSPrincipalTypeProvider, error) {
 	providers := make([]identity.AWSPrincipalTypeProvider, 0)
-	providers, err := buildProvidersForRef(ctx, providers, k8sClient, clusterScoper, clusterScoper.IdentityRef(), region, log)
+	providers, err := buildProvidersForRef(ctx, providers, k8sClient, clusterScoper, clusterScoper.IdentityRef(), region, log, map[string]bool{})
 	if err != nil {
 		return nil, err
 	}
