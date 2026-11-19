@@ -18,7 +18,6 @@ package webhooks
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"net"
 	"net/url"
@@ -26,6 +25,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/pkg/errors"
+	"github.com/vincent-petithory/dataurl"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -120,6 +120,17 @@ func (w *AWSMachine) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.
 	allErrs = append(allErrs, w.validateAdditionalSecurityGroups(r)...)
 	allErrs = append(allErrs, r.Spec.AdditionalTags.Validate()...)
 	allErrs = append(allErrs, w.validateHostAllocationUpdate(old, r)...)
+
+	// validateIgnitionAndCloudInit (and therefore validateIgnitionProxy and
+	// validateIgnitionTLS) is intentionally not called on update. spec.ignition is
+	// not in the mutable-field allowlist below, so any change to it is rejected by
+	// the spec-immutability check; ignition settings are fully validated in
+	// ValidateCreate. Re-validating here could only fail on already-persisted
+	// state (e.g. objects created before a validation was tightened, or after the
+	// BootstrapFormatIgnition feature gate is disabled), which would make every
+	// update, including controller patches and finalizer removal, fail and block
+	// deletion. See validateHostAllocationUpdate / issue #5970 for the same
+	// concern.
 
 	newAWSMachineSpec := newAWSMachine["spec"].(map[string]interface{})
 	oldAWSMachineSpec := oldAWSMachine["spec"].(map[string]interface{})
@@ -304,40 +315,41 @@ func (w *AWSMachine) validateIgnitionProxy(r *infrav1.AWSMachine) field.ErrorLis
 	return allErrs
 }
 
-func (w *AWSMachine) validateIgnitionTLS(r *infrav1.AWSMachine) field.ErrorList {
-	var allErrs field.ErrorList
-
-	if r.Spec.Ignition.TLS == nil {
+func validateIgnitionTLS(tls *infrav1.IgnitionTLS, fldPath *field.Path) field.ErrorList {
+	allErrs := field.ErrorList{}
+	if tls == nil {
 		return allErrs
 	}
-
-	for _, source := range r.Spec.Ignition.TLS.CASources {
-		// Validate that source is RFC 2397 data URL.
+	casPath := fldPath.Child("tls", "certificateAuthorities")
+	for i, source := range tls.CASources {
+		idxPath := casPath.Index(i)
 		u, err := url.Parse(string(source))
 		if err != nil {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "ignition", "tls", "caSources"), source, "invalid URL"))
+			allErrs = append(allErrs, field.Invalid(idxPath, source, fmt.Sprintf("invalid URL: %v", err)))
 			continue
 		}
-
 		switch u.Scheme {
 		case "http", "https", "tftp", "s3", "arn", "gs":
-			// Valid schemes.
+			// valid
 		case "data":
-			// Validate that the data URL is base64 encoded.
-			i := strings.Index(u.Opaque, ",")
-			if i < 0 {
-				allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "ignition", "tls", "caSources"), source, "invalid data URL"))
-			}
-			// Validate that the data URL is base64 encoded.
-			if _, err := base64.StdEncoding.DecodeString(u.Opaque[i+1:]); err != nil {
-				allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "ignition", "tls", "caSources"), source, "invalid base64 encoding for data url"))
+			// Use dataurl.DecodeString to match Ignition's own validation.
+			// This accepts both base64-encoded and plain/percent-encoded RFC 2397 payloads,
+			// and produces exactly one error per malformed URL.
+			if _, err := dataurl.DecodeString(string(source)); err != nil {
+				allErrs = append(allErrs, field.Invalid(idxPath, source, fmt.Sprintf("invalid data URL: %v", err)))
 			}
 		default:
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "ignition", "tls", "caSources"), source, "unsupported URL scheme"))
+			allErrs = append(allErrs, field.Invalid(idxPath, source, fmt.Sprintf("unsupported URL scheme %q", u.Scheme)))
 		}
 	}
-
 	return allErrs
+}
+
+func (w *AWSMachine) validateIgnitionTLS(r *infrav1.AWSMachine) field.ErrorList {
+	if r.Spec.Ignition == nil {
+		return field.ErrorList{}
+	}
+	return validateIgnitionTLS(r.Spec.Ignition.TLS, field.NewPath("spec", "ignition"))
 }
 
 func (w *AWSMachine) validateRootVolume(r *infrav1.AWSMachine) field.ErrorList {
