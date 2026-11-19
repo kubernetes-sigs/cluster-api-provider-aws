@@ -23,11 +23,13 @@ import (
 	"testing"
 
 	"github.com/awslabs/goformation/v4/cloudformation"
+	. "github.com/onsi/gomega"
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/yaml"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	bootstrapv1 "sigs.k8s.io/cluster-api-provider-aws/v2/cmd/clusterawsadm/api/bootstrap/v1beta1"
 	iamv1 "sigs.k8s.io/cluster-api-provider-aws/v2/iam/api/v1beta1"
 )
 
@@ -207,6 +209,33 @@ func TestRenderCloudformation(t *testing.T) {
 				out := dmp.DiffPrettyText(diffs)
 				t.Fatalf("Differing output (%s):\n%s", c.fixture, out)
 			}
+		})
+	}
+}
+
+func TestEKSRolePoliciesUsePartition(t *testing.T) {
+	tests := []struct {
+		partition  string
+		wantPrefix string
+	}{
+		{partition: "aws", wantPrefix: "arn:aws:iam::aws:policy/"},
+		{partition: bootstrapv1.PartitionNameUSGov, wantPrefix: "arn:aws-us-gov:iam::aws:policy/"},
+		{partition: "aws-cn", wantPrefix: "arn:aws-cn:iam::aws:policy/"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.partition, func(t *testing.T) {
+			g := NewWithT(t)
+			tmpl := NewTemplate()
+			tmpl.Spec.Partition = tc.partition
+
+			nodegroup := tmpl.eksMachinePoolPolicies()
+			g.Expect(nodegroup).To(HaveLen(3))
+			for _, p := range nodegroup {
+				g.Expect(p).To(HavePrefix(tc.wantPrefix))
+			}
+
+			fargate := tmpl.fargateProfilePolicies(&bootstrapv1.AWSIAMRoleSpec{})
+			g.Expect(fargate).To(ConsistOf(tc.wantPrefix + "AmazonEKSFargatePodExecutionRolePolicy"))
 		})
 	}
 }
