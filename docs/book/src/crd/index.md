@@ -5585,6 +5585,21 @@ to be attached with this eks cluster</p>
 </tr>
 <tr>
 <td>
+<code>oidcIdentityProviderConfigs</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta1.OIDCIdentityProviderConfig">
+[]OIDCIdentityProviderConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCIdentityProviderConfigs specifies multiple OIDC identity providers for the cluster.
+When set, this list is used instead of OIDCIdentityProviderConfig.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>disableVPCCNI</code><br/>
 <em>
 bool
@@ -5989,6 +6004,21 @@ to be attached with this eks cluster</p>
 </tr>
 <tr>
 <td>
+<code>oidcIdentityProviderConfigs</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta1.OIDCIdentityProviderConfig">
+[]OIDCIdentityProviderConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCIdentityProviderConfigs specifies multiple OIDC identity providers for the cluster.
+When set, this list is used instead of OIDCIdentityProviderConfig.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>disableVPCCNI</code><br/>
 <em>
 bool
@@ -6189,6 +6219,20 @@ IdentityProviderStatus
 <em>(Optional)</em>
 <p>IdentityProviderStatus holds the status for
 associated identity provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityProviderStatuses</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta1.IdentityProviderStatus">
+[]IdentityProviderStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityProviderStatuses holds the status for each associated OIDC identity provider.</p>
 </td>
 </tr>
 <tr>
@@ -6706,6 +6750,18 @@ bool
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<code>identityProviderConfigName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityProviderConfigName is the EKS identity provider configuration name.</p>
+</td>
+</tr>
 <tr>
 <td>
 <code>arn</code><br/>
@@ -7539,6 +7595,22 @@ to be attached with this eks cluster</p>
 </tr>
 <tr>
 <td>
+<code>oidcIdentityProviderConfigs</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.OIDCIdentityProviderConfig">
+[]OIDCIdentityProviderConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCIdentityProviderConfigs specifies multiple OIDC identity providers for the cluster.
+When set, this list is used instead of OIDCIdentityProviderConfig.
+EKS supports up to 10 external OIDC providers per cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>accessConfig</code><br/>
 <em>
 <a href="#controlplane.cluster.x-k8s.io/v1beta2.AccessConfig">
@@ -8081,6 +8153,22 @@ to be attached with this eks cluster</p>
 </tr>
 <tr>
 <td>
+<code>oidcIdentityProviderConfigs</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.OIDCIdentityProviderConfig">
+[]OIDCIdentityProviderConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCIdentityProviderConfigs specifies multiple OIDC identity providers for the cluster.
+When set, this list is used instead of OIDCIdentityProviderConfig.
+EKS supports up to 10 external OIDC providers per cluster.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>accessConfig</code><br/>
 <em>
 <a href="#controlplane.cluster.x-k8s.io/v1beta2.AccessConfig">
@@ -8369,6 +8457,20 @@ IdentityProviderStatus
 <em>(Optional)</em>
 <p>IdentityProviderStatus holds the status for
 associated identity provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityProviderStatuses</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.IdentityProviderStatus">
+[]IdentityProviderStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityProviderStatuses holds the status for each associated OIDC identity provider.</p>
 </td>
 </tr>
 <tr>
@@ -8875,6 +8977,22 @@ OIDCIdentityProviderConfig
 <em>(Optional)</em>
 <p>OIDCIdentityProviderConfig is used to specify the OIDC provider config
 to be attached with this eks cluster</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcIdentityProviderConfigs</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.OIDCIdentityProviderConfig">
+[]OIDCIdentityProviderConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCIdentityProviderConfigs specifies multiple OIDC identity providers for the cluster.
+When set, this list is used instead of OIDCIdentityProviderConfig.
+EKS supports up to 10 external OIDC providers per cluster.</p>
 </td>
 </tr>
 <tr>
@@ -9856,6 +9974,18 @@ bool
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<code>identityProviderConfigName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityProviderConfigName is the EKS identity provider configuration name.</p>
+</td>
+</tr>
 <tr>
 <td>
 <code>arn</code><br/>

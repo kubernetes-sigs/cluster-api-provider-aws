@@ -165,6 +165,12 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	OIDCIdentityProviderConfig *OIDCIdentityProviderConfig `json:"oidcIdentityProviderConfig,omitempty"`
 
+	// OIDCIdentityProviderConfigs specifies multiple OIDC identity providers for the cluster.
+	// When set, this list is used instead of OIDCIdentityProviderConfig.
+	// +kubebuilder:validation:MaxItems=10
+	// +optional
+	OIDCIdentityProviderConfigs []OIDCIdentityProviderConfig `json:"oidcIdentityProviderConfigs,omitempty"`
+
 	// DisableVPCCNI indicates that the Amazon VPC CNI should be disabled. With EKS clusters the
 	// Amazon VPC CNI is automatically installed into the cluster. For clusters where you want
 	// to use an alternate CNI this option provides a way to specify that the Amazon VPC CNI
@@ -230,6 +236,10 @@ type OIDCProviderStatus struct {
 
 // IdentityProviderStatus holds the status for associated identity provider
 type IdentityProviderStatus struct {
+	// IdentityProviderConfigName is the EKS identity provider configuration name.
+	// +optional
+	IdentityProviderConfigName string `json:"identityProviderConfigName,omitempty"`
+
 	// ARN holds the ARN of associated identity provider
 	ARN string `json:"arn,omitempty"`
 
@@ -276,6 +286,9 @@ type AWSManagedControlPlaneStatus struct {
 	// associated identity provider
 	// +optional
 	IdentityProviderStatus IdentityProviderStatus `json:"identityProviderStatus,omitempty"`
+	// IdentityProviderStatuses holds the status for each associated OIDC identity provider.
+	// +optional
+	IdentityProviderStatuses []IdentityProviderStatus `json:"identityProviderStatuses,omitempty"`
 	// ObservedGeneration is the latest generation observed by the controller.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`

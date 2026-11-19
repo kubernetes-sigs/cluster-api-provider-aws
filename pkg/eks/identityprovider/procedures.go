@@ -29,6 +29,8 @@ import (
 
 var oidcType = aws.String("oidc")
 
+const procedureNameAssociateIdentityProvider = "associate_identity_provider"
+
 // WaitIdentityProviderAssociatedProcedure waits for the identity provider to be associated.
 type WaitIdentityProviderAssociatedProcedure struct {
 	plan *plan
@@ -106,7 +108,7 @@ type AssociateIdentityProviderProcedure struct {
 
 // Name returns the name of the procedure.
 func (a *AssociateIdentityProviderProcedure) Name() string {
-	return "associate_identity_provider"
+	return procedureNameAssociateIdentityProvider
 }
 
 // Do associates the identity provider.

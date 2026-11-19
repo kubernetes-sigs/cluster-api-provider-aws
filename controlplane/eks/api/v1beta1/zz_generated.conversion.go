@@ -332,6 +332,7 @@ func autoConvert_v1beta1_AWSManagedControlPlaneSpec_To_v1beta2_AWSManagedControl
 	out.AssociateOIDCProvider = in.AssociateOIDCProvider
 	out.Addons = (*[]v1beta2.Addon)(unsafe.Pointer(in.Addons))
 	out.OIDCIdentityProviderConfig = (*v1beta2.OIDCIdentityProviderConfig)(unsafe.Pointer(in.OIDCIdentityProviderConfig))
+	out.OIDCIdentityProviderConfigs = *(*[]v1beta2.OIDCIdentityProviderConfig)(unsafe.Pointer(&in.OIDCIdentityProviderConfigs))
 	// WARNING: in.DisableVPCCNI requires manual conversion: does not exist in peer-type
 	if err := Convert_v1beta1_VpcCni_To_v1beta2_VpcCni(&in.VpcCni, &out.VpcCni, s); err != nil {
 		return err
@@ -371,6 +372,7 @@ func autoConvert_v1beta2_AWSManagedControlPlaneSpec_To_v1beta1_AWSManagedControl
 	out.AssociateOIDCProvider = in.AssociateOIDCProvider
 	out.Addons = (*[]Addon)(unsafe.Pointer(in.Addons))
 	out.OIDCIdentityProviderConfig = (*OIDCIdentityProviderConfig)(unsafe.Pointer(in.OIDCIdentityProviderConfig))
+	out.OIDCIdentityProviderConfigs = *(*[]OIDCIdentityProviderConfig)(unsafe.Pointer(&in.OIDCIdentityProviderConfigs))
 	// WARNING: in.AccessConfig requires manual conversion: does not exist in peer-type
 	// WARNING: in.AccessEntries requires manual conversion: does not exist in peer-type
 	// WARNING: in.PodIdentityAssociations requires manual conversion: does not exist in peer-type
@@ -403,6 +405,7 @@ func autoConvert_v1beta1_AWSManagedControlPlaneStatus_To_v1beta2_AWSManagedContr
 	if err := Convert_v1beta1_IdentityProviderStatus_To_v1beta2_IdentityProviderStatus(&in.IdentityProviderStatus, &out.IdentityProviderStatus, s); err != nil {
 		return err
 	}
+	out.IdentityProviderStatuses = *(*[]v1beta2.IdentityProviderStatus)(unsafe.Pointer(&in.IdentityProviderStatuses))
 	out.ObservedGeneration = in.ObservedGeneration
 	return nil
 }
@@ -428,6 +431,7 @@ func autoConvert_v1beta2_AWSManagedControlPlaneStatus_To_v1beta1_AWSManagedContr
 	if err := Convert_v1beta2_IdentityProviderStatus_To_v1beta1_IdentityProviderStatus(&in.IdentityProviderStatus, &out.IdentityProviderStatus, s); err != nil {
 		return err
 	}
+	out.IdentityProviderStatuses = *(*[]IdentityProviderStatus)(unsafe.Pointer(&in.IdentityProviderStatuses))
 	// WARNING: in.Version requires manual conversion: does not exist in peer-type
 	out.ObservedGeneration = in.ObservedGeneration
 	// WARNING: in.V1Beta2 requires manual conversion: does not exist in peer-type

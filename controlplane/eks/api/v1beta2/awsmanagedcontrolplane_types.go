@@ -192,6 +192,13 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	OIDCIdentityProviderConfig *OIDCIdentityProviderConfig `json:"oidcIdentityProviderConfig,omitempty"`
 
+	// OIDCIdentityProviderConfigs specifies multiple OIDC identity providers for the cluster.
+	// When set, this list is used instead of OIDCIdentityProviderConfig.
+	// EKS supports up to 10 external OIDC providers per cluster.
+	// +kubebuilder:validation:MaxItems=10
+	// +optional
+	OIDCIdentityProviderConfigs []OIDCIdentityProviderConfig `json:"oidcIdentityProviderConfigs,omitempty"`
+
 	// AccessConfig specifies the access configuration information for the cluster
 	// +optional
 	AccessConfig *AccessConfig `json:"accessConfig,omitempty"`
@@ -365,6 +372,10 @@ type OIDCProviderStatus struct {
 
 // IdentityProviderStatus holds the status for associated identity provider.
 type IdentityProviderStatus struct {
+	// IdentityProviderConfigName is the EKS identity provider configuration name.
+	// +optional
+	IdentityProviderConfigName string `json:"identityProviderConfigName,omitempty"`
+
 	// ARN holds the ARN of associated identity provider
 	ARN string `json:"arn,omitempty"`
 
@@ -411,6 +422,9 @@ type AWSManagedControlPlaneStatus struct {
 	// associated identity provider
 	// +optional
 	IdentityProviderStatus IdentityProviderStatus `json:"identityProviderStatus,omitempty"`
+	// IdentityProviderStatuses holds the status for each associated OIDC identity provider.
+	// +optional
+	IdentityProviderStatuses []IdentityProviderStatus `json:"identityProviderStatuses,omitempty"`
 	// Version represents the minimum Kubernetes version for the control plane machines
 	// in the cluster.
 	// +optional
