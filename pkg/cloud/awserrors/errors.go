@@ -31,6 +31,7 @@ const (
 	AssociationIDNotFound             = "InvalidAssociationID.NotFound"
 	AuthFailure                       = "AuthFailure"
 	BucketAlreadyOwnedByYou           = "BucketAlreadyOwnedByYou"
+	DependencyViolation               = "DependencyViolation"
 	EIPNotFound                       = "InvalidElasticIpID.NotFound"
 	GatewayNotFound                   = "InvalidGatewayID.NotFound"
 	GroupNotFound                     = "InvalidGroup.NotFound"
