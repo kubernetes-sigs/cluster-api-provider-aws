@@ -158,5 +158,5 @@ func (r *ROSAOCMRoleConfig) GetConditions() clusterv1beta1.Conditions {
 }
 
 func init() {
-	SchemeBuilder.Register(&ROSAOCMRoleConfig{}, &ROSAOCMRoleConfigList{})
+	objectTypes = append(objectTypes, &ROSAOCMRoleConfig{}, &ROSAOCMRoleConfigList{})
 }

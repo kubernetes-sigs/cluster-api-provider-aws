@@ -456,5 +456,5 @@ func (r *AWSCluster) SetV1Beta2Conditions(conditions []metav1.Condition) {
 }
 
 func init() {
-	SchemeBuilder.Register(&AWSCluster{}, &AWSClusterList{})
+	objectTypes = append(objectTypes, &AWSCluster{}, &AWSClusterList{})
 }
