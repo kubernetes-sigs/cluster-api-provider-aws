@@ -248,7 +248,7 @@ func main() {
 	}
 
 	// Parse service endpoints.
-	err = endpoints.ParseFlag(serviceEndpoints)
+	err = endpoints.ParseFlag(serviceEndpoints, setupLog)
 	if err != nil {
 		setupLog.Error(err, "unable to parse service endpoints", "controller", "AWSCluster")
 		os.Exit(1)

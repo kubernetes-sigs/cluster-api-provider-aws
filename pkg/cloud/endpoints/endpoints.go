@@ -69,8 +69,9 @@ type serviceEndpoint struct {
 
 // ParseFlag parses the command line flag of service endponts in the format ${SigningRegion1}:${ServiceID1}=${URL1},${ServiceID2}=${URL2}...;${SigningRegion2}...
 // returning a set of ServiceEndpoints.
-func ParseFlag(serviceEndpoints string) error {
+func ParseFlag(serviceEndpoints string, log logger.Wrapper) error {
 	if serviceEndpoints == "" {
+		log.Info("No custom endpoints configured, using AWS defaults")
 		return nil
 	}
 
@@ -117,6 +118,7 @@ func ParseFlag(serviceEndpoints string) error {
 				SigningRegion: signingRegion,
 			}
 			serviceEndpointsMap[serviceID] = endpoint
+			log.Info("Using custom endpoint for service", "service", serviceID, "endpoint", endpoint.URL, "signingRegion", signingRegion)
 		}
 
 		// In v1 SDK, elb and elbv2 uses the same identifier, thus the same endpoint.
@@ -130,6 +132,7 @@ func ParseFlag(serviceEndpoints string) error {
 					URL:           elbEp.URL,
 					SigningRegion: elbEp.SigningRegion,
 				}
+				log.Info("Using custom endpoint for service", "service", elbv2.ServiceID, "endpoint", elbEp.URL, "signingRegion", elbEp.SigningRegion)
 			}
 		}
 	}
@@ -167,15 +170,12 @@ type S3EndpointResolver struct {
 // ResolveEndpoint for S3.
 func (s *S3EndpointResolver) ResolveEndpoint(ctx context.Context, params s3.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	// If custom endpoint not found, return default endpoint for the service
-	log := logger.FromContext(ctx)
 	endpoint, ok := s.endpoints[s3.ServiceID]
 
 	if !ok {
-		log.Debug("Custom endpoint not found, using default endpoint")
 		return s3.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 	}
 
-	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
 	params.Endpoint = &endpoint.URL
 	params.Region = &endpoint.SigningRegion
 	return s3.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
@@ -189,15 +189,12 @@ type ELBEndpointResolver struct {
 // ResolveEndpoint for ELB.
 func (s *ELBEndpointResolver) ResolveEndpoint(ctx context.Context, params elb.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	// If custom endpoint not found, return default endpoint for the service
-	log := logger.FromContext(ctx)
 	endpoint, ok := s.endpoints[elb.ServiceID]
 
 	if !ok {
-		log.Debug("Custom endpoint not found, using default endpoint")
 		return elb.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 	}
 
-	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
 	params.Endpoint = &endpoint.URL
 	params.Region = &endpoint.SigningRegion
 	return elb.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
@@ -211,15 +208,12 @@ type ELBV2EndpointResolver struct {
 // ResolveEndpoint for ELBV2.
 func (s *ELBV2EndpointResolver) ResolveEndpoint(ctx context.Context, params elbv2.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	// If custom endpoint not found, return default endpoint for the service
-	log := logger.FromContext(ctx)
 	endpoint, ok := s.endpoints[elbv2.ServiceID]
 
 	if !ok {
-		log.Debug("Custom endpoint not found, using default endpoint")
 		return elbv2.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 	}
 
-	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
 	params.Endpoint = &endpoint.URL
 	params.Region = &endpoint.SigningRegion
 	return elbv2.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
@@ -233,15 +227,12 @@ type EC2EndpointResolver struct {
 // ResolveEndpoint for ELBV2.
 func (s *EC2EndpointResolver) ResolveEndpoint(ctx context.Context, params ec2.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	// If custom endpoint not found, return default endpoint for the service
-	log := logger.FromContext(ctx)
 	endpoint, ok := s.endpoints[ec2.ServiceID]
 
 	if !ok {
-		log.Debug("Custom endpoint not found, using default endpoint")
 		return ec2.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 	}
 
-	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
 	params.Endpoint = &endpoint.URL
 	params.Region = &endpoint.SigningRegion
 	return ec2.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
@@ -255,15 +246,12 @@ type RGAPIEndpointResolver struct {
 // ResolveEndpoint for RGAPI.
 func (s *RGAPIEndpointResolver) ResolveEndpoint(ctx context.Context, params rgapi.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	// If custom endpoint not found, return default endpoint for the service
-	log := logger.FromContext(ctx)
 	endpoint, ok := s.endpoints[rgapi.ServiceID]
 
 	if !ok {
-		log.Debug("Custom endpoint not found, using default endpoint")
 		return rgapi.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 	}
 
-	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
 	params.Endpoint = &endpoint.URL
 	params.Region = &endpoint.SigningRegion
 	return rgapi.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
@@ -277,15 +265,12 @@ type SQSEndpointResolver struct {
 // ResolveEndpoint for SQS.
 func (s *SQSEndpointResolver) ResolveEndpoint(ctx context.Context, params sqs.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	// If custom endpoint not found, return default endpoint for the service
-	log := logger.FromContext(ctx)
 	endpoint, ok := s.endpoints[sqs.ServiceID]
 
 	if !ok {
-		log.Debug("Custom endpoint not found, using default endpoint")
 		return sqs.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 	}
 
-	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
 	params.Endpoint = &endpoint.URL
 	params.Region = &endpoint.SigningRegion
 	return sqs.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
@@ -299,15 +284,12 @@ type EventBridgeEndpointResolver struct {
 // ResolveEndpoint for EventBridge.
 func (s *EventBridgeEndpointResolver) ResolveEndpoint(ctx context.Context, params eventbridge.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	// If custom endpoint not found, return default endpoint for the service
-	log := logger.FromContext(ctx)
 	endpoint, ok := s.endpoints[eventbridge.ServiceID]
 
 	if !ok {
-		log.Debug("Custom endpoint not found, using default endpoint")
 		return eventbridge.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 	}
 
-	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
 	params.Endpoint = &endpoint.URL
 	params.Region = &endpoint.SigningRegion
 	return eventbridge.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
@@ -321,15 +303,12 @@ type EKSEndpointResolver struct {
 // ResolveEndpoint for EKS.
 func (s *EKSEndpointResolver) ResolveEndpoint(ctx context.Context, params eks.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	// If custom endpoint not found, return default endpoint for the service
-	log := logger.FromContext(ctx)
 	endpoint, ok := s.endpoints[eks.ServiceID]
 
 	if !ok {
-		log.Debug("Custom endpoint not found, using default endpoint")
 		return eks.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 	}
 
-	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
 	params.Endpoint = &endpoint.URL
 	params.Region = &endpoint.SigningRegion
 	return eks.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
@@ -343,15 +322,12 @@ type SSMEndpointResolver struct {
 // ResolveEndpoint for SSM.
 func (s *SSMEndpointResolver) ResolveEndpoint(ctx context.Context, params ssm.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	// If custom endpoint not found, return default endpoint for the service
-	log := logger.FromContext(ctx)
 	endpoint, ok := s.endpoints[ssm.ServiceID]
 
 	if !ok {
-		log.Debug("Custom endpoint not found, using default endpoint")
 		return ssm.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 	}
 
-	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
 	params.Endpoint = &endpoint.URL
 	params.Region = &endpoint.SigningRegion
 	return ssm.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
@@ -365,15 +341,12 @@ type STSEndpointResolver struct {
 // ResolveEndpoint for STS.
 func (s *STSEndpointResolver) ResolveEndpoint(ctx context.Context, params sts.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	// If custom endpoint not found, return default endpoint for the service
-	log := logger.FromContext(ctx)
 	endpoint, ok := s.endpoints[sts.ServiceID]
 
 	if !ok {
-		log.Debug("Custom endpoint not found, using default endpoint")
 		return sts.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 	}
 
-	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
 	params.Endpoint = &endpoint.URL
 	params.Region = &endpoint.SigningRegion
 	return sts.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
@@ -387,15 +360,12 @@ type SecretsManagerEndpointResolver struct {
 // ResolveEndpoint for Secrets Manager.
 func (s *SecretsManagerEndpointResolver) ResolveEndpoint(ctx context.Context, params secretsmanager.EndpointParameters) (smithyendpoints.Endpoint, error) {
 	// If custom endpoint not found, return default endpoint for the service
-	log := logger.FromContext(ctx)
 	endpoint, ok := s.endpoints[secretsmanager.ServiceID]
 
 	if !ok {
-		log.Debug("Custom endpoint not found, using default endpoint")
 		return secretsmanager.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 	}
 
-	log.Debug("Custom endpoint found, using custom endpoint", "endpoint", endpoint.URL)
 	params.Endpoint = &endpoint.URL
 	params.Region = &endpoint.SigningRegion
 	return secretsmanager.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
