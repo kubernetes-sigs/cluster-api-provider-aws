@@ -466,6 +466,147 @@ func TestReconcileAccessEntries(t *testing.T) {
 			},
 			expectError: false,
 		},
+		{
+			name: "unmanaged entry in spec only gets missing policies associated",
+			accessEntries: []ekscontrolplanev1.AccessEntry{
+				{
+					PrincipalARN: principalARN,
+					AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
+						{
+							PolicyARN: policyARN,
+							AccessScope: ekscontrolplanev1.AccessScope{
+								Type: ekscontrolplanev1.AccessScopeTypeCluster,
+							},
+						},
+					},
+				},
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.ListAccessEntries(gomock.Any(), gomock.Any()).Return(&eks.ListAccessEntriesOutput{
+					AccessEntries: []string{principalARN},
+				}, nil)
+				// Untagged: e.g. the cluster creator entry added by EKS.
+				m.DescribeAccessEntry(gomock.Any(), &eks.DescribeAccessEntryInput{
+					ClusterName:  aws.String(clusterName),
+					PrincipalArn: aws.String(principalARN),
+				}).Return(&eks.DescribeAccessEntryOutput{
+					AccessEntry: &ekstypes.AccessEntry{
+						PrincipalArn: aws.String(principalARN),
+					},
+				}, nil)
+				m.ListAssociatedAccessPolicies(gomock.Any(), gomock.Any()).Return(&eks.ListAssociatedAccessPoliciesOutput{}, nil)
+				m.AssociateAccessPolicy(gomock.Any(), &eks.AssociateAccessPolicyInput{
+					ClusterName:  aws.String(clusterName),
+					PrincipalArn: aws.String(principalARN),
+					PolicyArn:    aws.String(policyARN),
+					AccessScope: &ekstypes.AccessScope{
+						Type: ekstypes.AccessScopeTypeCluster,
+					},
+				}).Return(&eks.AssociateAccessPolicyOutput{}, nil)
+				// No CreateAccessEntry, UpdateAccessEntry or DeleteAccessEntry.
+			},
+			expectError: false,
+		},
+		{
+			name: "unmanaged entry in spec with matching policy is left unchanged",
+			accessEntries: []ekscontrolplanev1.AccessEntry{
+				{
+					PrincipalARN: principalARN,
+					AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
+						{
+							PolicyARN: policyARN,
+							AccessScope: ekscontrolplanev1.AccessScope{
+								Type: ekscontrolplanev1.AccessScopeTypeCluster,
+							},
+						},
+					},
+				},
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.ListAccessEntries(gomock.Any(), gomock.Any()).Return(&eks.ListAccessEntriesOutput{
+					AccessEntries: []string{principalARN},
+				}, nil)
+				m.DescribeAccessEntry(gomock.Any(), &eks.DescribeAccessEntryInput{
+					ClusterName:  aws.String(clusterName),
+					PrincipalArn: aws.String(principalARN),
+				}).Return(&eks.DescribeAccessEntryOutput{
+					AccessEntry: &ekstypes.AccessEntry{
+						PrincipalArn: aws.String(principalARN),
+					},
+				}, nil)
+				m.ListAssociatedAccessPolicies(gomock.Any(), gomock.Any()).Return(&eks.ListAssociatedAccessPoliciesOutput{
+					AssociatedAccessPolicies: []ekstypes.AssociatedAccessPolicy{
+						{
+							PolicyArn: aws.String(policyARN),
+							AccessScope: &ekstypes.AccessScope{
+								Type: ekstypes.AccessScopeTypeCluster,
+							},
+						},
+					},
+				}, nil)
+				// No AssociateAccessPolicy: the policy already matches.
+			},
+			expectError: false,
+		},
+		{
+			name: "unmanaged entry in spec keeps policies that are not in the spec",
+			accessEntries: []ekscontrolplanev1.AccessEntry{
+				{
+					PrincipalARN: principalARN,
+					AccessPolicies: []ekscontrolplanev1.AccessPolicyReference{
+						{
+							PolicyARN: policyARN,
+							AccessScope: ekscontrolplanev1.AccessScope{
+								Type: ekscontrolplanev1.AccessScopeTypeCluster,
+							},
+						},
+					},
+				},
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.ListAccessEntries(gomock.Any(), gomock.Any()).Return(&eks.ListAccessEntriesOutput{
+					AccessEntries: []string{principalARN},
+				}, nil)
+				m.DescribeAccessEntry(gomock.Any(), &eks.DescribeAccessEntryInput{
+					ClusterName:  aws.String(clusterName),
+					PrincipalArn: aws.String(principalARN),
+				}).Return(&eks.DescribeAccessEntryOutput{
+					AccessEntry: &ekstypes.AccessEntry{
+						PrincipalArn: aws.String(principalARN),
+					},
+				}, nil)
+				m.ListAssociatedAccessPolicies(gomock.Any(), gomock.Any()).Return(&eks.ListAssociatedAccessPoliciesOutput{
+					AssociatedAccessPolicies: []ekstypes.AssociatedAccessPolicy{
+						{
+							PolicyArn: aws.String("arn:aws:eks::aws:cluster-access-policy/AmazonEKSViewPolicy"),
+							AccessScope: &ekstypes.AccessScope{
+								Type: ekstypes.AccessScopeTypeCluster,
+							},
+						},
+					},
+				}, nil)
+				m.AssociateAccessPolicy(gomock.Any(), gomock.Any()).Return(&eks.AssociateAccessPolicyOutput{}, nil)
+				// No DisassociateAccessPolicy for the policy that is not in the spec.
+			},
+			expectError: false,
+		},
+		{
+			name: "describe error is returned instead of treating the entry as unmanaged",
+			accessEntries: []ekscontrolplanev1.AccessEntry{
+				{
+					PrincipalARN: principalARN,
+				},
+			},
+			expect: func(m *mock_eksiface.MockEKSAPIMockRecorder) {
+				m.ListAccessEntries(gomock.Any(), gomock.Any()).Return(&eks.ListAccessEntriesOutput{
+					AccessEntries: []string{principalARN},
+				}, nil)
+				m.DescribeAccessEntry(gomock.Any(), gomock.Any()).Return(nil, &ekstypes.ServerException{
+					Message: aws.String("internal error"),
+				})
+			},
+			expectError: true,
+		},
 	}
 
 	for _, tc := range tests {
