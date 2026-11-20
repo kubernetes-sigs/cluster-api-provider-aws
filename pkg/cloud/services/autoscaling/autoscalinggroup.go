@@ -277,16 +277,28 @@ func (s *Service) UpdateASG(machinePoolScope *scope.MachinePoolScope) error {
 		return fmt.Errorf("getting subnets for ASG: %w", err)
 	}
 
+	minSize := machinePoolScope.AWSMachinePool.Spec.MinSize
+	maxSize := machinePoolScope.AWSMachinePool.Spec.MaxSize
+
 	input := &autoscaling.UpdateAutoScalingGroupInput{
 		AutoScalingGroupName: aws.String(machinePoolScope.Name()), // TODO: define dynamically - borrow logic from ec2
-		MaxSize:              aws.Int32(machinePoolScope.AWSMachinePool.Spec.MaxSize),
-		MinSize:              aws.Int32(machinePoolScope.AWSMachinePool.Spec.MinSize),
+		MaxSize:              aws.Int32(maxSize),
+		MinSize:              aws.Int32(minSize),
 		VPCZoneIdentifier:    aws.String(strings.Join(subnetIDs, ",")),
 		CapacityRebalance:    aws.Bool(machinePoolScope.AWSMachinePool.Spec.CapacityRebalance),
 	}
 
 	if machinePoolScope.MachinePool.Spec.Replicas != nil && !annotations.ReplicasManagedByExternalAutoscaler(machinePoolScope.MachinePool) {
-		input.DesiredCapacity = aws.Int32(*machinePoolScope.MachinePool.Spec.Replicas)
+		replicas := *machinePoolScope.MachinePool.Spec.Replicas
+
+		if replicas < minSize {
+			replicas = minSize
+		}
+		if replicas > maxSize {
+			replicas = maxSize
+		}
+
+		input.DesiredCapacity = aws.Int32(replicas)
 	}
 
 	if machinePoolScope.AWSMachinePool.Spec.MixedInstancesPolicy != nil {
