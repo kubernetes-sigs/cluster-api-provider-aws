@@ -170,6 +170,9 @@ func TestAWSClusterReconcilerIntegrationTests(t *testing.T) {
 
 			return testEnv.Update(ctx, cs.AWSCluster)
 		})).To(Succeed())
+		refreshedScope, err := getClusterScope(*cs.AWSCluster)
+		g.Expect(err).ToNot(HaveOccurred())
+		*cs = *refreshedScope
 		// Executing back a second reconciliation:
 		// the AWS Cluster should be ready with no LoadBalancer false condition.
 		_, err = reconciler.reconcileNormal(context.TODO(), cs)

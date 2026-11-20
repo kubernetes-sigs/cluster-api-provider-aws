@@ -30,6 +30,7 @@ import (
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/services"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/v2/util/conditions"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	deprecatedv1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 )
@@ -192,6 +193,12 @@ func ReconcileLifecycleHooks(ctx context.Context, asgService services.ASGInterfa
 			log.Info("Deleting extraneous lifecycle hook", "hook", existingHook.Name)
 			if err := asgService.DeleteLifecycleHook(ctx, asgName, existingHook); err != nil {
 				deprecatedv1beta1conditions.MarkFalse(storeConditionsOnObject, clusterv1.ConditionType(expinfrav1.LifecycleHookReadyCondition), expinfrav1.LifecycleHookDeletionFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
+				infrautilconditions.SetV1Beta2(storeConditionsOnObject, metav1.Condition{
+					Type:    expinfrav1.AWSMachinePoolLifecycleHookReadyV1Beta2Condition,
+					Status:  metav1.ConditionFalse,
+					Reason:  expinfrav1.AWSMachinePoolLifecycleHookDeletionFailedV1Beta2Reason,
+					Message: err.Error(),
+				})
 				return err
 			}
 		}
@@ -225,6 +232,12 @@ func reconcileLifecycleHook(ctx context.Context, asgService services.ASGInterfac
 		log.Info("Creating lifecycle hook")
 		if err := asgService.CreateLifecycleHook(ctx, asgName, wantedHook); err != nil {
 			deprecatedv1beta1conditions.MarkFalse(storeConditionsOnObject, clusterv1.ConditionType(expinfrav1.LifecycleHookReadyCondition), expinfrav1.LifecycleHookCreationFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
+			infrautilconditions.SetV1Beta2(storeConditionsOnObject, metav1.Condition{
+				Type:    expinfrav1.AWSMachinePoolLifecycleHookReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  expinfrav1.AWSMachinePoolLifecycleHookCreationFailedV1Beta2Reason,
+				Message: err.Error(),
+			})
 			return err
 		}
 		return nil
@@ -234,10 +247,21 @@ func reconcileLifecycleHook(ctx context.Context, asgService services.ASGInterfac
 		log.Info("Updating lifecycle hook")
 		if err := asgService.UpdateLifecycleHook(ctx, asgName, wantedHook); err != nil {
 			deprecatedv1beta1conditions.MarkFalse(storeConditionsOnObject, clusterv1.ConditionType(expinfrav1.LifecycleHookReadyCondition), expinfrav1.LifecycleHookUpdateFailedReason, clusterv1.ConditionSeverityError, "%s", err.Error())
+			infrautilconditions.SetV1Beta2(storeConditionsOnObject, metav1.Condition{
+				Type:    expinfrav1.AWSMachinePoolLifecycleHookReadyV1Beta2Condition,
+				Status:  metav1.ConditionFalse,
+				Reason:  expinfrav1.AWSMachinePoolLifecycleHookUpdateFailedV1Beta2Reason,
+				Message: err.Error(),
+			})
 			return err
 		}
 	}
 
 	deprecatedv1beta1conditions.MarkTrue(storeConditionsOnObject, clusterv1.ConditionType(expinfrav1.LifecycleHookReadyCondition))
+	infrautilconditions.SetV1Beta2(storeConditionsOnObject, metav1.Condition{
+		Type:   expinfrav1.AWSMachinePoolLifecycleHookReadyV1Beta2Condition,
+		Status: metav1.ConditionTrue,
+		Reason: clusterv1.ReadyReason,
+	})
 	return nil
 }

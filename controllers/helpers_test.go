@@ -38,6 +38,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/test/mocks"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 )
 
 const DNSName = "www.google.com"
@@ -133,6 +134,22 @@ func expectAWSClusterConditions(g *WithT, m *infrav1.AWSCluster, expected []cond
 		g.Expect(actual.Status).To(Equal(c.status))
 		g.Expect(actual.Severity).To(Equal(c.severity))
 		g.Expect(actual.Reason).To(Equal(c.reason))
+		standardType := string(c.conditionType)
+		switch c.conditionType {
+		case infrav1.VpcEndpointsReadyCondition:
+			standardType = infrav1.AWSClusterVpcEndpointsReadyV1Beta2Condition
+		case infrav1.S3BucketReadyCondition:
+			standardType = infrav1.AWSClusterS3BucketReadyV1Beta2Condition
+		}
+		standard := conditions.Get(m, standardType)
+		g.Expect(standard).ToNot(BeNil())
+		g.Expect(standard.Status).To(Equal(metav1.ConditionStatus(c.status)))
+		g.Expect(standard.Reason).ToNot(BeEmpty())
+		if c.reason != "" {
+			g.Expect(standard.Reason).To(Equal(c.reason))
+		}
+		g.Expect(standard.Message).To(Equal(actual.Message))
+		g.Expect(standard.ObservedGeneration).To(Equal(m.Generation))
 	}
 }
 

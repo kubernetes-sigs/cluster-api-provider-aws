@@ -19,6 +19,7 @@ package scope
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -33,6 +34,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/endpoints"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/throttle"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
+	infrautilconditions "sigs.k8s.io/cluster-api-provider-aws/v2/util/conditions"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
@@ -284,10 +286,35 @@ func (s *ClusterScope) PatchObject() error {
 		v1beta1conditions.WithStepCounterIf(s.AWSCluster.ObjectMeta.DeletionTimestamp.IsZero()),
 		v1beta1conditions.WithStepCounter(),
 	)
+	// Bastion reconciliation skips creation when there are no private subnets.
+	// Keep the legacy summary unchanged, but do not require the skipped standard condition.
+	if !BastionRequired(s.Bastion(), s.Subnets()) {
+		applicableConditions = slices.DeleteFunc(applicableConditions, func(conditionType clusterv1beta1.ConditionType) bool {
+			return conditionType == infrav1.BastionHostReadyCondition
+		})
+	}
+	if err := infrautilconditions.SetV1Beta2Summary(s.AWSCluster, applicableConditions...); err != nil {
+		return err
+	}
 
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.AWSCluster,
+		v1beta1patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			infrav1.AWSClusterReadyV1Beta2Condition,
+			infrav1.AWSClusterVpcReadyV1Beta2Condition,
+			infrav1.AWSClusterSubnetsReadyV1Beta2Condition,
+			infrav1.AWSClusterInternetGatewayReadyV1Beta2Condition,
+			infrav1.AWSClusterEgressOnlyInternetGatewayReadyV1Beta2Condition,
+			infrav1.AWSClusterNatGatewaysReadyV1Beta2Condition,
+			infrav1.AWSClusterRouteTablesReadyV1Beta2Condition,
+			infrav1.AWSClusterVpcEndpointsReadyV1Beta2Condition,
+			infrav1.AWSClusterSecurityGroupsReadyV1Beta2Condition,
+			infrav1.AWSClusterBastionHostReadyV1Beta2Condition,
+			infrav1.AWSClusterLoadBalancerReadyV1Beta2Condition,
+			infrav1.AWSClusterPrincipalCredentialRetrievedV1Beta2Condition,
+			infrav1.AWSClusterPrincipalUsageAllowedV1Beta2Condition,
+		}},
 		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 			clusterv1beta1.ReadyCondition,
 			infrav1.VpcReadyCondition,

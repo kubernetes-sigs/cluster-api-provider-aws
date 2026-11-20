@@ -48,6 +48,7 @@ import (
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 )
 
 func TestAWSMachineReconcilerIntegrationTests(t *testing.T) {
@@ -651,6 +652,19 @@ func expectConditions(g *WithT, m *infrav1.AWSMachine, expected []conditionAsser
 		g.Expect(actual.Status).To(Equal(c.status))
 		g.Expect(actual.Severity).To(Equal(c.severity))
 		g.Expect(actual.Reason).To(Equal(c.reason))
+		standard := conditions.Get(m, string(c.conditionType))
+		g.Expect(standard).ToNot(BeNil())
+		g.Expect(standard.Status).To(Equal(metav1.ConditionStatus(c.status)))
+		g.Expect(standard.Reason).ToNot(BeEmpty())
+		if c.reason != "" {
+			reason := c.reason
+			if reason == infrav1.WaitingForClusterInfrastructureReason {
+				reason = infrav1.AWSMachineWaitingForClusterInfrastructureV1Beta2Reason
+			}
+			g.Expect(standard.Reason).To(Equal(reason))
+		}
+		g.Expect(standard.Message).To(Equal(actual.Message))
+		g.Expect(standard.ObservedGeneration).To(Equal(m.Generation))
 	}
 }
 

@@ -40,6 +40,7 @@ import (
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
+	conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions/v1beta2"
 	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
 	"sigs.k8s.io/cluster-api/util/patch"
 )
@@ -244,6 +245,12 @@ func (s *ManagedMachinePoolScope) NodegroupReadyFalse(reason string, err string)
 		"%s",
 		err,
 	)
+	conditions.Set(s.ManagedMachinePool, metav1.Condition{
+		Type:    expinfrav1.AWSManagedMachinePoolEKSNodegroupReadyV1Beta2Condition,
+		Status:  metav1.ConditionFalse,
+		Reason:  reason,
+		Message: err,
+	})
 	if err := s.PatchObject(); err != nil {
 		return errors.Wrap(err, "failed to mark nodegroup not ready")
 	}
@@ -265,6 +272,12 @@ func (s *ManagedMachinePoolScope) IAMReadyFalse(reason string, err string) error
 		"%s",
 		err,
 	)
+	conditions.Set(s.ManagedMachinePool, metav1.Condition{
+		Type:    expinfrav1.AWSManagedMachinePoolIAMNodegroupRolesReadyV1Beta2Condition,
+		Status:  metav1.ConditionFalse,
+		Reason:  reason,
+		Message: err,
+	})
 	if err := s.PatchObject(); err != nil {
 		return errors.Wrap(err, "failed to mark nodegroup role not ready")
 	}
@@ -276,6 +289,12 @@ func (s *ManagedMachinePoolScope) PatchObject() error {
 	return s.patchHelper.Patch(
 		context.TODO(),
 		s.ManagedMachinePool,
+		v1beta1patch.WithOwnedV1Beta2Conditions{Conditions: []string{
+			expinfrav1.AWSManagedMachinePoolReadyV1Beta2Condition,
+			expinfrav1.AWSManagedMachinePoolEKSNodegroupReadyV1Beta2Condition,
+			expinfrav1.AWSManagedMachinePoolIAMNodegroupRolesReadyV1Beta2Condition,
+			expinfrav1.AWSManagedMachinePoolLaunchTemplateReadyV1Beta2Condition,
+		}},
 		v1beta1patch.WithOwnedConditions{Conditions: []clusterv1beta1.ConditionType{
 			expinfrav1.EKSNodegroupReadyCondition,
 			expinfrav1.IAMNodegroupRolesReadyCondition,
