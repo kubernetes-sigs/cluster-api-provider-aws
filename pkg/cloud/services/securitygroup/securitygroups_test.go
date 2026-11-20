@@ -2541,3 +2541,116 @@ func TestNodePortServicesIngressRules(t *testing.T) {
 		})
 	}
 }
+
+func TestReconcileSecurityGroupsBastionDisabled(t *testing.T) {
+	bastionSG := infrav1.SecurityGroup{
+		ID:   "sg-bastion",
+		Name: "test-cluster-bastion",
+		IngressRules: infrav1.IngressRules{{
+			Description: "SSH",
+			Protocol:    infrav1.SecurityGroupProtocolTCP,
+			FromPort:    22,
+			ToPort:      22,
+			CidrBlocks:  []string{"0.0.0.0/0"},
+		}},
+	}
+	ownedBastion := types.SecurityGroup{
+		GroupId:   aws.String("sg-bastion"),
+		GroupName: aws.String("test-cluster-bastion"),
+		Tags: []types.Tag{{
+			Key:   aws.String(infrav1.ClusterTagKey("test-cluster")),
+			Value: aws.String(string(infrav1.ResourceLifecycleOwned)),
+		}},
+	}
+
+	testCases := []struct {
+		name      string
+		existing  []types.SecurityGroup
+		expect    func(m *mocks.MockEC2APIMockRecorder)
+		keepEntry bool
+	}{
+		{
+			name:     "deletes the owned bastion group and ignores allowedCIDRBlocks",
+			existing: []types.SecurityGroup{ownedBastion},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DeleteSecurityGroup(context.TODO(), &ec2.DeleteSecurityGroupInput{GroupId: aws.String("sg-bastion")}).
+					Return(&ec2.DeleteSecurityGroupOutput{}, nil)
+			},
+		},
+		{
+			name:     "keeps the status entry and retries when the bastion group is still in use",
+			existing: []types.SecurityGroup{ownedBastion},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DeleteSecurityGroup(context.TODO(), &ec2.DeleteSecurityGroupInput{GroupId: aws.String("sg-bastion")}).
+					Return(nil, &smithy.GenericAPIError{Code: "DependencyViolation", Message: "resource sg-bastion has a dependent object"})
+			},
+			keepEntry: true,
+		},
+		{
+			name:     "keeps the status entry when the delete fails for another reason",
+			existing: []types.SecurityGroup{ownedBastion},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DeleteSecurityGroup(context.TODO(), &ec2.DeleteSecurityGroupInput{GroupId: aws.String("sg-bastion")}).
+					Return(nil, &smithy.GenericAPIError{Code: "UnauthorizedOperation", Message: "not authorized"})
+			},
+			keepEntry: true,
+		},
+		{
+			name:     "drops the status entry when the delete reports the group is gone",
+			existing: []types.SecurityGroup{ownedBastion},
+			expect: func(m *mocks.MockEC2APIMockRecorder) {
+				m.DeleteSecurityGroup(context.TODO(), &ec2.DeleteSecurityGroupInput{GroupId: aws.String("sg-bastion")}).
+					Return(nil, &smithy.GenericAPIError{Code: "InvalidGroup.NotFound", Message: "gone"})
+			},
+		},
+		{
+			name:     "drops the status entry when the bastion group is already gone",
+			existing: nil,
+			expect:   func(m *mocks.MockEC2APIMockRecorder) {},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			g := NewWithT(t)
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+			ec2Mock := mocks.NewMockEC2API(mockCtrl)
+
+			scheme := runtime.NewScheme()
+			_ = infrav1.AddToScheme(scheme)
+			awsCluster := &infrav1.AWSCluster{
+				ObjectMeta: metav1.ObjectMeta{Name: "test"},
+				Spec: infrav1.AWSClusterSpec{
+					NetworkSpec: infrav1.NetworkSpec{VPC: infrav1.VPCSpec{ID: "vpc-securitygroups"}},
+					Bastion:     infrav1.Bastion{Enabled: false, AllowedCIDRBlocks: []string{"10.99.0.0/16"}},
+				},
+				Status: infrav1.AWSClusterStatus{Network: infrav1.NetworkStatus{
+					SecurityGroups: map[infrav1.SecurityGroupRole]infrav1.SecurityGroup{infrav1.SecurityGroupBastion: bastionSG},
+				}},
+			}
+			cs, err := scope.NewClusterScope(scope.ClusterScopeParams{
+				Client:     fake.NewClientBuilder().WithScheme(scheme).Build(),
+				Cluster:    &clusterv1.Cluster{ObjectMeta: metav1.ObjectMeta{Name: "test-cluster"}},
+				AWSCluster: awsCluster,
+			})
+			g.Expect(err).NotTo(HaveOccurred())
+
+			ec2Mock.EXPECT().DescribeSecurityGroups(context.TODO(), &ec2.DescribeSecurityGroupsInput{
+				Filters: []types.Filter{filter.EC2.VPC("vpc-securitygroups"), filter.EC2.Cluster("test-cluster")},
+			}).Return(&ec2.DescribeSecurityGroupsOutput{SecurityGroups: tc.existing}, nil)
+			// No Revoke/AuthorizeSecurityGroupIngress on sg-bastion: gomock fails on unexpected calls.
+			tc.expect(ec2Mock.EXPECT())
+
+			s := NewService(cs, []infrav1.SecurityGroupRole{}) // bastion disabled: role not managed
+			s.EC2Client = ec2Mock
+
+			g.Expect(s.ReconcileSecurityGroups()).To(Succeed())
+			if tc.keepEntry {
+				g.Expect(cs.SecurityGroups()).To(HaveKey(infrav1.SecurityGroupBastion))
+			} else {
+				g.Expect(cs.SecurityGroups()).NotTo(HaveKey(infrav1.SecurityGroupBastion))
+			}
+		})
+	}
+}
