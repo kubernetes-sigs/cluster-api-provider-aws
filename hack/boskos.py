@@ -24,35 +24,46 @@ import time
 
 BOSKOS_HOST = os.environ.get("BOSKOS_HOST", "boskos")
 BOSKOS_RESOURCE_NAME = os.environ.get('BOSKOS_RESOURCE_NAME')
-# Retry up to 3 times, with 10 seconds between tries. This is the same as defaults
-# on https://github.com/kubernetes-sigs/boskos/
-MAX_RETRIES = 3
+# When no resource is free, keep retrying with exponential backoff until the
+# timeout expires. Concurrent jobs can exhaust the pool for several minutes, so
+# give up only after BOSKOS_ACQUIRE_TIMEOUT seconds (default 15 minutes).
+BOSKOS_ACQUIRE_TIMEOUT = int(os.environ.get("BOSKOS_ACQUIRE_TIMEOUT", "900"))
 RETRY_WAIT = 10
+MAX_RETRY_WAIT = 60
 
 
-def checkout_account(resource_type, user, input_state="free", tries=1):
+def checkout_account(resource_type, user, input_state="free"):
     url = f'http://{BOSKOS_HOST}/acquire?type={resource_type}&state={input_state}&dest=busy&owner={user}'
+    deadline = time.monotonic() + BOSKOS_ACQUIRE_TIMEOUT
+    wait = RETRY_WAIT
+    attempts = 0
 
-    r = requests.post(url)
+    while True:
+        attempts += 1
+        r = requests.post(url)
 
-    if r.status_code == 200:
-        content = r.content.decode()
-        result = json.loads(content)
+        if r.status_code == 200:
+            content = r.content.decode()
+            result = json.loads(content)
 
-        print(f"export BOSKOS_RESOURCE_NAME={result['name']}")
-        print(f"export AWS_ACCESS_KEY_ID={result['userdata']['access-key-id']}")
-        print(f"export AWS_SECRET_ACCESS_KEY={result['userdata']['secret-access-key']}")
-    # The http API has two possible meanings of 404s - the named resource type cannot be found or there no available resources of the type.
-    # For our purposes, we don't need to differentiate.
-    elif r.status_code == 404:
-        print(f"could not find available host, retrying in {RETRY_WAIT}s", file=sys.stderr)
-        if tries > MAX_RETRIES:
-            raise Exception(f"could not allocate host after {MAX_RETRIES} tries")
-        tries = tries + 1
-        time.sleep(RETRY_WAIT)
-        return checkout_account(resource_type, user, input_state, tries)
-    else:
-        raise Exception(f"Got invalid response {r.status_code}: {r.reason}")
+            print(f"export BOSKOS_RESOURCE_NAME={result['name']}")
+            print(f"export AWS_ACCESS_KEY_ID={result['userdata']['access-key-id']}")
+            print(f"export AWS_SECRET_ACCESS_KEY={result['userdata']['secret-access-key']}")
+            return
+
+        # The http API has two possible meanings of 404s - the named resource type cannot be found or there no available resources of the type.
+        # For our purposes, we don't need to differentiate.
+        if r.status_code != 404:
+            raise Exception(f"Got invalid response {r.status_code}: {r.reason}")
+
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise Exception(f"could not allocate {resource_type} after {attempts} attempts in {BOSKOS_ACQUIRE_TIMEOUT}s")
+
+        sleep_for = min(wait, remaining)
+        print(f"no free {resource_type} available (attempt {attempts}), retrying in {sleep_for:.0f}s", file=sys.stderr)
+        time.sleep(sleep_for)
+        wait = min(wait * 2, MAX_RETRY_WAIT)
 
 
 def release_account(user):
