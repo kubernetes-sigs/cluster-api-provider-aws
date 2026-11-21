@@ -72,23 +72,22 @@ gh api repos/kubernetes/kubernetes/releases \
 
 Call this `K8S_VERSION` (e.g. `v1.35.3`).
 
-### 1d. KIND version and management cluster k8s version
+### 1d. KIND version
 
-KIND does not publish `kindest/node` images for every k8s patch — only for
-specific patches chosen at each KIND release. Find the latest KIND release that
-has a `kindest/node` image for the target k8s minor:
+The e2e suite does not depend on published `kindest/node` images: if KIND has
+not published a node image for `KUBERNETES_VERSION_MANAGEMENT`, the suite builds
+one locally from the Kubernetes release artifacts (equivalent to
+`kind build node-image <version>`). The kind management cluster can therefore
+use the same k8s version as the workload clusters.
+
+Find the latest KIND release, which is used to build node images and create
+kind clusters:
 
 ```bash
-gh api repos/kubernetes-sigs/kind/releases/latest --jq '.body'
+gh api repos/kubernetes-sigs/kind/releases/latest --jq '.tag_name'
 ```
 
-Look for `kindest/node:v${K8S_MINOR}.X` in the release notes. The patch version
-may differ from `K8S_VERSION`. Call this `KIND_K8S_VERSION` (e.g. `v1.35.5`) and
-the KIND release itself `KIND_VERSION` (e.g. `v0.32.0`).
-
-If the latest KIND release does not have an image for the target k8s minor,
-check earlier releases or consider whether the bump should wait for a new KIND
-release.
+Call this `KIND_VERSION` (e.g. `v0.32.0`).
 
 ### 1e. AMI availability
 
@@ -264,12 +263,12 @@ version (check the CAPI release notes — e.g. `v1beta1` or `v1beta2`):
 Update:
 - All CAPI component image URLs (search for
   `cluster-api/releases/download/v1.XX` and update the version)
-- `KUBERNETES_VERSION_MANAGEMENT`: set to `KIND_K8S_VERSION` (must match a
-  version with a published `kindest/node` image)
+- `KUBERNETES_VERSION_MANAGEMENT`: set to match `KUBERNETES_VERSION`
 - `KUBERNETES_VERSION`: set to a recent k8s patch with published AMIs
 - `KUBERNETES_VERSION_UPGRADE_TO`: typically same as `KUBERNETES_VERSION`
 - `KUBERNETES_VERSION_UPGRADE_FROM`: latest patch of the previous k8s minor
-- `INIT_WITH_KUBERNETES_VERSION`: set to `KIND_K8S_VERSION`
+- `INIT_WITH_KUBERNETES_VERSION`: set to match `KUBERNETES_VERSION` (this is
+  an AWS-based management cluster, so it needs published AMIs)
 - `ETCD_VERSION_UPGRADE_TO`: set to `ETCD_VERSION`
 - `COREDNS_VERSION_UPGRADE_TO`: set to `COREDNS_VERSION`
 - `CONFORMANCE_CI_ARTIFACTS_KUBERNETES_VERSION`: set to match `KUBERNETES_VERSION`
