@@ -187,10 +187,20 @@ type AWSManagedControlPlaneSpec struct { //nolint: maligned
 	// +optional
 	Addons *[]Addon `json:"addons,omitempty"`
 
-	// OIDCIdentityProviderConfig is used to specify the OIDC provider config
-	// to be attached with this eks cluster
+	// OIDCIdentityProviderConfig is used to specify a single OIDC provider config for this EKS cluster.
+	//
+	// Deprecated: Use oidcIdentityProviderConfigs instead. This field is mutually exclusive with oidcIdentityProviderConfigs.
 	// +optional
 	OIDCIdentityProviderConfig *OIDCIdentityProviderConfig `json:"oidcIdentityProviderConfig,omitempty"`
+
+	// OIDCIdentityProviderConfigs specifies OIDC identity providers for the cluster.
+	// This field is mutually exclusive with oidcIdentityProviderConfig.
+	// EKS supports up to 10 external OIDC providers per cluster.
+	// +listType=map
+	// +listMapKey=identityProviderConfigName
+	// +kubebuilder:validation:MaxItems=10
+	// +optional
+	OIDCIdentityProviderConfigs []OIDCIdentityProviderConfig `json:"oidcIdentityProviderConfigs,omitempty"`
 
 	// AccessConfig specifies the access configuration information for the cluster
 	// +optional
@@ -365,6 +375,10 @@ type OIDCProviderStatus struct {
 
 // IdentityProviderStatus holds the status for associated identity provider.
 type IdentityProviderStatus struct {
+	// IdentityProviderConfigName is the EKS identity provider configuration name.
+	// +optional
+	IdentityProviderConfigName string `json:"identityProviderConfigName,omitempty"`
+
 	// ARN holds the ARN of associated identity provider
 	ARN string `json:"arn,omitempty"`
 
@@ -407,10 +421,14 @@ type AWSManagedControlPlaneStatus struct {
 	// Addons holds the current status of the EKS addons
 	// +optional
 	Addons []AddonState `json:"addons,omitempty"`
-	// IdentityProviderStatus holds the status for
-	// associated identity provider
+	// IdentityProviderStatus holds the status for a single associated OIDC identity provider.
+	// Populated only when exactly one provider is managed via the deprecated oidcIdentityProviderConfig field.
+	// When managing multiple providers, use identityProviderStatuses instead.
 	// +optional
 	IdentityProviderStatus IdentityProviderStatus `json:"identityProviderStatus,omitempty"`
+	// IdentityProviderStatuses holds the status for each associated OIDC identity provider.
+	// +optional
+	IdentityProviderStatuses []IdentityProviderStatus `json:"identityProviderStatuses,omitempty"`
 	// Version represents the minimum Kubernetes version for the control plane machines
 	// in the cluster.
 	// +optional
