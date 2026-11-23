@@ -15,13 +15,14 @@ limitations under the License.
 */
 
 // Package cmd wires the top-level `release-tool` cobra command and registers
-// each subcommand domain (currently just `ami`).
+// each subcommand domain (`ami`, `changelog`).
 package cmd
 
 import (
 	"github.com/spf13/cobra"
 
 	amicmd "sigs.k8s.io/cluster-api-provider-aws/hack/tools/release-tools/cmd/ami"
+	changelogcmd "sigs.k8s.io/cluster-api-provider-aws/hack/tools/release-tools/cmd/changelog"
 )
 
 // Root returns the top-level `release-tool` cobra command.
@@ -34,5 +35,6 @@ func Root() *cobra.Command {
 		SilenceErrors: true,
 	}
 	root.AddCommand(amicmd.Cmd())
+	root.AddCommand(changelogcmd.Cmd())
 	return root
 }
