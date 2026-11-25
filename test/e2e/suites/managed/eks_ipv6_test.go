@@ -85,10 +85,31 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 				Namespace:             namespace,
 				ClusterName:           clusterName,
 				IncludeScaling:        false,
+				// MachinePoolSpec expects a single MachinePool in the cluster; remove this
+				// one before the launch template pool, which stays for the node checks below.
+				Cleanup:            true,
+				ManagedMachinePool: true,
+				Flavor:             EKSManagedMachinePoolOnlyFlavor,
+				UsesLaunchTemplate: false,
+			}
+		})
+
+		// A launch template pool bootstraps through NodeadmConfig, which must render the
+		// IPv6 service CIDR EKS assigned, not an IPv4 default.
+		ginkgo.By("should create a managed node pool with launch template")
+		MachinePoolSpec(ctx, func() MachinePoolSpecInput {
+			return MachinePoolSpecInput{
+				E2EConfig:             e2eCtx.E2EConfig,
+				ConfigClusterFn:       defaultConfigCluster,
+				BootstrapClusterProxy: e2eCtx.Environment.BootstrapClusterProxy,
+				AWSSession:            e2eCtx.BootstrapUserAWSSession,
+				Namespace:             namespace,
+				ClusterName:           clusterName,
+				IncludeScaling:        false,
 				Cleanup:               false,
 				ManagedMachinePool:    true,
-				Flavor:                EKSManagedMachinePoolOnlyFlavor,
-				UsesLaunchTemplate:    false,
+				Flavor:                EKSManagedMachinePoolWithLaunchTemplateOnlyFlavor,
+				UsesLaunchTemplate:    true,
 			}
 		})
 
@@ -125,6 +146,33 @@ var _ = ginkgo.Describe("[managed] [general] [ipv6] EKS cluster tests", func() {
 
 			return true
 		}).WithTimeout(5*time.Minute).WithPolling(10*time.Second).Should(BeTrue(), "failed to wait for pods to appear and have ipv6 address")
+
+		ginkgo.By("control plane status should report the IPv6 service CIDR assigned by EKS")
+		Eventually(func(g Gomega) {
+			controlPlane := &ekscontrolplanev1.AWSManagedControlPlane{}
+			key := client.ObjectKey{Namespace: namespace.Name, Name: cluster.Spec.ControlPlaneRef.Name}
+			g.Expect(e2eCtx.Environment.BootstrapClusterProxy.GetClient().Get(ctx, key, controlPlane)).To(Succeed())
+			g.Expect(controlPlane.Status.ServiceCIDR).NotTo(BeNil())
+			g.Expect(net.IsIPv6CIDRString(*controlPlane.Status.ServiceCIDR)).To(BeTrue(), "service CIDR %q is not IPv6", *controlPlane.Status.ServiceCIDR)
+		}).WithTimeout(5 * time.Minute).WithPolling(10 * time.Second).Should(Succeed())
+
+		ginkgo.By("all nodes should register an IPv6 InternalIP and be initialized by the cloud provider")
+		workloadClient := e2eCtx.Environment.BootstrapClusterProxy.GetWorkloadCluster(ctx, namespace.Name, clusterName).GetClient()
+		Eventually(func(g Gomega) {
+			nodes := &corev1.NodeList{}
+			g.Expect(workloadClient.List(ctx, nodes)).To(Succeed())
+			g.Expect(nodes.Items).NotTo(BeEmpty())
+			for _, node := range nodes.Items {
+				for _, addr := range node.Status.Addresses {
+					if addr.Type == corev1.NodeInternalIP {
+						g.Expect(net.IsIPv6String(addr.Address)).To(BeTrue(), "node %s has non-IPv6 InternalIP %s", node.Name, addr.Address)
+					}
+				}
+				for _, taint := range node.Spec.Taints {
+					g.Expect(taint.Key).NotTo(Equal("node.cloudprovider.kubernetes.io/uninitialized"), "node %s was not initialized by the cloud provider", node.Name)
+				}
+			}
+		}).WithTimeout(10 * time.Minute).WithPolling(15 * time.Second).Should(Succeed())
 
 		framework.DeleteCluster(ctx, framework.DeleteClusterInput{
 			Deleter: e2eCtx.Environment.BootstrapClusterProxy.GetClient(),

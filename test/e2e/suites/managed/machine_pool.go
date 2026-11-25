@@ -96,6 +96,14 @@ func MachinePoolSpec(ctx context.Context, inputGetter func() MachinePoolSpecInpu
 			nodeGroupName = getEKSNodegroupName(input.Namespace.Name, input.ClusterName)
 		}
 		verifyManagedNodeGroup(ctx, eksClusterName, nodeGroupName, true, input.AWSSession)
+
+		if input.UsesLaunchTemplate {
+			ginkgo.By("Checking the bootstrap data renders the service CIDR assigned by EKS")
+			bootstrapSecretName := mp[0].Spec.Template.Spec.Bootstrap.DataSecretName
+			Expect(bootstrapSecretName).NotTo(BeNil(), "machine pool has no bootstrap data secret")
+			verifyBootstrapServiceCIDR(ctx, input.BootstrapClusterProxy.GetClient(), input.Namespace.Name,
+				cluster.Spec.ControlPlaneRef.Name, *bootstrapSecretName, eksClusterName, input.AWSSession)
+		}
 	} else {
 		asgName := getASGName(input.ClusterName)
 		verifyASG(eksClusterName, asgName, true, input.AWSSession)
