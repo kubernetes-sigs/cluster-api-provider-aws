@@ -337,6 +337,7 @@ func (r *ROSAClusterReconciler) syncROSAClusterNodePools(ctx context.Context, co
 
 		// Ensure every NodePool has a MachinePool and create a corresponding MachinePool if it does not exist.
 		var errs []error
+		var clusterTags map[string]string
 		for _, nodePool := range nodePools {
 			// continue if nodePool is not in ready state.
 			if !rosa.IsNodePoolReady(nodePool) {
@@ -346,8 +347,26 @@ func (r *ROSAClusterReconciler) syncROSAClusterNodePools(ctx context.Context, co
 			if rosaMPNames[nodePool.ID()] {
 				continue
 			}
+
+			// The ROSAMachinePool controller reconciles additionalTags, so adopt the node pool's own
+			// tags; leaving them out would remove them. Tags inherited from the cluster are excluded.
+			if clusterTags == nil {
+				clusterTags, err = ocmClient.GetClusterUserTags(rosaScope.ControlPlane.Status.ID)
+				if err != nil {
+					return fmt.Errorf("failed to get cluster AWS tags: %w", err)
+				}
+			}
+			poolTags, err := ocmClient.GetNodePoolUserTags(rosaScope.ControlPlane.Status.ID, nodePool.ID())
+			if err != nil {
+				errs = append(errs, fmt.Errorf("failed to get AWS tags for nodePool %s: %w", nodePool.ID(), err))
+				continue
+			}
+
 			// create ROSAMachinePool & MachinePool
 			rosaMachinePool, machinePool := r.buildROSAMachinePool(nodePool.ID(), rosaScope.Cluster.Name, rosaScope.Cluster.Namespace, nodePool)
+			if overrides := rosa.PoolOverrides(clusterTags, poolTags); len(overrides) > 0 {
+				rosaMachinePool.Spec.AdditionalTags = overrides
+			}
 
 			rosaScope.Logger.Info(fmt.Sprintf("Create ROSAMachinePool %s", rosaMachinePool.Name))
 			if err = r.Client.Create(ctx, rosaMachinePool); err != nil {

@@ -227,6 +227,21 @@ func (mr *MockOCMClientMockRecorder) GetCluster(arg0, arg1 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCluster", reflect.TypeOf((*MockOCMClient)(nil).GetCluster), arg0, arg1)
 }
 
+// GetClusterUserTags mocks base method.
+func (m *MockOCMClient) GetClusterUserTags(arg0 string) (map[string]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClusterUserTags", arg0)
+	ret0, _ := ret[0].(map[string]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetClusterUserTags indicates an expected call of GetClusterUserTags.
+func (mr *MockOCMClientMockRecorder) GetClusterUserTags(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterUserTags", reflect.TypeOf((*MockOCMClient)(nil).GetClusterUserTags), arg0)
+}
+
 // GetControlPlaneUpgradePolicies mocks base method.
 func (m *MockOCMClient) GetControlPlaneUpgradePolicies(arg0 string) ([]*v1.ControlPlaneUpgradePolicy, error) {
 	m.ctrl.T.Helper()
@@ -349,6 +364,21 @@ func (mr *MockOCMClientMockRecorder) GetNodePool(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodePool", reflect.TypeOf((*MockOCMClient)(nil).GetNodePool), arg0, arg1)
 }
 
+// GetNodePoolUserTags mocks base method.
+func (m *MockOCMClient) GetNodePoolUserTags(arg0, arg1 string) (map[string]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetNodePoolUserTags", arg0, arg1)
+	ret0, _ := ret[0].(map[string]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetNodePoolUserTags indicates an expected call of GetNodePoolUserTags.
+func (mr *MockOCMClientMockRecorder) GetNodePoolUserTags(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNodePoolUserTags", reflect.TypeOf((*MockOCMClient)(nil).GetNodePoolUserTags), arg0, arg1)
+}
+
 // GetNodePools mocks base method.
 func (m *MockOCMClient) GetNodePools(arg0 string) ([]*v1.NodePool, error) {
 	m.ctrl.T.Helper()
@@ -467,6 +497,20 @@ func (mr *MockOCMClientMockRecorder) UpdateClusterDeletionProtection(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterDeletionProtection", reflect.TypeOf((*MockOCMClient)(nil).UpdateClusterDeletionProtection), arg0, arg1)
 }
 
+// UpdateClusterTags mocks base method.
+func (m *MockOCMClient) UpdateClusterTags(arg0 string, arg1 map[string]*string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateClusterTags", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateClusterTags indicates an expected call of UpdateClusterTags.
+func (mr *MockOCMClientMockRecorder) UpdateClusterTags(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterTags", reflect.TypeOf((*MockOCMClient)(nil).UpdateClusterTags), arg0, arg1)
+}
+
 // UpdateIngress mocks base method.
 func (m *MockOCMClient) UpdateIngress(arg0 string, arg1 *v1.Ingress) (*v1.Ingress, error) {
 	m.ctrl.T.Helper()
@@ -509,6 +553,20 @@ func (m *MockOCMClient) UpdateNodePool(arg0 string, arg1 *v1.NodePool) (*v1.Node
 func (mr *MockOCMClientMockRecorder) UpdateNodePool(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNodePool", reflect.TypeOf((*MockOCMClient)(nil).UpdateNodePool), arg0, arg1)
+}
+
+// UpdateNodePoolTags mocks base method.
+func (m *MockOCMClient) UpdateNodePoolTags(arg0, arg1 string, arg2 map[string]*string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateNodePoolTags", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateNodePoolTags indicates an expected call of UpdateNodePoolTags.
+func (mr *MockOCMClientMockRecorder) UpdateNodePoolTags(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateNodePoolTags", reflect.TypeOf((*MockOCMClient)(nil).UpdateNodePoolTags), arg0, arg1, arg2)
 }
 
 // ValidateHypershiftVersion mocks base method.

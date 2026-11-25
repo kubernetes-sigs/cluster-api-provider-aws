@@ -47,9 +47,6 @@ func NodePoolToRosaMachinePoolSpec(nodePool *cmv1.NodePool) expinfrav1.RosaMachi
 		CapacityReservationID:    nodePool.AWSNodePool().CapacityReservation().Id(),
 		Ec2MetadataHTTPTokens:    rosacontrolplanev1.Ec2MetadataHTTPTokens(nodePool.AWSNodePool().Ec2MetadataHttpTokens()),
 		ImageType:                string(nodePool.ImageType()),
-		// nodePool.AWSNodePool().Tags() returns all tags including "system" tags if "fetchUserTagsOnly" parameter is not specified.
-		// TODO: enable when AdditionalTags day2 changes is supported.
-		// AdditionalTags:           nodePool.AWSNodePool().Tags(),
 	}
 
 	if nodePool.Autoscaling() != nil {

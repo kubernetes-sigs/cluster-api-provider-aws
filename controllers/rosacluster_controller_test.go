@@ -272,6 +272,10 @@ func TestRosaClusterReconcile(t *testing.T) {
 				g.Expect(err).ToNot(HaveOccurred())
 				return []*cmv1.NodePool{nodePool, zeroNodePool}, err
 			})
+			m.GetClusterUserTags(gomock.Any()).AnyTimes().Return(map[string]string{"env": "prod"}, nil)
+			// The node pool's customer tag view includes the inherited cluster tag.
+			m.GetNodePoolUserTags(gomock.Any(), nodePoolName).AnyTimes().
+				Return(map[string]string{"env": "prod", "Cost Center": "Finance Team"}, nil)
 		}
 		expect(ocmMock.EXPECT())
 
@@ -299,6 +303,8 @@ func TestRosaClusterReconcile(t *testing.T) {
 		keyRosaMP := client.ObjectKey{Name: nodePoolName, Namespace: ns.Name}
 		errRosaMP := testEnv.Get(ctx, keyRosaMP, rosaMachinePool)
 		g.Expect(errRosaMP).ToNot(HaveOccurred())
+		// Only the node pool's own tags are adopted; inherited cluster tags are excluded.
+		g.Expect(rosaMachinePool.Spec.AdditionalTags).To(Equal(infrav1.Tags{"Cost Center": "Finance Team"}))
 
 		machinePool := &clusterv1.MachinePool{}
 		keyMP := client.ObjectKey{Name: nodePoolName, Namespace: ns.Name}

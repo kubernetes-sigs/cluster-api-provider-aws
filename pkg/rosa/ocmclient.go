@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift/rosa/pkg/aws"
 	"github.com/openshift/rosa/pkg/ocm"
@@ -30,6 +31,8 @@ import (
 
 type ocmclient struct {
 	ocmClient *ocm.Client
+	// connection is the connection backing ocmClient, used for requests the rosa-cli client doesn't support.
+	connection *sdk.Connection
 }
 
 // OCMClient wraps ocm.Client methods that we use in interface, so we are able to mock it.
@@ -67,6 +70,10 @@ type OCMClient interface {
 	UpdateClusterDeletionProtection(clusterID string, enabled bool) error
 	GetIngresses(clusterID string) ([]*v1.Ingress, error)
 	UpdateIngress(clusterID string, ingress *v1.Ingress) (*v1.Ingress, error)
+	GetClusterUserTags(clusterID string) (map[string]string, error)
+	GetNodePoolUserTags(clusterID string, nodePoolID string) (map[string]string, error)
+	UpdateClusterTags(clusterID string, changes map[string]*string) error
+	UpdateNodePoolTags(clusterID string, nodePoolID string, changes map[string]*string) error
 }
 
 func (c *ocmclient) AckVersionGate(clusterID string, gateID string) error {
