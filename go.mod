@@ -39,7 +39,7 @@ require (
 	github.com/onsi/ginkgo/v2 v2.33.0
 	github.com/onsi/gomega v1.44.0
 	github.com/openshift-online/ocm-api-model/clientapi v0.0.465
-	github.com/openshift-online/ocm-common v0.0.32
+	github.com/openshift-online/ocm-common v0.0.50
 	github.com/openshift-online/ocm-sdk-go v0.1.510
 	github.com/openshift/rosa v1.99.9-testing.0.20260331163240-71a820e0a117
 	github.com/pkg/errors v0.9.1

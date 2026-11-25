@@ -146,6 +146,64 @@ spec:
                       type: string
                     type: array
                 type: object
+              clusterAutoscaler:
+                description: |-
+                  clusterAutoscaler configures the cluster-wide behaviour of the cluster autoscaler.
+                  When omitted, the controller does not manage the cluster autoscaler and leaves its current
+                  configuration in OCM unchanged. When set, the controller reconciles the whole configuration:
+                  omitted fields are set to the ROSA HCP defaults.
+                  Removing it doesn't delete or reset the cluster autoscaler in OCM: the controller stops managing it
+                  and the current values are kept.
+                  The configuration is sent to OCM once the cluster is ready.
+                properties:
+                  maxNodeProvisionTime:
+                    description: |-
+                      maxNodeProvisionTime is the maximum time the cluster autoscaler waits for a node to be provisioned
+                      before considering the scale up failed, for example "15m".
+                      Must be between 15m and 60m. Defaults to 15m when omitted.
+                    type: string
+                    x-kubernetes-validations:
+                    - message: maxNodeProvisionTime must be between 15m and 60m
+                      rule: duration(self) >= duration('15m') && duration(self) <=
+                        duration('60m')
+                  maxPodGracePeriod:
+                    description: |-
+                      maxPodGracePeriod is the maximum time, in seconds, the cluster autoscaler waits for pods to
+                      terminate gracefully before removing a node during scale down.
+                      Must be 0 or at least 600. Defaults to 600 when omitted.
+                    format: int32
+                    minimum: 0
+                    type: integer
+                    x-kubernetes-validations:
+                    - message: maxPodGracePeriod must be 0 or at least 600
+                      rule: self == 0 || self >= 600
+                  podPriorityThreshold:
+                    description: |-
+                      podPriorityThreshold is the priority below which pods are considered expendable: they don't trigger
+                      a scale up and don't prevent a node from being removed during scale down.
+                      Must be at most 1000000000, the highest priority allowed for user-defined PriorityClasses.
+                      Defaults to -10 when omitted.
+                    format: int32
+                    maximum: 1000000000
+                    type: integer
+                  resourceLimits:
+                    description: resourceLimits configures cluster-wide resource limits
+                      for the cluster autoscaler.
+                    properties:
+                      maxNodesTotal:
+                        description: |-
+                          maxNodesTotal is the maximum number of worker nodes across all machine pools.
+                          The cluster autoscaler does not scale up beyond this value.
+                          Must be 0 (no limit) or at least 2. Defaults to 0 when omitted.
+                          The total cluster size is also limited by ROSA and is validated by OCM.
+                        format: int32
+                        minimum: 0
+                        type: integer
+                        x-kubernetes-validations:
+                        - message: maxNodesTotal must be 0 or at least 2
+                          rule: self == 0 || self >= 2
+                    type: object
+                type: object
               clusterRegistryConfig:
                 description: ClusterRegistryConfig represents registry config used
                   with the cluster.
@@ -1033,6 +1091,37 @@ spec:
                 items:
                   type: string
                 type: array
+              clusterAutoscaler:
+                description: |-
+                  clusterAutoscaler reports the cluster autoscaler configuration currently stored in OCM,
+                  including default values and values set outside of CAPA. It is populated once the cluster is ready,
+                  whether or not spec.clusterAutoscaler is set.
+                properties:
+                  maxNodeProvisionTime:
+                    description: maxNodeProvisionTime is the maximum time to wait
+                      for a node to be provisioned.
+                    type: string
+                  maxPodGracePeriod:
+                    description: maxPodGracePeriod is the maximum time, in seconds,
+                      given to pods to terminate during scale down.
+                    format: int32
+                    type: integer
+                  podPriorityThreshold:
+                    description: podPriorityThreshold is the priority below which
+                      pods are considered expendable.
+                    format: int32
+                    type: integer
+                  resourceLimits:
+                    description: resourceLimits reports the cluster-wide resource
+                      limits.
+                    properties:
+                      maxNodesTotal:
+                        description: maxNodesTotal is the maximum number of worker
+                          nodes across all machine pools. 0 means no limit.
+                        format: int32
+                        type: integer
+                    type: object
+                type: object
               conditions:
                 description: Conditions specifies the conditions for the managed control
                   plane

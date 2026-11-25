@@ -28,6 +28,7 @@
     - [Creating a cluster](./topics/rosa/creating-a-cluster.md)
       - [Specifying the IAM Role for Management Components](./topics/rosa/specify-management-iam-role.md)
     - [Creating MachinePools](./topics/rosa/creating-rosa-machinepools.md)
+    - [Cluster Autoscaler](./topics/rosa/cluster-autoscaler.md)
     - [Upgrades](./topics/rosa/upgrades.md)
     - [External Auth Providers](./topics/rosa/external-auth.md)
     - [Support](./topics/rosa/support.md)

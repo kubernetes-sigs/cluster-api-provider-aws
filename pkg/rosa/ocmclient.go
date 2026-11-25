@@ -21,6 +21,7 @@ import (
 	"context"
 	"fmt"
 
+	sdk "github.com/openshift-online/ocm-sdk-go"
 	v1 "github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1"
 	"github.com/openshift/rosa/pkg/aws"
 	"github.com/openshift/rosa/pkg/ocm"
@@ -30,6 +31,8 @@ import (
 
 type ocmclient struct {
 	ocmClient *ocm.Client
+	// connection is the connection backing ocmClient, used for requests the rosa-cli client doesn't support.
+	connection *sdk.Connection
 }
 
 // OCMClient wraps ocm.Client methods that we use in interface, so we are able to mock it.
@@ -46,6 +49,7 @@ type OCMClient interface {
 	DeleteUser(clusterID string, group string, username string) error
 	GetAvailableChannels(versionID string) ([]string, error)
 	GetCluster(clusterKey string, creator *aws.Creator) (*v1.Cluster, error)
+	GetClusterAutoscaler(ctx context.Context, clusterID string) (*v1.ClusterAutoscaler, error)
 	GetControlPlaneUpgradePolicies(clusterID string) (controlPlaneUpgradePolicies []*v1.ControlPlaneUpgradePolicy, err error)
 	GetHTPasswdUserList(clusterID string, htpasswdIDPId string) (*v1.HTPasswdUserList, error)
 	GetHypershiftNodePoolUpgrade(clusterID string, clusterKey string, nodePoolID string) (*v1.NodePool, *v1.NodePoolUpgradePolicy, error)
@@ -59,6 +63,7 @@ type OCMClient interface {
 	ScheduleNodePoolUpgrade(clusterID string, nodePoolID string, upgradePolicy *v1.NodePoolUpgradePolicy) (*v1.NodePoolUpgradePolicy, error)
 	UpdateNodePool(clusterID string, nodePool *v1.NodePool) (*v1.NodePool, error)
 	UpdateCluster(clusterKey string, creator *aws.Creator, config ocm.Spec) error
+	UpdateClusterAutoscaler(ctx context.Context, clusterID string, autoscaler *v1.ClusterAutoscaler) (*v1.ClusterAutoscaler, error)
 	ValidateHypershiftVersion(versionRawID string, channelGroup string) (bool, error)
 	SetLogForwarder(clusterID string, logForwarder *v1.LogForwarder) (*v1.LogForwarder, error)
 	UpdateLogForwarder(logForwarder *v1.LogForwarder, logForwarderID string, clusterID string) error
