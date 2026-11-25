@@ -55,18 +55,18 @@ func (m *MockMachinePoolReconcileInterface) EXPECT() *MockMachinePoolReconcileIn
 }
 
 // ReconcileLaunchTemplate mocks base method.
-func (m *MockMachinePoolReconcileInterface) ReconcileLaunchTemplate(arg0 context.Context, arg1 scope.IgnitionScope, arg2 scope.LaunchTemplateScope, arg3 scope.S3Scope, arg4 services.EC2Interface, arg5 services.ObjectStoreInterface, arg6 func() (bool, *types.InstanceRefreshStatus, error), arg7, arg8 func() error) (*reconcile.Result, error) {
+func (m *MockMachinePoolReconcileInterface) ReconcileLaunchTemplate(arg0 context.Context, arg1 scope.IgnitionScope, arg2 scope.LaunchTemplateScope, arg3 scope.S3Scope, arg4 services.EC2Interface, arg5 services.ObjectStoreInterface, arg6 func() (bool, *types.InstanceRefreshStatus, error), arg7, arg8 func() error, arg9 func() (bool, []string, error)) (*reconcile.Result, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ReconcileLaunchTemplate", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+	ret := m.ctrl.Call(m, "ReconcileLaunchTemplate", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)
 	ret0, _ := ret[0].(*reconcile.Result)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ReconcileLaunchTemplate indicates an expected call of ReconcileLaunchTemplate.
-func (mr *MockMachinePoolReconcileInterfaceMockRecorder) ReconcileLaunchTemplate(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8 interface{}) *gomock.Call {
+func (mr *MockMachinePoolReconcileInterfaceMockRecorder) ReconcileLaunchTemplate(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileLaunchTemplate", reflect.TypeOf((*MockMachinePoolReconcileInterface)(nil).ReconcileLaunchTemplate), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReconcileLaunchTemplate", reflect.TypeOf((*MockMachinePoolReconcileInterface)(nil).ReconcileLaunchTemplate), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)
 }
 
 // ReconcileTags mocks base method.

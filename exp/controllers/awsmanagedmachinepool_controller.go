@@ -233,8 +233,12 @@ func (r *AWSManagedMachinePoolReconciler) reconcileNormal(
 		runPostLaunchTemplateUpdateOperation := func() error {
 			return nil
 		}
+		// Never prune a version the nodegroup may still reference (e.g. a stuck UpdateNodegroupVersion rollout).
+		canPruneLaunchTemplateVersions := func() (bool, []string, error) {
+			return ekssvc.CanPruneLaunchTemplateVersions(ctx)
+		}
 		var objectStoreSvc services.ObjectStoreInterface // nil because no S3 bucket support for `AWSManagedControlPlane` yet
-		res, err := reconSvc.ReconcileLaunchTemplate(ctx, machinePoolScope, machinePoolScope, s3Scope, ec2svc, objectStoreSvc, canStartInstanceRefresh, cancelInstanceRefresh, runPostLaunchTemplateUpdateOperation)
+		res, err := reconSvc.ReconcileLaunchTemplate(ctx, machinePoolScope, machinePoolScope, s3Scope, ec2svc, objectStoreSvc, canStartInstanceRefresh, cancelInstanceRefresh, runPostLaunchTemplateUpdateOperation, canPruneLaunchTemplateVersions)
 		if err != nil {
 			r.Recorder.Eventf(machinePoolScope.ManagedMachinePool, corev1.EventTypeWarning, "FailedLaunchTemplateReconcile", "Failed to reconcile launch template: %v", err)
 			machinePoolScope.Error(err, "failed to reconcile launch template")

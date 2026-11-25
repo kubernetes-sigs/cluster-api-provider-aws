@@ -317,6 +317,32 @@ func (s *NodegroupService) deleteNodegroupAndWait(ctx context.Context) (reterr e
 	return nil
 }
 
+// CanPruneLaunchTemplateVersions reports whether old launch template versions may be pruned (nodegroup absent, or ACTIVE on the status version) and which version the nodegroup still uses.
+func (s *NodegroupService) CanPruneLaunchTemplateVersions(ctx context.Context) (bool, []string, error) {
+	ng, err := s.describeNodegroup(ctx)
+	if err != nil {
+		return false, nil, err
+	}
+	if ng == nil {
+		return true, nil, nil
+	}
+
+	statusLaunchTemplateID := aws.ToString(s.scope.ManagedMachinePool.Status.LaunchTemplateID)
+	var inUseVersions []string
+	onStatusLaunchTemplate := ng.LaunchTemplate != nil && aws.ToString(ng.LaunchTemplate.Id) == statusLaunchTemplateID
+	if onStatusLaunchTemplate && ng.LaunchTemplate.Version != nil {
+		inUseVersions = []string{*ng.LaunchTemplate.Version}
+	}
+
+	statusLaunchTemplateVersion := s.scope.ManagedMachinePool.Status.LaunchTemplateVersion
+	if statusLaunchTemplateVersion == nil {
+		return true, inUseVersions, nil
+	}
+	converged := ng.Status == ekstypes.NodegroupStatusActive && onStatusLaunchTemplate &&
+		aws.ToString(ng.LaunchTemplate.Version) == *statusLaunchTemplateVersion
+	return converged, inUseVersions, nil
+}
+
 func (s *NodegroupService) reconcileNodegroupVersion(ctx context.Context, ng *ekstypes.Nodegroup) error {
 	var specVersion *version.Version
 	if s.scope.Version() != nil {

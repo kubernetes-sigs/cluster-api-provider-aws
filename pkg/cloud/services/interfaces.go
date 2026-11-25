@@ -114,7 +114,7 @@ type EC2Interface interface {
 	GetLaunchTemplateLatestVersion(id string) (string, error)
 	CreateLaunchTemplate(scope scope.LaunchTemplateScope, imageID *string, userDataSecretKey apimachinerytypes.NamespacedName, userData []byte, bootstrapDataHash string) (string, error)
 	CreateLaunchTemplateVersion(id string, scope scope.LaunchTemplateScope, imageID *string, userDataSecretKey apimachinerytypes.NamespacedName, userData []byte, bootstrapDataHash string) error
-	PruneLaunchTemplateVersions(id string) (*ec2types.LaunchTemplateVersion, error)
+	PruneLaunchTemplateVersions(id string, inUseVersions []string) (*ec2types.LaunchTemplateVersion, error)
 	DeleteLaunchTemplate(id string) error
 	LaunchTemplateNeedsUpdate(scope scope.LaunchTemplateScope, incoming *expinfrav1.AWSLaunchTemplate, existing *expinfrav1.AWSLaunchTemplate) (bool, LaunchTemplateNeedsUpdateReason, error)
 	DeleteBastion() error
@@ -135,7 +135,7 @@ type EC2Interface interface {
 // separate from EC2Interface so that we can mock AWS requests separately. For example, by not mocking the
 // ReconcileLaunchTemplate function, but mocking EC2Interface, we can test which EC2 API operations would have been called.
 type MachinePoolReconcileInterface interface {
-	ReconcileLaunchTemplate(ctx context.Context, ignitionScope scope.IgnitionScope, scope scope.LaunchTemplateScope, s3Scope scope.S3Scope, ec2svc EC2Interface, objectStoreSvc ObjectStoreInterface, canUpdateLaunchTemplate func() (bool, *autoscalingtypes.InstanceRefreshStatus, error), cancelInstanceRefresh func() error, runPostLaunchTemplateUpdateOperation func() error) (*ctrl.Result, error)
+	ReconcileLaunchTemplate(ctx context.Context, ignitionScope scope.IgnitionScope, scope scope.LaunchTemplateScope, s3Scope scope.S3Scope, ec2svc EC2Interface, objectStoreSvc ObjectStoreInterface, canUpdateLaunchTemplate func() (bool, *autoscalingtypes.InstanceRefreshStatus, error), cancelInstanceRefresh func() error, runPostLaunchTemplateUpdateOperation func() error, canPruneLaunchTemplateVersions func() (bool, []string, error)) (*ctrl.Result, error)
 	ReconcileTags(scope scope.LaunchTemplateScope, resourceServicesToUpdate []scope.ResourceServiceToUpdate) error
 }
 
