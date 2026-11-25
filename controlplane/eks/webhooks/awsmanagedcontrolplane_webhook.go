@@ -112,6 +112,7 @@ func (w *AWSManagedControlPlane) ValidateCreate(_ context.Context, obj runtime.O
 	allErrs = append(allErrs, w.validateAccessConfigCreate(r)...)
 	allErrs = append(allErrs, w.validateAccessEntries(r)...)
 	allErrs = append(allErrs, w.validatePodIdentityAssociations(r)...)
+	allErrs = append(allErrs, w.validateOIDCIdentityProviderConfigs(r)...)
 
 	if len(allErrs) == 0 {
 		return nil, nil
@@ -156,6 +157,7 @@ func (w *AWSManagedControlPlane) ValidateUpdate(ctx context.Context, oldObj, new
 	allErrs = append(allErrs, w.validatePrivateDNSHostnameTypeOnLaunch(r)...)
 	allErrs = append(allErrs, w.validateAccessEntries(r)...)
 	allErrs = append(allErrs, w.validatePodIdentityAssociations(r)...)
+	allErrs = append(allErrs, w.validateOIDCIdentityProviderConfigs(r)...)
 
 	if r.Spec.Region != oldAWSManagedControlplane.Spec.Region {
 		allErrs = append(allErrs,
@@ -375,6 +377,39 @@ func (w *AWSManagedControlPlane) validateAccessConfigCreate(r *ekscontrolplanev1
 					"bootstrapClusterCreatorAdminPermissions must be true if cluster authentication mode is set to config_map"),
 			)
 		}
+	}
+
+	return allErrs
+}
+
+func (w *AWSManagedControlPlane) validateOIDCIdentityProviderConfigs(r *ekscontrolplanev1.AWSManagedControlPlane) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if r.Spec.HasSingularOIDCIdentityProviderConfig() && len(r.Spec.OIDCIdentityProviderConfigs) > 0 {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "oidcIdentityProviderConfigs"),
+			r.Spec.OIDCIdentityProviderConfigs,
+			"must not be set when oidcIdentityProviderConfig is set; use oidcIdentityProviderConfigs only"),
+		)
+		return allErrs
+	}
+
+	configs, err := r.Spec.EffectiveOIDCIdentityProviderConfigs()
+	if err != nil {
+		allErrs = append(allErrs, field.Invalid(field.NewPath("spec"), "", err.Error()))
+		return allErrs
+	}
+	seen := map[string]*field.Path{}
+	for i, cfg := range configs {
+		name := cfg.IdentityProviderConfigName
+		path := field.NewPath("spec", "oidcIdentityProviderConfigs").Index(i).Child("identityProviderConfigName")
+		if len(r.Spec.OIDCIdentityProviderConfigs) == 0 {
+			path = field.NewPath("spec", "oidcIdentityProviderConfig", "identityProviderConfigName")
+		}
+		if firstPath, ok := seen[name]; ok {
+			allErrs = append(allErrs, field.Duplicate(path, name), field.Duplicate(firstPath, name))
+			continue
+		}
+		seen[name] = path
 	}
 
 	return allErrs

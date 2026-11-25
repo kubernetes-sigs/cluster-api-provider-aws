@@ -7533,8 +7533,24 @@ OIDCIdentityProviderConfig
 </td>
 <td>
 <em>(Optional)</em>
-<p>OIDCIdentityProviderConfig is used to specify the OIDC provider config
-to be attached with this eks cluster</p>
+<p>OIDCIdentityProviderConfig is used to specify a single OIDC provider config for this EKS cluster.</p>
+<p>Deprecated: Use oidcIdentityProviderConfigs instead. This field is mutually exclusive with oidcIdentityProviderConfigs.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcIdentityProviderConfigs</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.OIDCIdentityProviderConfig">
+[]OIDCIdentityProviderConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCIdentityProviderConfigs specifies OIDC identity providers for the cluster.
+This field is mutually exclusive with oidcIdentityProviderConfig.
+EKS supports up to 10 external OIDC providers per cluster.</p>
 </td>
 </tr>
 <tr>
@@ -8075,8 +8091,24 @@ OIDCIdentityProviderConfig
 </td>
 <td>
 <em>(Optional)</em>
-<p>OIDCIdentityProviderConfig is used to specify the OIDC provider config
-to be attached with this eks cluster</p>
+<p>OIDCIdentityProviderConfig is used to specify a single OIDC provider config for this EKS cluster.</p>
+<p>Deprecated: Use oidcIdentityProviderConfigs instead. This field is mutually exclusive with oidcIdentityProviderConfigs.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcIdentityProviderConfigs</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.OIDCIdentityProviderConfig">
+[]OIDCIdentityProviderConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCIdentityProviderConfigs specifies OIDC identity providers for the cluster.
+This field is mutually exclusive with oidcIdentityProviderConfig.
+EKS supports up to 10 external OIDC providers per cluster.</p>
 </td>
 </tr>
 <tr>
@@ -8367,8 +8399,23 @@ IdentityProviderStatus
 </td>
 <td>
 <em>(Optional)</em>
-<p>IdentityProviderStatus holds the status for
-associated identity provider</p>
+<p>IdentityProviderStatus holds the status for a single associated OIDC identity provider.
+Populated only when exactly one provider is managed via the deprecated oidcIdentityProviderConfig field.
+When managing multiple providers, use identityProviderStatuses instead.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>identityProviderStatuses</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.IdentityProviderStatus">
+[]IdentityProviderStatus
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityProviderStatuses holds the status for each associated OIDC identity provider.</p>
 </td>
 </tr>
 <tr>
@@ -8873,8 +8920,24 @@ OIDCIdentityProviderConfig
 </td>
 <td>
 <em>(Optional)</em>
-<p>OIDCIdentityProviderConfig is used to specify the OIDC provider config
-to be attached with this eks cluster</p>
+<p>OIDCIdentityProviderConfig is used to specify a single OIDC provider config for this EKS cluster.</p>
+<p>Deprecated: Use oidcIdentityProviderConfigs instead. This field is mutually exclusive with oidcIdentityProviderConfigs.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcIdentityProviderConfigs</code><br/>
+<em>
+<a href="#controlplane.cluster.x-k8s.io/v1beta2.OIDCIdentityProviderConfig">
+[]OIDCIdentityProviderConfig
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCIdentityProviderConfigs specifies OIDC identity providers for the cluster.
+This field is mutually exclusive with oidcIdentityProviderConfig.
+EKS supports up to 10 external OIDC providers per cluster.</p>
 </td>
 </tr>
 <tr>
@@ -9856,6 +9919,18 @@ bool
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<code>identityProviderConfigName</code><br/>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityProviderConfigName is the EKS identity provider configuration name.</p>
+</td>
+</tr>
 <tr>
 <td>
 <code>arn</code><br/>

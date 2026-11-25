@@ -55,6 +55,31 @@ func TestFuzzyConversion(t *testing.T) {
 	}))
 }
 
+func TestAWSManagedControlPlaneOIDCIdentityProviderConfigsRoundTrip(t *testing.T) {
+	g := NewWithT(t)
+	hub := &v1beta2.AWSManagedControlPlane{
+		Spec: v1beta2.AWSManagedControlPlaneSpec{
+			OIDCIdentityProviderConfigs: []v1beta2.OIDCIdentityProviderConfig{
+				{IdentityProviderConfigName: "a", ClientID: "client-a", IssuerURL: "https://a.example"},
+				{IdentityProviderConfigName: "b", ClientID: "client-b", IssuerURL: "https://b.example"},
+			},
+		},
+		Status: v1beta2.AWSManagedControlPlaneStatus{
+			IdentityProviderStatuses: []v1beta2.IdentityProviderStatus{
+				{IdentityProviderConfigName: "a", ARN: "arn:a", Status: "ACTIVE"},
+				{IdentityProviderConfigName: "b", ARN: "arn:b", Status: "ACTIVE"},
+			},
+		},
+	}
+
+	spoke := &AWSManagedControlPlane{}
+	g.Expect(spoke.ConvertFrom(hub)).To(Succeed())
+	restored := &v1beta2.AWSManagedControlPlane{}
+	g.Expect(spoke.ConvertTo(restored)).To(Succeed())
+	g.Expect(restored.Spec.OIDCIdentityProviderConfigs).To(Equal(hub.Spec.OIDCIdentityProviderConfigs))
+	g.Expect(restored.Status.IdentityProviderStatuses).To(Equal(hub.Status.IdentityProviderStatuses))
+}
+
 func TestAWSManagedControlPlaneV1Beta2ConditionsRoundTrip(t *testing.T) {
 	g := NewWithT(t)
 	hub := &v1beta2.AWSManagedControlPlane{}

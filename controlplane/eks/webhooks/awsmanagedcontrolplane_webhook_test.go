@@ -1247,6 +1247,57 @@ func TestWebhookValidateAccessEntries(t *testing.T) {
 	}
 }
 
+func TestWebhookValidateOIDCIdentityProviderConfigs(t *testing.T) {
+	base := &ekscontrolplanev1.AWSManagedControlPlane{
+		Spec: ekscontrolplanev1.AWSManagedControlPlaneSpec{
+			EKSClusterName: "default_cluster1",
+		},
+	}
+
+	t.Run("both singular and plural OIDC fields set", func(t *testing.T) {
+		g := NewWithT(t)
+		mcp := base.DeepCopy()
+		spec := ekscontrolplanev1.AWSManagedControlPlaneSpec{EKSClusterName: base.Spec.EKSClusterName}
+		spec = spec.WithSingularOIDCIdentityProviderConfig(&ekscontrolplanev1.OIDCIdentityProviderConfig{
+			IdentityProviderConfigName: "singular",
+		})
+		spec.OIDCIdentityProviderConfigs = []ekscontrolplanev1.OIDCIdentityProviderConfig{
+			{IdentityProviderConfigName: "plural"},
+		}
+		mcp.Spec = spec
+
+		_, err := (&AWSManagedControlPlane{}).ValidateCreate(context.Background(), mcp)
+		g.Expect(err).NotTo(BeNil())
+		g.Expect(err.Error()).To(ContainSubstring("use oidcIdentityProviderConfigs only"))
+	})
+
+	t.Run("duplicate provider names in plural field", func(t *testing.T) {
+		g := NewWithT(t)
+		mcp := base.DeepCopy()
+		mcp.Spec.OIDCIdentityProviderConfigs = []ekscontrolplanev1.OIDCIdentityProviderConfig{
+			{IdentityProviderConfigName: "dup"},
+			{IdentityProviderConfigName: "dup"},
+		}
+
+		_, err := (&AWSManagedControlPlane{}).ValidateCreate(context.Background(), mcp)
+		g.Expect(err).NotTo(BeNil())
+		g.Expect(err.Error()).To(ContainSubstring("Duplicate"))
+	})
+
+	t.Run("duplicate empty provider names in plural field", func(t *testing.T) {
+		g := NewWithT(t)
+		mcp := base.DeepCopy()
+		mcp.Spec.OIDCIdentityProviderConfigs = []ekscontrolplanev1.OIDCIdentityProviderConfig{
+			{},
+			{},
+		}
+
+		_, err := (&AWSManagedControlPlane{}).ValidateCreate(context.Background(), mcp)
+		g.Expect(err).NotTo(BeNil())
+		g.Expect(err.Error()).To(ContainSubstring("Duplicate"))
+	})
+}
+
 func TestValidatePodIdentityServiceAccountName(t *testing.T) {
 	tests := []struct {
 		name                 string

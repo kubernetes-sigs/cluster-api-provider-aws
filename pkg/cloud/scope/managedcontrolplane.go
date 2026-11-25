@@ -454,9 +454,9 @@ func (s *ManagedControlPlaneScope) RestrictPrivateSubnets() bool {
 	return s.ControlPlane.Spec.RestrictPrivateSubnets
 }
 
-// OIDCIdentityProviderConfig returns the OIDC identity provider config.
-func (s *ManagedControlPlaneScope) OIDCIdentityProviderConfig() *ekscontrolplanev1.OIDCIdentityProviderConfig {
-	return s.ControlPlane.Spec.OIDCIdentityProviderConfig
+// EffectiveOIDCIdentityProviderConfigs returns OIDC identity provider configs to reconcile.
+func (s *ManagedControlPlaneScope) EffectiveOIDCIdentityProviderConfigs() ([]ekscontrolplanev1.OIDCIdentityProviderConfig, error) {
+	return s.ControlPlane.Spec.EffectiveOIDCIdentityProviderConfigs()
 }
 
 // ServiceCidrs returns the CIDR blocks used for services.

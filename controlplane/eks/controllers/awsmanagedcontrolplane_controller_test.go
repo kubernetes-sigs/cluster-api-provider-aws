@@ -980,6 +980,10 @@ func mockedEKSCluster(ctx context.Context, g *WithT, eksRec *mock_eksiface.MockE
 		ClusterName: aws.String("test-cluster"),
 	}).Return(&eks.ListAddonsOutput{}, nil)
 
+	eksRec.ListIdentityProviderConfigs(ctx, &eks.ListIdentityProviderConfigsInput{
+		ClusterName: aws.String("test-cluster"),
+	}).Return(&eks.ListIdentityProviderConfigsOutput{}, nil).AnyTimes()
+
 	eksRec.UpdateClusterConfig(ctx, gomock.AssignableToTypeOf(&eks.UpdateClusterConfigInput{})).After(waitUntilClusterActiveCall).Return(&eks.UpdateClusterConfigOutput{}, nil)
 
 	awsNodeRec.ReconcileCNI(gomock.Any()).Return(nil)
