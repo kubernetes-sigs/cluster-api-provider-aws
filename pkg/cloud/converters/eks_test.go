@@ -182,3 +182,97 @@ func TestControlPlaneScalingConfigFromSDK(t *testing.T) {
 		})
 	}
 }
+
+func TestTaintsFromSDK(t *testing.T) {
+	tests := []struct {
+		name      string
+		input     []ekstypes.Taint
+		expected  expinfrav1.Taints
+		expectErr bool
+	}{
+		{
+			name: "single taint",
+			input: []ekstypes.Taint{
+				{Key: aws.String("key1"), Value: aws.String("value1"), Effect: ekstypes.TaintEffectNoSchedule},
+			},
+			expected: expinfrav1.Taints{
+				{Key: "key1", Value: "value1", Effect: expinfrav1.TaintEffectNoSchedule},
+			},
+		},
+		{
+			name: "multiple taints",
+			input: []ekstypes.Taint{
+				{Key: aws.String("key1"), Value: aws.String("value1"), Effect: ekstypes.TaintEffectNoExecute},
+				{Key: aws.String("key2"), Value: aws.String("value2"), Effect: ekstypes.TaintEffectPreferNoSchedule},
+			},
+			expected: expinfrav1.Taints{
+				{Key: "key1", Value: "value1", Effect: expinfrav1.TaintEffectNoExecute},
+				{Key: "key2", Value: "value2", Effect: expinfrav1.TaintEffectPreferNoSchedule},
+			},
+		},
+		{
+			name: "nil value",
+			input: []ekstypes.Taint{
+				{Key: aws.String("key1"), Value: nil, Effect: ekstypes.TaintEffectNoSchedule},
+			},
+			expected: expinfrav1.Taints{
+				{Key: "key1", Value: "", Effect: expinfrav1.TaintEffectNoSchedule},
+			},
+		},
+		{
+			name: "nil key",
+			input: []ekstypes.Taint{
+				{Key: nil, Value: aws.String("value1"), Effect: ekstypes.TaintEffectNoSchedule},
+			},
+			expected: expinfrav1.Taints{
+				{Key: "", Value: "value1", Effect: expinfrav1.TaintEffectNoSchedule},
+			},
+		},
+		{
+			name:     "empty input",
+			input:    []ekstypes.Taint{},
+			expected: expinfrav1.Taints{},
+		},
+		{
+			name:     "nil input",
+			input:    nil,
+			expected: expinfrav1.Taints{},
+		},
+		{
+			name: "unknown effect",
+			input: []ekstypes.Taint{
+				{Key: aws.String("key1"), Value: aws.String("value1"), Effect: ekstypes.TaintEffect("UnknownEffect")},
+			},
+			expectErr: true,
+		},
+		{
+			name: "mixed valid and invalid taints",
+			input: []ekstypes.Taint{
+				{Key: aws.String("key1"), Value: aws.String("value1"), Effect: ekstypes.TaintEffectNoExecute},
+				{Key: aws.String("key2"), Value: aws.String("value2"), Effect: ekstypes.TaintEffect("InvalidEffect")},
+			},
+			expectErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := TaintsFromSDK(tt.input)
+			if tt.expectErr {
+				if err == nil {
+					t.Fatalf("TaintsFromSDK() expected an error, got nil")
+				}
+				if result != nil {
+					t.Errorf("TaintsFromSDK() expected nil result on error, got %v", result)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("TaintsFromSDK() unexpected error: %v", err)
+			}
+			if !cmp.Equal(result, tt.expected) {
+				t.Errorf("TaintsFromSDK() diff (-want +got):\n%s", cmp.Diff(tt.expected, result))
+			}
+		})
+	}
+}
