@@ -36,7 +36,7 @@ import (
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/logger"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	"sigs.k8s.io/cluster-api/controllers/remote"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/util"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
 	v1beta1patch "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/patch"
@@ -54,6 +54,7 @@ type MachinePoolScope struct {
 	MachinePool    *clusterv1.MachinePool
 	InfraCluster   EC2Scope
 	AWSMachinePool *expinfrav1.AWSMachinePool
+	ClusterCache   clustercache.ClusterCache
 }
 
 // MachinePoolScopeParams defines a scope defined around a machine and its cluster.
@@ -65,6 +66,7 @@ type MachinePoolScopeParams struct {
 	MachinePool    *clusterv1.MachinePool
 	InfraCluster   EC2Scope
 	AWSMachinePool *expinfrav1.AWSMachinePool
+	ClusterCache   clustercache.ClusterCache
 }
 
 // GetProviderID returns the AWSMachine providerID from the spec.
@@ -118,6 +120,7 @@ func NewMachinePoolScope(params MachinePoolScopeParams) (*MachinePoolScope, erro
 		MachinePool:    params.MachinePool,
 		InfraCluster:   params.InfraCluster,
 		AWSMachinePool: params.AWSMachinePool,
+		ClusterCache:   params.ClusterCache,
 	}, nil
 }
 
@@ -338,7 +341,11 @@ func (m *MachinePoolScope) getNodeStatusByProviderID(ctx context.Context, provid
 		nodeStatusMap[id] = &NodeStatus{}
 	}
 
-	workloadClient, err := remote.NewClusterClient(ctx, "", m.Client, util.ObjectKey(m.Cluster))
+	if m.ClusterCache == nil {
+		return nil, errors.New("cluster cache is required to get node status")
+	}
+
+	workloadClient, err := m.ClusterCache.GetUncachedClient(ctx, util.ObjectKey(m.Cluster))
 	if err != nil {
 		return nil, err
 	}

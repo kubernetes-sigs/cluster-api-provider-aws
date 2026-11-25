@@ -25,7 +25,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
-	bsutil "sigs.k8s.io/cluster-api/bootstrap/util"
+	bsutil "sigs.k8s.io/cluster-api/bootstrap/kubeadm/reconcilers/kubeadmconfig"
 )
 
 func TestEKSConfigReconcilerReturnEarlyIfClusterInfraNotReady(t *testing.T) {
