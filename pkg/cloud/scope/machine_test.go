@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 )
 
@@ -340,4 +341,81 @@ func TestSetProviderID(t *testing.T) {
 	if providerID != expectedProviderID {
 		t.Fatalf("Expected providerID %s, got %s", expectedProviderID, providerID)
 	}
+}
+
+func TestIsControlPlaneLBDisabled(t *testing.T) {
+	tests := []struct {
+		name         string
+		loadBalancer *infrav1.AWSLoadBalancerSpec
+		expected     bool
+	}{
+		{
+			name:         "no control plane load balancer configured",
+			loadBalancer: nil,
+			expected:     false,
+		},
+		{
+			name:         "control plane load balancer type is disabled",
+			loadBalancer: &infrav1.AWSLoadBalancerSpec{LoadBalancerType: infrav1.LoadBalancerTypeDisabled},
+			expected:     true,
+		},
+		{
+			name:         "control plane load balancer type is classic",
+			loadBalancer: &infrav1.AWSLoadBalancerSpec{LoadBalancerType: infrav1.LoadBalancerTypeClassic},
+			expected:     false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ms, err := setupMachineScope()
+			if err != nil {
+				t.Fatalf("failed to set up machine scope: %v", err)
+			}
+			ms.InfraCluster.(*ClusterScope).AWSCluster.Spec.ControlPlaneLoadBalancer = tt.loadBalancer
+
+			if got := ms.IsControlPlaneLBDisabled(); got != tt.expected {
+				t.Errorf("IsControlPlaneLBDisabled() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+
+	t.Run("infra cluster is not an AWSCluster", func(t *testing.T) {
+		scheme, err := setupScheme()
+		if err != nil {
+			t.Fatalf("failed to set up scheme: %v", err)
+		}
+		if err := ekscontrolplanev1.AddToScheme(scheme); err != nil {
+			t.Fatalf("failed to add eks controlplane scheme: %v", err)
+		}
+
+		managedControlPlane, err := NewManagedControlPlaneScope(ManagedControlPlaneScopeParams{
+			Client:  fake.NewClientBuilder().WithScheme(scheme).Build(),
+			Cluster: newCluster("my-cluster"),
+			ControlPlane: &ekscontrolplanev1.AWSManagedControlPlane{
+				ObjectMeta: metav1.ObjectMeta{Name: "my-cluster", Namespace: "default"},
+			},
+		})
+		if err != nil {
+			t.Fatalf("failed to set up managed control plane scope: %v", err)
+		}
+
+		machine := newMachine("my-cluster", "my-machine-0")
+		awsMachine := newAWSMachine("my-cluster", "my-machine-0")
+		ms, err := NewMachineScope(MachineScopeParams{
+			Client:       fake.NewClientBuilder().WithScheme(scheme).WithObjects(machine, awsMachine).Build(),
+			Machine:      machine,
+			Cluster:      newCluster("my-cluster"),
+			InfraCluster: managedControlPlane,
+			AWSMachine:   awsMachine,
+		})
+		if err != nil {
+			t.Fatalf("failed to set up machine scope: %v", err)
+		}
+
+		// A non-AWSCluster infra cluster (e.g. EKS) never reports its LB as disabled here.
+		if got := ms.IsControlPlaneLBDisabled(); got {
+			t.Errorf("IsControlPlaneLBDisabled() = %v, want false", got)
+		}
+	})
 }
