@@ -150,7 +150,7 @@ func (r *AWSManagedMachinePoolReconciler) Reconcile(ctx context.Context, req ctr
 		return ctrl.Result{}, errors.New("error getting managed control plane scope")
 	}
 
-	if !controlPlane.Status.Ready {
+	if shouldWaitForControlPlane(controlPlane, awsPool) {
 		log.Info("Control plane is not ready yet")
 		v1beta1conditions.MarkFalse(awsPool, expinfrav1.EKSNodegroupReadyCondition, expinfrav1.WaitingForEKSControlPlaneReason, clusterv1beta1.ConditionSeverityInfo, "")
 		return ctrl.Result{}, nil

@@ -25,7 +25,6 @@ import (
 
 	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 	expinfrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/exp/api/v1beta2"
-	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/cloud/awserrors"
 	"sigs.k8s.io/cluster-api-provider-aws/v2/pkg/record"
 	clusterv1beta1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	v1beta1conditions "sigs.k8s.io/cluster-api/util/deprecated/v1beta1/conditions"
@@ -130,7 +129,8 @@ func (s *NodegroupService) ReconcilePool(ctx context.Context) error {
 }
 
 // ReconcilePoolDelete is the entrypoint for ManagedMachinePool deletion
-// reconciliation.
+// reconciliation. A missing nodegroup is already deleted, so the IAM role
+// cleanup must still run.
 func (s *NodegroupService) ReconcilePoolDelete(ctx context.Context) error {
 	s.scope.Debug("Reconciling deletion of EKS nodegroup")
 
@@ -138,25 +138,24 @@ func (s *NodegroupService) ReconcilePoolDelete(ctx context.Context) error {
 
 	ng, err := s.describeNodegroup(ctx)
 	if err != nil {
-		if awserrors.IsNotFound(err) {
-			s.scope.Trace("EKS nodegroup does not exist")
-			return nil
-		}
 		return errors.Wrap(err, "failed to describe EKS nodegroup")
 	}
-	if ng == nil {
-		return nil
-	}
 
-	if err := s.deleteNodegroupAndWait(ctx); err != nil {
-		return errors.Wrap(err, "failed to delete nodegroup")
+	if ng == nil {
+		s.scope.Trace("EKS nodegroup does not exist, continuing with IAM role cleanup")
+		if err := s.scope.NodegroupReadyFalse(clusterv1beta1.DeletedReason, ""); err != nil {
+			return err
+		}
+	} else {
+		if err := s.deleteNodegroupAndWait(ctx, ng); err != nil {
+			return errors.Wrap(err, "failed to delete nodegroup")
+		}
+		record.Eventf(s.scope.ManagedMachinePool, "SuccessfulDeleteEKSNodegroup", "Deleted EKS nodegroup %s", eksNodegroupName)
 	}
 
 	if err := s.deleteNodegroupIAMRole(ctx); err != nil {
 		return errors.Wrap(err, "failed to delete nodegroup IAM role")
 	}
-
-	record.Eventf(s.scope.ManagedMachinePool, "SuccessfulDeleteEKSNodegroup", "Deleted EKS nodegroup %s", eksNodegroupName)
 
 	return nil
 }

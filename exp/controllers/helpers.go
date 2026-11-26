@@ -18,10 +18,25 @@ package controllers
 
 import (
 	"github.com/pkg/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
 	infrav1 "sigs.k8s.io/cluster-api-provider-aws/v2/api/v1beta2"
+	ekscontrolplanev1 "sigs.k8s.io/cluster-api-provider-aws/v2/controlplane/eks/api/v1beta2"
 )
+
+// shouldWaitForControlPlane reports whether reconciliation of obj (a managed machine pool or a
+// fargate profile) must wait for the EKS control plane to become ready. It does not wait when obj
+// and the control plane are both being deleted: a control plane in deletion never becomes ready,
+// and its deletion waits for obj to be gone, so waiting would block both deletions forever.
+// Deleting obj only needs its spec. This happens when the objects are restored without status
+// (for example from a backup) and the control plane is deleted before it is reconciled.
+func shouldWaitForControlPlane(controlPlane *ekscontrolplanev1.AWSManagedControlPlane, obj metav1.Object) bool {
+	if controlPlane.Status.Ready {
+		return false
+	}
+	return obj.GetDeletionTimestamp().IsZero() || controlPlane.GetDeletionTimestamp().IsZero()
+}
 
 // validateEnclaveEdgeZones returns an error if enclaveOptions is enabled and any
 // subnet ID or availability zone resolves to a Local Zone or Wavelength Zone.
