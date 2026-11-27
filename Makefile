@@ -301,6 +301,16 @@ generate-go-apis: ## Alias for .build/generate-go-apis
 
 ##@ lint and verify:
 
+.PHONY: bootstrap
+bootstrap: $(KIND) $(SSM_PLUGIN) $(KUSTOMIZE) generate-test-flavors e2e-image ## Provision a self-hosted AWS management cluster for e2e testing
+	time go run github.com/onsi/ginkgo/v2/ginkgo -tags=e2e $(GINKGO_ARGS) ./test/e2e/suites/unmanaged/... -- -config-path="$(E2E_CONF_PATH)" $(E2E_ARGS) -provision-self-hosted-management-cluster=true
+
+.PHONY: teardown
+teardown: ## Tear down the self-hosted AWS management cluster created by 'make bootstrap'
+	@command -v docker >/dev/null 2>&1 || { echo "teardown requires docker on PATH (used to delete the temporary kind bootstrap cluster)"; exit 1; }
+	@test -f "$(ARTIFACTS)/self-hosted-management-cluster.json" || { echo "No self-hosted management cluster state at $(ARTIFACTS)/self-hosted-management-cluster.json; run 'make bootstrap' first or set ARTIFACTS to the folder used by 'make bootstrap'"; exit 1; }
+	time go run github.com/onsi/ginkgo/v2/ginkgo -tags=e2e $(GINKGO_ARGS) ./test/e2e/suites/unmanaged/... -- -config-path="$(E2E_CONF_PATH)" $(E2E_ARGS) -teardown-self-hosted-management-cluster=true
+
 .PHONY: modules
 
 $(GOLANGCI_LINT): # Build golangci-lint from tools folder.

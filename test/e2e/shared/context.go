@@ -79,6 +79,10 @@ type Settings struct {
 	ConfigPath string
 	// useExistingCluster instructs the test to use the current cluster instead of creating a new one (default discovery rules apply).
 	UseExistingCluster bool
+	// ProvisionSelfHostedManagementCluster provisions an AWS cluster, pivots CAPA into it, and skips the test specs and cleanup.
+	ProvisionSelfHostedManagementCluster bool
+	// TeardownSelfHostedManagementCluster tears down an environment created by ProvisionSelfHostedManagementCluster.
+	TeardownSelfHostedManagementCluster bool
 	// ArtifactFolder is the folder to store e2e test artifacts.
 	ArtifactFolder string
 	// DataFolder is the root folder for the data required by the tests.
